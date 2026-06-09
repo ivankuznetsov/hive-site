@@ -51,7 +51,9 @@ module HiveLlm
   end
 
   def raw_source(site, page)
-    File.read(site.in_source_dir(page.path))
+    # Cloudflare's build image defaults to US-ASCII; force UTF-8 so the docs'
+    # em dashes / arrows / checkmarks don't blow up the regex below.
+    File.read(site.in_source_dir(page.path), encoding: "UTF-8")
   end
 
   def sorted(pages)
@@ -103,7 +105,7 @@ module HiveLlm
   def write(site, rel_path, content)
     dest = File.join(site.dest, rel_path.sub(%r{\A/}, ""))
     FileUtils.mkdir_p(File.dirname(dest))
-    File.write(dest, content)
+    File.write(dest, content, encoding: "UTF-8")
   end
 end
 
