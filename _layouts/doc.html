@@ -5,6 +5,37 @@ layout: default
   Wrap docs content in data-pagefind-body so Pagefind indexes ONLY the docs
   body — not the sidebar, header, footer, or the marketing landing page.
 {%- endcomment -%}
+{%- assign _len = page.url | size | minus: 1 -%}
+{%- assign md_url = page.url | slice: 0, _len | append: '.md' | relative_url -%}
+<div class="llm-actions" data-md-url="{{ md_url }}">
+  <a class="llm-btn" href="{{ md_url }}">View as markdown</a>
+  <button type="button" class="llm-btn llm-copy">Copy for LLM</button>
+</div>
 <div data-pagefind-body>
   {{ content }}
 </div>
+<script>
+  (function () {
+    var actions = document.querySelector(".llm-actions");
+    if (!actions) { return; }
+    var btn = actions.querySelector(".llm-copy");
+    var url = actions.getAttribute("data-md-url");
+    if (!btn || !url) { return; }
+    btn.addEventListener("click", function () {
+      fetch(url)
+        .then(function (r) { return r.text(); })
+        .then(function (text) { return navigator.clipboard.writeText(text); })
+        .then(function () {
+          var original = btn.textContent;
+          btn.textContent = "Copied ✓";
+          btn.disabled = true;
+          setTimeout(function () { btn.textContent = original; btn.disabled = false; }, 1800);
+        })
+        .catch(function () {
+          var original = btn.textContent;
+          btn.textContent = "Copy failed";
+          setTimeout(function () { btn.textContent = original; }, 1800);
+        });
+    });
+  })();
+</script>
