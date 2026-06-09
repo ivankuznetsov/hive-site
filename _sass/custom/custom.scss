@@ -49,17 +49,60 @@ $hive-accent-hover: #f6c453;
   min-width: 0;
 }
 .header-custom .pagefind-search {
+  position: relative;        // anchor the results dropdown
   flex: 1 1 auto;
   min-width: 0;
-  max-width: 460px;
+  max-width: 360px;
 }
 .header-custom .theme-toggle { margin-left: 0; flex: 0 0 auto; }
 
-// Pagefind UI — honey accent, sized to sit inline in the header.
+// Pagefind UI — themed to follow the active Just the Docs color scheme
+// (these JtD SCSS vars compile to scheme-appropriate values in both the
+// dark and light stylesheets, so the search box matches either theme).
 .pagefind-ui {
-  --pagefind-ui-scale: 0.8;
+  --pagefind-ui-scale: 0.7;
   --pagefind-ui-primary: #{$hive-accent};
+  --pagefind-ui-text: #{$body-text-color};
+  --pagefind-ui-background: #{$body-background-color};
+  --pagefind-ui-border: #{$border-color};
+  --pagefind-ui-border-width: 1px;
+  --pagefind-ui-border-radius: 8px;
   --pagefind-ui-font: inherit;
+}
+
+// Compact input that fits the header row.
+.header-custom .pagefind-ui__search-input {
+  height: 2.3rem;
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 0.95rem;
+  background-color: $body-background-color;
+  color: $body-text-color;
+}
+.header-custom .pagefind-ui__search-clear {
+  padding: 0 0.6rem;
+  font-size: 0.8rem;
+  background-color: transparent;
+}
+
+// Results as a solid dropdown overlay — not floating transparently over the page.
+.header-custom .pagefind-ui__drawer {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 0.75rem 1rem;
+  background-color: $body-background-color;
+  border: 1px solid $border-color;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+}
+.header-custom .pagefind-ui__result {
+  background-color: transparent;
+  border-bottom: 1px solid $border-color;
 }
 
 // "Copy for LLM / View as markdown" control (styled now; wired in U7).
