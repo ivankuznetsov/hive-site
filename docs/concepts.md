@@ -104,20 +104,24 @@ trying to steer a long-running conversation.
 ## Knowledge sharing: the LLM wiki
 
 Compounding doesn't stop at a single task. Each Hive project keeps an
-**LLM-maintained wiki** — a durable, searchable knowledge base of the project's
-architecture, patterns, conventions, and decisions, written for agents to read
-and kept up to date as they work.
+**LLM-maintained wiki** — a `wiki/` directory of markdown pages, cataloged in
+`wiki/index.md` and cross-linked with `[[backlinks]]`, capturing the project's
+architecture, modules, conventions, and decisions. It's written for agents to
+read and kept current as work lands.
 
 The point is that knowledge accumulates instead of evaporating when a
-conversation ends. An agent consults the wiki before it starts, so it inherits
-what earlier tasks already figured out — established conventions, past
-gotchas, why things are shaped the way they are — and contributes back what it
-learns. Over time the project gets *cheaper and safer* to work in, because every
-task starts with more context than the last.
+conversation ends. The convention is simple: an agent reads the relevant wiki
+pages before it starts — inheriting established patterns, past gotchas, and the
+*why* behind decisions — and files what it learns back, either as new pages or
+as an append-only changelog fragment under `wiki/log.d/`. Over time the project
+gets *cheaper and safer* to work in, because every task starts with more context
+than the last.
 
-It's searchable (Hive ships a managed indexer), so both you and the agents can
-ask the wiki a question rather than re-deriving the answer. See
-[`hive wiki`]({{ '/docs/commands/wiki/' | relative_url }}).
+It's searchable: Hive ships a managed indexer (QMD), so you or an agent can run
+`qmd search "<topic>"` and get the answer straight from the wiki instead of
+re-deriving it. The changelog is rebuilt from those fragments with
+[`hive wiki compile-log`]({{ '/docs/commands/wiki/' | relative_url }}), which
+keeps concurrent edits from colliding on a single file.
 
 ## What Hive is not
 
