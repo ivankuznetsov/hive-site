@@ -1,0 +1,40 @@
+<section class="install" id="install">
+  <div class="wrap">
+    <h2 class="section-title">Install &amp; run your first task</h2>
+    <p class="section-lead">
+      Hive ships as the <code>hive-cli</code> rubygem attached to each GitHub Release,
+      signed with cosign keyless attestation. Every channel verifies the signature before installing.
+      Prerequisites: <strong>Ruby&nbsp;3.4</strong>, git, an authenticated <code>gh</code>, and the
+      agent CLIs you plan to use (<code>claude</code>, <code>codex</code>).
+    </p>
+
+    <div class="install__channels">
+      <div class="install__channel">
+        <h3>macOS (Homebrew)</h3>
+        <pre><code>brew install ivankuznetsov/hive/hive</code></pre>
+      </div>
+      <div class="install__channel">
+        <h3>Arch Linux (AUR)</h3>
+        <pre><code>yay -S hive-bin</code></pre>
+      </div>
+      <div class="install__channel install__channel--wide">
+        <h3>Linux (glibc x86_64 / aarch64)</h3>
+        <pre><code>tmpdir="$(mktemp -d)" &amp;&amp; trap 'rm -rf "$tmpdir"' EXIT \
+  &amp;&amp; curl -fsSL https://raw.githubusercontent.com/ivankuznetsov/hive/v{{ site.hive_version }}/install.sh \
+       -o "$tmpdir/hive-install.sh" \
+  &amp;&amp; bash "$tmpdir/hive-install.sh"</code></pre>
+      </div>
+    </div>
+
+    <h3 class="install__then">Then attach it to a project and capture an idea</h3>
+    <pre><code>cd ~/Dev/your-project
+hive init .          # choose launch + permission mode, enroll the daemon
+hive tui             # open the dashboard — press n to capture a new idea</code></pre>
+
+    <p class="install__more">
+      Full walkthrough in <a href="{{ '/docs/getting-started/' | relative_url }}">Getting started</a>.
+      Prefer an agent to install it? Hive also publishes a
+      <a href="https://clawhub.ai/ivankuznetsov/hive-cli">ClawHub <code>/hive</code> skill</a> for OpenClaw.
+    </p>
+  </div>
+</section>

@@ -1,0 +1,27 @@
+<section class="pipeline" id="how-it-works">
+  <div class="wrap">
+    <h2 class="section-title">How it works: nine stages, one task folder</h2>
+    <p class="section-lead">
+      Every task is a folder. Its location <em>is</em> the state — moving it to the next
+      stage is the approval gesture, and each stage leaves a durable artefact the next
+      one can trust. That practice is called <a href="{{ '/docs/concepts/' | relative_url }}">compound engineering</a>.
+    </p>
+
+    <figure class="pipeline__diagram" aria-hidden="true">
+      <img src="{{ '/assets/img/pipeline-1-to-9.svg' | relative_url }}"
+           alt="" width="1480" height="130" loading="lazy">
+    </figure>
+
+    <ol class="pipeline__stages">
+      <li><span class="stage-no">1</span><strong>inbox</strong><span class="stage-verb">capture</span><p>Jot the rough idea — one sentence is enough.</p></li>
+      <li><span class="stage-no">2</span><strong>brainstorm</strong><span class="stage-verb">refine</span><p>An agent pins down what you actually want.</p></li>
+      <li><span class="stage-no">3</span><strong>plan</strong><span class="stage-verb">design</span><p>Scope, implementation units, and risks get fixed.</p></li>
+      <li><span class="stage-no">4</span><strong>execute</strong><span class="stage-verb">build</span><p>The code is written in an isolated feature worktree.</p></li>
+      <li><span class="stage-no">5</span><strong>open-pr</strong><span class="stage-verb">draft PR</span><p>The branch is pushed and a draft PR opened.</p></li>
+      <li><span class="stage-no">6</span><strong>review</strong><span class="stage-verb">harden</span><p>CI fixes, multi-agent review, triage, and fixes.</p></li>
+      <li><span class="stage-no">7</span><strong>artifacts</strong><span class="stage-verb">collect</span><p>Release and handoff artefacts are gathered.</p></li>
+      <li><span class="stage-no">8</span><strong>finalize</strong><span class="stage-verb">publish</span><p>The PR body is refreshed and marked ready.</p></li>
+      <li><span class="stage-no">9</span><strong>done</strong><span class="stage-verb">archive</span><p>The task is archived with cleanup commands.</p></li>
+    </ol>
+  </div>
+</section>

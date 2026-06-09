@@ -1,0 +1,31 @@
+<footer class="site-footer">
+  <div class="wrap site-footer__inner">
+    <div class="site-footer__brand">
+      <a class="brand" href="{{ '/' | relative_url }}" aria-label="Hive home">
+        {% include logo.svg %}
+        <span class="brand__name">Hive</span>
+      </a>
+      <p>Turn a rough idea into a merge-ready PR.</p>
+    </div>
+    <nav class="site-footer__links" aria-label="Footer">
+      <div class="footer-col">
+        <h4>Docs</h4>
+        <a href="{{ '/docs/getting-started/' | relative_url }}">Getting started</a>
+        <a href="{{ '/docs/concepts/' | relative_url }}">Concepts</a>
+        <a href="{{ '/docs/configuration/' | relative_url }}">Configuration</a>
+        <a href="{{ '/docs/commands/' | relative_url }}">Command reference</a>
+        <a href="{{ '/docs/operating/' | relative_url }}">Operating</a>
+      </div>
+      <div class="footer-col">
+        <h4>Project</h4>
+        <a href="https://github.com/ivankuznetsov/hive">GitHub</a>
+        <a href="https://discord.gg/Qg5E7rMt">Discord</a>
+        <a href="https://clawhub.ai/ivankuznetsov/hive-cli">OpenClaw <code>/hive</code> skill</a>
+        <a href="{{ '/llms.txt' | relative_url }}">llms.txt</a>
+      </div>
+    </nav>
+  </div>
+  <div class="wrap site-footer__legal">
+    <p>MIT licensed · Built by Hive itself.</p>
+  </div>
+</footer>

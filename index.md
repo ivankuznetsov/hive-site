@@ -7,5 +7,11 @@ description: >-
   multi-agent pipeline you watch as it works and can step into at any stage.
 ---
 
-<!-- Landing sections are assembled in U2. -->
-<section><h1>Hive</h1><p>Turn a rough idea into a merge-ready PR.</p></section>
+{% include landing/hero.html %}
+{% include landing/demo.html %}
+{% include landing/pipeline.html %}
+{% include landing/cards.html %}
+{% include landing/proof.html %}
+{% include landing/fit.html %}
+{% include landing/install.html %}
+{% include landing/cta.html %}
