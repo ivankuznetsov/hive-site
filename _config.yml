@@ -1,0 +1,71 @@
+title: Hive
+description: >-
+  Turn a rough idea into a merge-ready pull request — a multi-agent pipeline you
+  watch as it works and can step into at any stage.
+lang: en
+
+# Deployed to GitHub Pages at https://ivankuznetsov.github.io/hive-site/
+url: "https://ivankuznetsov.github.io"
+baseurl: "/hive-site"
+
+theme: just-the-docs
+
+# Search is provided by Pagefind (built post-Jekyll in the deploy workflow),
+# not Just the Docs' bundled lunr index.
+search_enabled: false
+
+# Dark by default for a terminal-tool aesthetic; a toggle is wired in the docs layout.
+color_scheme: dark
+
+# Just the Docs niceties
+enable_copy_code_button: true
+heading_anchors: true
+
+# Footer + external nav
+nav_external_links:
+  - title: GitHub
+    url: https://github.com/ivankuznetsov/hive
+  - title: Discord
+    url: https://discord.gg/Qg5E7rMt
+
+aux_links:
+  GitHub: https://github.com/ivankuznetsov/hive
+  Discord: https://discord.gg/Qg5E7rMt
+aux_links_new_tab: true
+
+# The marketing landing page is not part of the docs sidebar.
+# (index.md sets nav_exclude + layout: home directly.)
+
+back_to_top: true
+back_to_top_text: "Back to top"
+
+footer_content: >-
+  Hive is MIT licensed. Built by Hive itself.
+
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# Default front matter
+defaults:
+  - scope:
+      path: "docs"
+      type: pages
+    values:
+      layout: default
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor
+  - node_modules
+  - package.json
+  - package-lock.json
+  - README.md
+  - LICENSE
+  - .github
+  - script
+
+# jekyll-sitemap / SEO
+sass:
+  style: compressed
