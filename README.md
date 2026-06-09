@@ -47,8 +47,14 @@ the published set.
 
 ## Deploying
 
-On push to `main`, GitHub Actions builds the site with Jekyll, generates the
-Pagefind search index, and deploys `_site/` to Cloudflare Pages via `wrangler`.
-Requires repo secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+Deployed to Cloudflare (Workers static assets — the unified Pages flow) via the
+repo's Git connection — no GitHub Actions, no secrets. On push, Cloudflare runs:
+
+- **Build command:** `bundle exec jekyll build && npx -y pagefind@^1 --site _site`
+- **Deploy command:** `npx wrangler deploy` (uploads `_site/` per `wrangler.jsonc`)
+
+`wrangler.jsonc` declares the assets directory (`./_site`); `_headers` and
+`_redirects` in `_site` are honored automatically. Non-production branches get
+preview deployments.
 
 MIT licensed.

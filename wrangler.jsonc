@@ -1,0 +1,11 @@
+{
+  // Cloudflare Workers static-assets deploy (the unified Pages flow).
+  // Build command produces _site/ (Jekyll + Pagefind); `wrangler deploy`
+  // uploads it. No Worker script — assets-only. _headers/_redirects in
+  // _site are honored automatically.
+  "name": "hive-site",
+  "compatibility_date": "2026-06-09",
+  "assets": {
+    "directory": "./_site"
+  }
+}
