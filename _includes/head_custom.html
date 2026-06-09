@@ -1,0 +1,37 @@
+<link rel="icon" type="image/svg+xml" href="{{ '/assets/img/logo-honey.svg' | relative_url }}">
+{% seo %}
+
+<script>
+  // Persisted dark/light toggle. Just the Docs ships both compiled stylesheets;
+  // jtd.setTheme swaps the <link href> between them. Default scheme is "dark".
+  (function () {
+    var STORAGE_KEY = "hive-theme";
+
+    function currentStored() {
+      try { return localStorage.getItem(STORAGE_KEY); } catch (e) { return null; }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      if (typeof jtd === "undefined") { return; }
+
+      var stored = currentStored();
+      if (stored === "light" || stored === "dark") {
+        jtd.setTheme(stored);
+      }
+
+      function activeTheme() {
+        var t = jtd.getTheme();
+        // The default stylesheet ("just-the-docs-default") is built as dark.
+        return t === "light" ? "light" : "dark";
+      }
+
+      var btn = document.getElementById("theme-toggle");
+      if (!btn) { return; }
+      btn.addEventListener("click", function () {
+        var next = activeTheme() === "dark" ? "light" : "dark";
+        jtd.setTheme(next);
+        try { localStorage.setItem(STORAGE_KEY, next); } catch (e) {}
+      });
+    });
+  })();
+</script>

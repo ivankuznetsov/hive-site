@@ -1,0 +1,63 @@
+// ===========================================================================
+// Hive brand overrides for the Just the Docs theme (honey accent).
+// Applied last, into both the dark and light compiled stylesheets.
+// ===========================================================================
+
+$hive-accent: #f0b429;
+$hive-accent-hover: #f6c453;
+
+// Sidebar logo sizing
+.site-logo {
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center left;
+}
+
+// Brand the in-content links and active nav with honey.
+.main-content {
+  a:not(.btn) { color: $hive-accent; }
+  a:not(.btn):hover { color: $hive-accent-hover; }
+}
+
+.site-nav .nav-list .nav-list-item .nav-list-link.active {
+  color: $hive-accent;
+  &::before { background-color: $hive-accent; }
+}
+.site-nav .nav-list .nav-list-item .nav-list-link:hover { color: $hive-accent-hover; }
+
+// Theme toggle button in the mobile/aux header.
+.theme-toggle {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--jtd-border, #44434d);
+  border-radius: 8px;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0.4rem 0.6rem;
+  margin-left: auto;
+}
+.theme-toggle:hover { border-color: $hive-accent; color: $hive-accent-hover; }
+
+// Header-custom area: keep the toggle aligned right within JtD's header.
+.site-header .header-custom { display: flex; align-items: center; }
+
+// "Copy for LLM / View as markdown" control (styled now; wired in U7).
+.llm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 1.25rem;
+}
+.llm-actions .llm-btn {
+  font-size: 0.8rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid $hive-accent;
+  border-radius: 8px;
+  background: transparent;
+  color: $hive-accent;
+  cursor: pointer;
+  text-decoration: none;
+}
+.llm-actions .llm-btn:hover { background: $hive-accent; color: #1a1205; text-decoration: none; }
