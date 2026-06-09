@@ -85,9 +85,11 @@ left off.
 ## Compound engineering in practice
 
 Compound engineering means structuring software work so each stage leaves
-behind a durable result the next stage can trust. Hive applies that to agent
-work by making every transition explicit and every intermediate artefact
-reviewable.
+behind a durable result the next stage can trust. The term comes from
+[Kieran Klaassen's work at Every](https://every.to/source-code/compound-engineering-the-definitive-guide) —
+the idea that each unit of engineering work should make the next one easier, not
+harder. Hive applies that to agent work by making every transition explicit and
+every intermediate artefact reviewable.
 
 Brainstorm pins requirements so the planner has fewer product unknowns. Plan
 fixes implementation scope so the execute agent can focus on code. Execute
@@ -98,6 +100,24 @@ trail still attached.
 The trade-off is more intermediate files than a chat-only workflow. The benefit
 is that a human can intervene at any stage with a normal editor instead of
 trying to steer a long-running conversation.
+
+## Knowledge sharing: the LLM wiki
+
+Compounding doesn't stop at a single task. Each Hive project keeps an
+**LLM-maintained wiki** — a durable, searchable knowledge base of the project's
+architecture, patterns, conventions, and decisions, written for agents to read
+and kept up to date as they work.
+
+The point is that knowledge accumulates instead of evaporating when a
+conversation ends. An agent consults the wiki before it starts, so it inherits
+what earlier tasks already figured out — established conventions, past
+gotchas, why things are shaped the way they are — and contributes back what it
+learns. Over time the project gets *cheaper and safer* to work in, because every
+task starts with more context than the last.
+
+It's searchable (Hive ships a managed indexer), so both you and the agents can
+ask the wiki a question rather than re-deriving the answer. See
+[`hive wiki`]({{ '/docs/commands/wiki/' | relative_url }}).
 
 ## What Hive is not
 

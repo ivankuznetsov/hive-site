@@ -31,10 +31,20 @@
 hive init .          # choose launch + permission mode, enroll the daemon
 hive tui             # open the dashboard — press n to capture a new idea</code></pre>
 
+    <h3 class="install__then">Or drive it from OpenClaw</h3>
+    <p class="section-lead">
+      Prefer to let an agent install and run Hive? Install the ClawHub skill, then use the
+      <code>/hive</code> slash command for guided setup and every workflow verb.
+    </p>
+    <pre><code>openclaw skills install hive-cli
+/hive setup                         # installs Hive, verifies it, sets up the daemon
+/hive new . "build this feature"    # then drive any command through /hive …
+/hive status --json</code></pre>
+
     <p class="install__more">
-      Full walkthrough in <a href="{{ '/docs/getting-started/' | relative_url }}">Getting started</a>.
-      Prefer an agent to install it? Hive also publishes a
-      <a href="https://clawhub.ai/ivankuznetsov/hive-cli">ClawHub <code>/hive</code> skill</a> for OpenClaw.
+      Full walkthrough in <a href="{{ '/docs/getting-started/' | relative_url }}">Getting started</a>;
+      services and the OpenClaw skill in <a href="{{ '/docs/operating/' | relative_url }}">Operating</a>.
+      Public listing: <a href="https://clawhub.ai/ivankuznetsov/hive-cli">clawhub.ai/ivankuznetsov/hive-cli</a>.
     </p>
   </div>
 </section>

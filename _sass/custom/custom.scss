@@ -6,11 +6,21 @@
 $hive-accent: #f0b429;
 $hive-accent-hover: #f6c453;
 
-// Sidebar logo sizing
-.site-logo {
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center left;
+// Inline SVG icons (aux nav, sidebar logo) — sized relative to text.
+.icon { width: 1em; height: 1em; flex: 0 0 auto; vertical-align: -0.125em; }
+
+// Sidebar brand: honey mark + wordmark, visible in both color schemes.
+.site-title {
+  gap: 0.5rem;
+  .hive-mark { width: 1.6rem; height: 1.6rem; color: $hive-accent; flex: 0 0 auto; }
+  .site-wordmark { font-weight: 700; font-size: 1.1rem; color: $body-heading-color; }
+}
+
+// Aux-nav (GitHub / Discord) links carry an icon before the label.
+.aux-nav .site-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 // Brand the in-content links and active nav with honey.
@@ -25,28 +35,32 @@ $hive-accent-hover: #f6c453;
 }
 .site-nav .nav-list .nav-list-item .nav-list-link:hover { color: $hive-accent-hover; }
 
-// Theme toggle button in the mobile/aux header.
+// Theme toggle button — matched to the search input height (#47).
 .theme-toggle {
   appearance: none;
   background: transparent;
-  border: 1px solid var(--jtd-border, #44434d);
+  border: 1px solid $border-color;
   border-radius: 8px;
   color: inherit;
   cursor: pointer;
   font-size: 0.85rem;
   line-height: 1;
-  padding: 0.4rem 0.6rem;
-  margin-left: auto;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.6rem;
 }
 .theme-toggle:hover { border-color: $hive-accent; color: $hive-accent-hover; }
 
 // Header-custom area: search box grows, toggle sits to its right.
+// Left margin keeps the search off the sidebar edge (#47).
 .header-custom {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
   flex: 1 1 auto;
   min-width: 0;
+  margin-left: 1.25rem;
 }
 .header-custom .pagefind-search {
   position: relative;        // anchor the results dropdown
@@ -70,12 +84,12 @@ $hive-accent-hover: #f6c453;
   --pagefind-ui-font: inherit;
 }
 
-// Compact input that fits the header row.
+// Compact input that fits the header row (#47 — shorter, matches the toggle).
 .header-custom .pagefind-ui__search-input {
-  height: 2.3rem;
+  height: 2rem;
   padding-top: 0;
   padding-bottom: 0;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   background-color: $body-background-color;
   color: $body-text-color;
 }

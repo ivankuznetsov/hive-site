@@ -1,0 +1,6 @@
+{%- comment -%}
+  Override of Just the Docs' title include: render the hive mark (honey, via
+  currentColor) + the "Hive" wordmark, so the logo is visible in both the dark
+  and light color schemes. Rendered inside the .site-title link.
+{%- endcomment -%}
+{% include logo.svg %}<span class="site-wordmark">{{ site.title }}</span>

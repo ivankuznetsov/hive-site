@@ -79,9 +79,14 @@ pre code { background: none; border: 0; padding: 0; font-size: inherit; }
 }
 .skip-link:focus { left: 0; }
 
+// --- Icons ----------------------------------------------------------------
+.icon { width: 1em; height: 1em; flex: 0 0 auto; }
+
 // --- Buttons --------------------------------------------------------------
 .btn {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   font-weight: 600;
   font-size: 0.95rem;
   padding: 0.7rem 1.25rem;
@@ -137,6 +142,7 @@ pre code { background: none; border: 0; padding: 0; font-size: inherit; }
 .site-nav a { color: var(--muted); font-weight: 500; font-size: 0.95rem; }
 .site-nav a:hover { color: var(--text); text-decoration: none; }
 .site-nav .btn { color: var(--accent-ink); }
+.nav-icon-link { display: inline-flex; align-items: center; gap: 0.4rem; }
 
 // --- Section primitives ---------------------------------------------------
 section { padding-block: 5rem; }
@@ -322,6 +328,7 @@ section:nth-of-type(even) { background: var(--bg-alt); }
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
+.install .section-lead { max-width: 80ch; }
 .install__channel h3 { margin: 0 0 0.5rem; font-size: 1rem; }
 .install__channel--wide { grid-column: 1 / -1; }
 .install__then { margin-top: 2rem; }
@@ -374,4 +381,7 @@ section:nth-of-type(even) { background: var(--bg-alt); }
   .pipeline__stages,
   .cards__grid { grid-template-columns: 1fr; }
   section { padding-block: 3.5rem; }
+  // The wide pipeline SVG can't shrink legibly on phones; the numbered
+  // stage cards below carry the same sequence, so drop the diagram here.
+  .pipeline__diagram { display: none; }
 }
