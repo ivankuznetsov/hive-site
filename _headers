@@ -1,0 +1,29 @@
+# Cloudflare Pages response headers.
+# https://developers.cloudflare.com/pages/configuration/headers/
+
+# AI-native docs: serve the LLM index + per-page raw markdown as fetchable,
+# cross-origin, clean text/markdown so an agent can read them directly.
+/llms.txt
+  Content-Type: text/markdown; charset=utf-8
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=3600
+
+/llms-full.txt
+  Content-Type: text/markdown; charset=utf-8
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=3600
+
+/*.md
+  Content-Type: text/markdown; charset=utf-8
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=3600
+
+# Long-cache fingerprint-free static assets (safe: content rarely changes).
+/assets/*
+  Cache-Control: public, max-age=86400
+
+# Baseline security headers for HTML.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: SAMEORIGIN

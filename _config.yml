@@ -63,6 +63,11 @@ defaults:
     values:
       layout: default
 
+# Cloudflare Pages config files are underscore-prefixed; force them into _site.
+include:
+  - _headers
+  - _redirects
+
 exclude:
   - Gemfile
   - Gemfile.lock

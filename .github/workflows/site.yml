@@ -1,4 +1,4 @@
-name: Deploy site to GitHub Pages
+name: Build & deploy to Cloudflare Pages
 
 on:
   push:
@@ -7,16 +7,13 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
-# Allow one concurrent deployment; don't cancel an in-progress production deploy.
 concurrency:
-  group: pages
+  group: pages-deploy
   cancel-in-progress: false
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,30 +25,20 @@ jobs:
           ruby-version: "3.4"
           bundler-cache: true
 
-      - name: Configure Pages
-        id: pages
-        uses: actions/configure-pages@v5
-
       - name: Build with Jekyll
-        run: bundle exec jekyll build --baseurl "$PAGES_BASE_PATH"
+        run: bundle exec jekyll build
         env:
           JEKYLL_ENV: production
-          PAGES_BASE_PATH: ${{ steps.pages.outputs.base_path }}
 
-      # Pagefind search index is built over the rendered HTML (added in U6).
+      # Pagefind search index over the rendered HTML (configured in U6).
+      - name: Build Pagefind index
+        run: npx -y pagefind@^1 --site _site
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      # Production deploy (main only). Per-PR previews can be added later via
+      # Cloudflare's sandboxed Git integration, which doesn't expose prod secrets.
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
         with:
-          path: _site
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy _site --project-name=hive-site --branch=main
