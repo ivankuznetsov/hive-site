@@ -1,6 +1,6 @@
 ---
 title: wiki
-layout: default
+layout: doc
 parent: Command reference
 nav_order: 18
 permalink: /docs/commands/wiki/

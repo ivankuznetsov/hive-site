@@ -1,6 +1,6 @@
 ---
 title: Command reference
-layout: default
+layout: doc
 nav_order: 4
 has_children: true
 permalink: /docs/commands/

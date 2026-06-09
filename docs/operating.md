@@ -1,6 +1,6 @@
 ---
 title: Operating
-layout: default
+layout: doc
 nav_order: 5
 permalink: /docs/operating/
 description: Run the daemon, Telegram bot, and babysitter as services, and drive Hive from OpenClaw.

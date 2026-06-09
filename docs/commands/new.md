@@ -1,6 +1,6 @@
 ---
 title: new
-layout: default
+layout: doc
 parent: Command reference
 nav_order: 2
 permalink: /docs/commands/new/

@@ -1,6 +1,6 @@
 ---
 title: Concepts
-layout: default
+layout: doc
 nav_order: 2
 permalink: /docs/concepts/
 description: The three load-bearing ideas behind Hive — folder-as-agent, the nine stages, and the marker protocol.

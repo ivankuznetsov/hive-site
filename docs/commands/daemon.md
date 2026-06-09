@@ -1,6 +1,6 @@
 ---
 title: daemon
-layout: default
+layout: doc
 parent: Command reference
 nav_order: 10
 permalink: /docs/commands/daemon/

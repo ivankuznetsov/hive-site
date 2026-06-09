@@ -40,8 +40,27 @@ $hive-accent-hover: #f6c453;
 }
 .theme-toggle:hover { border-color: $hive-accent; color: $hive-accent-hover; }
 
-// Header-custom area: keep the toggle aligned right within JtD's header.
-.site-header .header-custom { display: flex; align-items: center; }
+// Header-custom area: search box grows, toggle sits to its right.
+.header-custom {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.header-custom .pagefind-search {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 460px;
+}
+.header-custom .theme-toggle { margin-left: 0; flex: 0 0 auto; }
+
+// Pagefind UI — honey accent, sized to sit inline in the header.
+.pagefind-ui {
+  --pagefind-ui-scale: 0.8;
+  --pagefind-ui-primary: #{$hive-accent};
+  --pagefind-ui-font: inherit;
+}
 
 // "Copy for LLM / View as markdown" control (styled now; wired in U7).
 .llm-actions {

@@ -1,6 +1,6 @@
 ---
 title: patrol
-layout: default
+layout: doc
 parent: Command reference
 nav_order: 8
 permalink: /docs/commands/patrol/

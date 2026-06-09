@@ -1,6 +1,6 @@
 ---
 title: tui
-layout: default
+layout: doc
 parent: Command reference
 nav_order: 3
 permalink: /docs/commands/tui/

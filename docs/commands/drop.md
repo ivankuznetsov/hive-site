@@ -1,6 +1,6 @@
 ---
 title: drop
-layout: default
+layout: doc
 parent: Command reference
 nav_order: 16
 permalink: /docs/commands/drop/

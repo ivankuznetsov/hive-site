@@ -1,6 +1,6 @@
 ---
 title: status
-layout: default
+layout: doc
 parent: Command reference
 nav_order: 4
 permalink: /docs/commands/status/

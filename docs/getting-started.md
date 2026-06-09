@@ -1,6 +1,6 @@
 ---
 title: Getting started
-layout: default
+layout: doc
 nav_order: 1
 permalink: /docs/getting-started/
 description: Install Hive, attach it to a project with hive init, and run your first task in the TUI.

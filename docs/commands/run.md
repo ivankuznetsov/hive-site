@@ -1,6 +1,6 @@
 ---
 title: run
-layout: default
+layout: doc
 parent: Command reference
 nav_order: 5
 permalink: /docs/commands/run/

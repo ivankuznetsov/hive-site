@@ -1,6 +1,6 @@
 ---
 title: update
-layout: default
+layout: doc
 parent: Command reference
 nav_order: 14
 permalink: /docs/commands/update/

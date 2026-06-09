@@ -1,6 +1,6 @@
 ---
 title: init
-layout: default
+layout: doc
 parent: Command reference
 nav_order: 1
 permalink: /docs/commands/init/

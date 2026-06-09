@@ -1,6 +1,6 @@
 ---
 title: uninstall
-layout: default
+layout: doc
 parent: Command reference
 nav_order: 15
 permalink: /docs/commands/uninstall/

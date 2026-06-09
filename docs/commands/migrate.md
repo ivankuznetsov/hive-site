@@ -1,6 +1,6 @@
 ---
 title: migrate
-layout: default
+layout: doc
 parent: Command reference
 nav_order: 17
 permalink: /docs/commands/migrate/

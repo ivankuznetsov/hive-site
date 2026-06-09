@@ -1,6 +1,6 @@
 ---
 title: doctor
-layout: default
+layout: doc
 parent: Command reference
 nav_order: 12
 permalink: /docs/commands/doctor/

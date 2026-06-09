@@ -1,6 +1,6 @@
 ---
 title: approve
-layout: default
+layout: doc
 parent: Command reference
 nav_order: 6
 permalink: /docs/commands/approve/

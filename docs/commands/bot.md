@@ -1,6 +1,6 @@
 ---
 title: bot
-layout: default
+layout: doc
 parent: Command reference
 nav_order: 11
 permalink: /docs/commands/bot/

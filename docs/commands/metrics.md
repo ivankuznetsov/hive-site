@@ -1,6 +1,6 @@
 ---
 title: metrics
-layout: default
+layout: doc
 parent: Command reference
 nav_order: 13
 permalink: /docs/commands/metrics/

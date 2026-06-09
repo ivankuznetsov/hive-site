@@ -1,6 +1,6 @@
 ---
 title: Documentation
-layout: default
+layout: doc
 nav_order: 0
 permalink: /docs/
 description: Hive documentation — getting started, concepts, configuration, commands, and operating Hive as a service.

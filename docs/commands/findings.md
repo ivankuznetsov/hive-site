@@ -1,6 +1,6 @@
 ---
 title: findings
-layout: default
+layout: doc
 parent: Command reference
 nav_order: 7
 permalink: /docs/commands/findings/

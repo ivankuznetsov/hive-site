@@ -1,6 +1,6 @@
 ---
 title: babysit
-layout: default
+layout: doc
 parent: Command reference
 nav_order: 9
 permalink: /docs/commands/babysit/
