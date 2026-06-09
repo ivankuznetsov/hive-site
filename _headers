@@ -18,9 +18,11 @@
   Access-Control-Allow-Origin: *
   Cache-Control: public, max-age=3600
 
-# Long-cache fingerprint-free static assets (safe: content rarely changes).
+# Assets aren't content-hashed (just-the-docs-default.css, landing.css, …), so
+# keep the cache short or a deploy would leave returning visitors on stale CSS/JS.
+# Cloudflare still revalidates with ETags; this just bounds browser staleness.
 /assets/*
-  Cache-Control: public, max-age=86400
+  Cache-Control: public, max-age=600, must-revalidate
 
 # Baseline security headers for HTML.
 /*
