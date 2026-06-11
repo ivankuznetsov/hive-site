@@ -8,9 +8,10 @@ description: Hive documentation — getting started, concepts, configuration, co
 
 # Hive documentation
 
-Hive turns a rough idea into a merge-ready pull request through a multi-agent
-pipeline you watch and can step into. These docs cover installing it, the ideas
-behind it, configuring it, the command surface, and running it as a service.
+Hive turns a rough idea into a merge-ready pull request through an async
+multi-agent pipeline that runs in the background and asks for answers when it
+needs them. These docs cover installing it, the ideas behind it, configuring
+it, the command surface, and running it as a service.
 
 ## Start here
 

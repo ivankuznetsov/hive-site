@@ -3,8 +3,9 @@ layout: home
 title: Hive — turn a rough idea into a merge-ready PR
 nav_exclude: true
 description: >-
-  Hive turns a rough software idea into a merge-ready pull request through a
-  multi-agent pipeline you watch as it works and can step into at any stage.
+  Hive turns a rough software idea into a merge-ready pull request — an async
+  multi-agent pipeline that runs tasks in parallel in the background and only
+  needs you to answer questions in a doc.
 ---
 
 {% include landing/hero.html %}
