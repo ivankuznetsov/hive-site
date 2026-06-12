@@ -1,0 +1,25 @@
+<section class="install" id="install">
+  <div class="wrap">
+    <h2 class="section-title">Run the Box</h2>
+    <p class="section-lead">
+      One command on any machine with Docker. The image is multi-arch
+      (Apple&nbsp;silicon and ARM home servers pull native), and everything that
+      matters lives on the <code>/data</code> mount — updating is a pull away.
+    </p>
+    <div class="install__channels">
+      <div class="install__channel install__channel--wide">
+        <h3>macOS / Linux (and WSL&nbsp;2)</h3>
+        <pre><code>curl -fsSL https://hivecli.sh/box.sh | sh</code></pre>
+      </div>
+      <div class="install__channel install__channel--wide">
+        <h3>Windows PowerShell</h3>
+        <pre><code>irm https://hivecli.sh/box.ps1 | iex</code></pre>
+      </div>
+    </div>
+    <p class="hero__note">
+      Then open <code>http://localhost:4567</code> and sign in — the first GitHub
+      login becomes the owner. Exposing it beyond localhost? Claim it first, then
+      front it with a tunnel or proxy.
+    </p>
+  </div>
+</section>
