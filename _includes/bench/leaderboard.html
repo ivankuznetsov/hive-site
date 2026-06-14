@@ -1,0 +1,47 @@
+{% assign b = site.data.bench %}
+<section class="bench-board">
+  <div class="wrap">
+    <p class="bench-meta">
+      Corpus <code>{{ b.corpus_version }}</code> · as of {{ b.generated_at }}
+      · gated&nbsp;{{ b.gated_total }} / judged&nbsp;{{ b.judged_total }}
+    </p>
+
+    {% if b.status == "pending" %}
+      <p class="bench-pending">
+        The first benchmark pass is being curated. The slate below is locked;
+        scores publish once the v1 corpus run completes. Every row is marked
+        <span class="bench-prelim">preliminary</span> until then.
+      </p>
+    {% endif %}
+
+    <table class="bench-table">
+      <thead>
+        <tr>
+          <th scope="col">Agent</th>
+          <th scope="col">Gated pass rate</th>
+          <th scope="col">Judge quality</th>
+          <th scope="col">Mean wall-clock</th>
+          <th scope="col">Cost</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in b.agents %}
+          {% assign a = entry[1] %}
+          <tr>
+            <th scope="row"><code>{{ entry[0] }}</code>{% if a.preliminary %} <span class="bench-prelim">preliminary</span>{% endif %}</th>
+            <td>{% if a.gated.pass_rate %}{{ a.gated.pass_rate | times: 100 | round: 1 }}%{% else %}—{% endif %}</td>
+            <td>{% if a.judged.mean_quality %}{{ a.judged.mean_quality }}/10{% else %}—{% endif %}</td>
+            <td>{% if a.efficiency.mean_wall_clock_sec %}{{ a.efficiency.mean_wall_clock_sec }}s{% else %}—{% endif %}</td>
+            <td>{% if a.efficiency.total_cost_usd %}${{ a.efficiency.total_cost_usd }}{% else %}—{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <p class="bench-foot">
+      Ranks within overlapping judge confidence intervals are ties — do not
+      over-read small gaps. Machine-readable results:
+      <a href="{{ '/bench/results.json' | relative_url }}"><code>results.json</code></a>.
+    </p>
+  </div>
+</section>

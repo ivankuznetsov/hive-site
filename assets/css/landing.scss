@@ -401,3 +401,34 @@ section:nth-of-type(even) { background: var(--bg-alt); }
   vertical-align: middle;
   margin-left: 0.3em;
 }
+
+/* --- hive-bench /bench leaderboard --- */
+.bench-intro { padding-block: 3rem 1rem; }
+.bench-title { font-size: clamp(1.8rem, 4vw, 2.6rem); margin: 0.3rem 0 0.75rem; letter-spacing: -0.01em; }
+.bench-claim {
+  margin-top: 1.25rem; padding: 0.9rem 1.1rem; border-radius: 10px;
+  background: color-mix(in srgb, var(--accent, #d97757) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent, #d97757) 22%, transparent);
+  color: var(--muted, #9aa5b1); font-size: 0.95rem;
+}
+.bench-board { padding-block: 1rem 3rem; }
+.bench-meta { color: var(--muted, #9aa5b1); font-size: 0.9rem; margin-bottom: 0.75rem; }
+.bench-meta code { font-size: 0.85em; }
+.bench-pending {
+  margin: 0 0 1.25rem; padding: 0.8rem 1rem; border-radius: 10px;
+  background: var(--bg-alt, #11161d); border: 1px dashed var(--border, #2a313b);
+  color: var(--muted, #9aa5b1); font-size: 0.92rem;
+}
+.bench-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.bench-table th, .bench-table td { text-align: left; padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--border, #2a313b); }
+.bench-table thead th { color: var(--muted, #9aa5b1); font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.bench-table tbody th { font-weight: 500; }
+.bench-table td { font-variant-numeric: tabular-nums; }
+.bench-prelim {
+  display: inline-block; font-size: 0.62em; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; padding: 0.12em 0.45em; border-radius: 999px; margin-left: 0.35em;
+  background: color-mix(in srgb, var(--muted, #9aa5b1) 18%, transparent); color: var(--muted, #9aa5b1); vertical-align: middle;
+}
+.bench-foot { margin-top: 1rem; color: var(--muted, #9aa5b1); font-size: 0.85rem; }
+.bench-doc { padding-block: 2.5rem 3rem; }
+.bench-doc .wrap { max-width: 70ch; }
