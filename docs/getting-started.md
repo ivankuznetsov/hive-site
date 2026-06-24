@@ -135,3 +135,4 @@ advancing the same task toward code, a pull request, review, and archive.
 - **[Configuration]({{ '/docs/configuration/' | relative_url }})** — patrol, reviewers, agent profiles, budgets, and the daemon.
 - **[Command reference]({{ '/docs/commands/' | relative_url }})** — drive any stage by hand, or script Hive from an agent.
 - **[Operating]({{ '/docs/operating/' | relative_url }})** — run the daemon, Telegram bot, and babysitter as services.
+- **[Custom workflows]({{ '/docs/custom-workflows/' | relative_url }})** — the pipeline isn't just for code. Author your own per-project workflow — writing, research, triage, anything — in a few lines of YAML.
