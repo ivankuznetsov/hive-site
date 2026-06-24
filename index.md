@@ -3,9 +3,10 @@ layout: home
 title: Hive — turn a rough idea into a merge-ready PR
 nav_exclude: true
 description: >-
-  Hive turns a rough software idea into a merge-ready pull request — an async
-  multi-agent pipeline that runs tasks in parallel in the background and only
-  needs you to answer questions in a doc.
+  Hive is an open-source agent workflow engine & meta-harness: it orchestrates
+  Claude, Codex, and Pi to run multi-step work as a folder-as-agent pipeline.
+  Its flagship coding workflow turns a rough idea into a merge-ready PR — and
+  you can author your own workflows for writing, research, anything.
 ---
 
 {% include landing/hero.html %}
