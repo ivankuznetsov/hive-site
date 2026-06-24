@@ -3,7 +3,7 @@ title: Concepts
 layout: doc
 nav_order: 2
 permalink: /docs/concepts/
-description: The three load-bearing ideas behind Hive — folder-as-agent, the nine stages, and the marker protocol.
+description: The load-bearing ideas behind Hive — folder-as-agent, the stage state machine, and the marker protocol — and how workflows (coding, content, or your own) ride on top of them.
 ---
 
 # Concepts
@@ -12,6 +12,15 @@ description: The three load-bearing ideas behind Hive — folder-as-agent, the n
 Hive has three load-bearing ideas: a task is a folder, stage folders form a
 state machine, and every stage writes an artefact that lets the next stage run
 with less ambiguity.
+
+Those three are the **engine**. *Which* stages exist, and what each one does, is
+defined by a **workflow** — and Hive runs more than one. It ships two built-in
+workflows: `coding`, the nine-stage idea → PR pipeline described below (its
+flagship, and the default `hive init` selects), and `content`, a research
+pipeline. You can also author your own per project — see
+[Custom workflows]({{ '/docs/custom-workflows/' | relative_url }}). Everything in
+this page applies to any workflow; `coding` is just the most involved, so it's
+the one worth walking through in full.
 
 1. TOC
 {:toc}
@@ -42,7 +51,13 @@ move with marker checks, locking, JSON support, and a state-branch commit.
     └── escalations-01.md
 ```
 
-## The nine stages
+## The nine stages: the `coding` workflow
+
+The stages below are Hive's built-in **`coding`** workflow. A different workflow
+(`content`, or one you author) defines its own stages — but the mechanics are
+identical: each stage is a folder, the agent reads the prior artefacts and writes
+this stage's, and a marker negotiates the handoff. `coding` is the deepest of the
+built-ins, so it's the clearest illustration of the whole protocol.
 
 ```text
 1-inbox → 2-brainstorm → 3-plan → 4-execute → 5-open-pr → 6-review → 7-artifacts → 8-finalize → 9-done

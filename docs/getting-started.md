@@ -10,9 +10,12 @@ description: Install Hive, attach it to a project with hive init, and run your f
 {: .no_toc }
 
 This walks you from nothing to watching Hive carry your first idea toward a
-pull request. The happy path is **daemon-first**: the daemon advances ready
-tasks, and the TUI is where you watch the queue and answer only when Hive needs
-you. You do not need to learn the stage commands on day one.
+pull request, using Hive's default **`coding`** workflow. (It's one of several —
+Hive also ships `content` and lets you author your own
+[custom workflows]({{ '/docs/custom-workflows/' | relative_url }}) — but `coding`
+is the best first run.) The happy path is **daemon-first**: the daemon advances
+ready tasks, and the TUI is where you watch the queue and answer only when Hive
+needs you. You do not need to learn the stage commands on day one.
 
 1. TOC
 {:toc}
