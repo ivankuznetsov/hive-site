@@ -2,7 +2,7 @@
   "schema": "hive-bench-results",
   "schema_version": 1,
   "corpus_version": "v2",
-  "generated_at": "2026-07-07T16:58:05Z",
+  "generated_at": "2026-07-07T21:34:27Z",
   "cells": [
     {
       "task_id": "add-i-key-with-legend-260522-ca28",
@@ -1113,14 +1113,59 @@
         "review_ok": true,
         "review_changed_diff": true
       }
+    },
+    {
+      "task_id": "fix-review-stage-claude-stop-260629-26ed",
+      "agent_id": "all-opus-4.8",
+      "mode": "hive",
+      "model_version": "claude-opus-4-8",
+      "run_status": "generated",
+      "subset": "judged",
+      "gate": {
+        "status": "no_gate",
+        "reason": "v2: judge-scored"
+      },
+      "judges": {
+        "fable-5": {
+          "mean": 6.0,
+          "interval": [
+            6.0,
+            6.0
+          ],
+          "reference_withheld": false,
+          "same_family": true
+        },
+        "gpt-5.5-pro": {
+          "mean": 4.0,
+          "interval": [
+            4.0,
+            4.0
+          ],
+          "reference_withheld": false,
+          "same_family": false
+        }
+      },
+      "efficiency": {
+        "input_tokens": 89906,
+        "output_tokens": 132718,
+        "cached_tokens": 47174981,
+        "cache_creation_tokens": 1169827,
+        "wall_clock_sec": 7224.95,
+        "cost_usd_reported": 14.603457,
+        "cost_usd": 33.2041,
+        "plan_forced_complete": true,
+        "open_pr_ok": true,
+        "review_ok": true,
+        "review_changed_diff": true
+      }
     }
   ],
   "agents": {
     "all-opus-4.8": {
-      "cells": 4,
+      "cells": 5,
       "preliminary": true,
       "generation": {
-        "generated": 4
+        "generated": 5
       },
       "gated": {
         "total": 0,
@@ -1128,18 +1173,18 @@
         "pass_rate": null
       },
       "judged": {
-        "scored_cells": 4,
+        "scored_cells": 5,
         "mean_quality": {
-          "fable-5": 5.083,
-          "gpt-5.5-pro": 3.75
+          "fable-5": 5.267,
+          "gpt-5.5-pro": 3.8
         },
         "mean_quality_cross_family": {
           "fable-5": null,
-          "gpt-5.5-pro": 3.75
+          "gpt-5.5-pro": 3.8
         }
       },
       "efficiency": {
-        "total_cost_usd": 144.1434,
+        "total_cost_usd": 177.3475,
         "mean_wall_clock_sec": null,
         "wall_clock_sample": 0
       },
@@ -1333,11 +1378,6 @@
     {
       "task_id": "fix-review-stage-claude-stop-260629-26ed",
       "agent_id": "opus-plan->codex-exec",
-      "reason": "provider limit during a hive stage"
-    },
-    {
-      "task_id": "fix-review-stage-claude-stop-260629-26ed",
-      "agent_id": "all-opus-4.8",
       "reason": "provider limit during a hive stage"
     },
     {
