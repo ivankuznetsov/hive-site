@@ -1,17 +1,133 @@
 {
-  "schema": "hive-bench-results",
-  "schema_version": 1,
-  "corpus_version": "hive-bench v1 (curating)",
-  "generated_at": "pending first pass",
-  "status": "pending",
-  "gated_total": 0,
-  "judged_total": 0,
-  "agents": {
-    "claude@opus-4.8":      { "preliminary": true, "cells": 0, "gated": {"pass_rate": null}, "judged": {"mean_quality": null}, "efficiency": {"mean_wall_clock_sec": null, "total_cost_usd": null} },
-    "codex@gpt-5.5-xhigh":  { "preliminary": true, "cells": 0, "gated": {"pass_rate": null}, "judged": {"mean_quality": null}, "efficiency": {"mean_wall_clock_sec": null, "total_cost_usd": null} },
-    "pi@kimi-k2.7":         { "preliminary": true, "cells": 0, "gated": {"pass_rate": null}, "judged": {"mean_quality": null}, "efficiency": {"mean_wall_clock_sec": null, "total_cost_usd": null} },
-    "pi@minimax-3":         { "preliminary": true, "cells": 0, "gated": {"pass_rate": null}, "judged": {"mean_quality": null}, "efficiency": {"mean_wall_clock_sec": null, "total_cost_usd": null} },
-    "pi@qwen-2.6-coder":    { "preliminary": true, "cells": 0, "gated": {"pass_rate": null}, "judged": {"mean_quality": null}, "efficiency": {"mean_wall_clock_sec": null, "total_cost_usd": null} },
-    "pi@glm-5.2":           { "preliminary": true, "cells": 0, "gated": {"pass_rate": null}, "judged": {"mean_quality": null}, "efficiency": {"mean_wall_clock_sec": null, "total_cost_usd": null} }
-  }
+  "schema": "hive-bench-results-site",
+  "schema_version": 2,
+  "corpus_version": "v2 (6 tasks, full hive cycle)",
+  "generated_at": "2026-07-07",
+  "status": "partial",
+  "tasks": [
+    "add-i-key",
+    "web-install",
+    "install",
+    "fix-tmux",
+    "fix-review",
+    "daemon"
+  ],
+  "headline": [
+    {
+      "id": "all-codex",
+      "cross_family_judge": "fable-5",
+      "cross_family_mean": 5.19,
+      "scored": 6,
+      "total": 6
+    },
+    {
+      "id": "all-glm-5.2",
+      "cross_family_judge": "gpt-5.5-pro",
+      "cross_family_mean": 4.0,
+      "scored": 6,
+      "total": 6
+    },
+    {
+      "id": "glm-plan->kimi-exec",
+      "cross_family_judge": "gpt-5.5-pro",
+      "cross_family_mean": 4.0,
+      "scored": 2,
+      "total": 4
+    },
+    {
+      "id": "all-opus-4.8",
+      "cross_family_judge": "gpt-5.5-pro",
+      "cross_family_mean": 3.75,
+      "scored": 4,
+      "total": 6
+    },
+    {
+      "id": "all-kimi-k2.7-code",
+      "cross_family_judge": "gpt-5.5-pro",
+      "cross_family_mean": 3.17,
+      "scored": 6,
+      "total": 6
+    },
+    {
+      "id": "opus-plan->codex-exec",
+      "scored": 0,
+      "total": 6,
+      "note": "mixed family — no disjoint judge; flagged means only"
+    }
+  ],
+  "matrix": [
+    {
+      "id": "all-opus-4.8",
+      "cells": {
+        "add-i-key": "1.0 / 1.333",
+        "web-install": "2.0 / 4.0",
+        "install": "4.0 / 6.5",
+        "fix-tmux": "8.0 / 8.5",
+        "fix-review": "pending",
+        "daemon": "pending"
+      }
+    },
+    {
+      "id": "all-codex",
+      "cells": {
+        "add-i-key": "4.0 / 6.0",
+        "web-install": "2.0 / 4.5",
+        "install": "2.0 / 4.0",
+        "fix-tmux": "7.0 / 7.0",
+        "fix-review": "2.0 / 4.0",
+        "daemon": "3.667 / 5.667"
+      }
+    },
+    {
+      "id": "opus-plan->codex-exec",
+      "cells": {
+        "add-i-key": "2.0 / 2.0",
+        "web-install": "pending",
+        "install": "pending",
+        "fix-tmux": "· / 8.5",
+        "fix-review": "pending",
+        "daemon": "4.0 / 5.0"
+      }
+    },
+    {
+      "id": "all-glm-5.2",
+      "cells": {
+        "add-i-key": "4.0 / 6.167",
+        "web-install": "2.0 / 3.5",
+        "install": "2.0 / 4.5",
+        "fix-tmux": "8.0 / 9.0",
+        "fix-review": "4.0 / 7.0",
+        "daemon": "4.0 / ·"
+      }
+    },
+    {
+      "id": "all-kimi-k2.7-code",
+      "cells": {
+        "add-i-key": "4.0 / ·",
+        "web-install": "2.0 / 3.5",
+        "install": "2.0 / 3.667",
+        "fix-tmux": "8.0 / 8.5",
+        "fix-review": "2.0 / ·",
+        "daemon": "1.0 / 1.0"
+      }
+    },
+    {
+      "id": "glm-plan->kimi-exec",
+      "cells": {
+        "add-i-key": "4.0 / ·",
+        "web-install": "empty diff",
+        "install": "excluded",
+        "fix-tmux": "excluded",
+        "fix-review": "4.0 / ·",
+        "daemon": "execute failed"
+      }
+    }
+  ],
+  "notes": [
+    "Cells are gpt-5.5-pro / fable-5 independent scores (0–10, absolute rubric, reference provided as signal).",
+    "Cross-family mean uses only the judge whose model family is disjoint from the candidate.",
+    "glm-plan→kimi-exec install & fix-tmux are excluded: two funded, reproducible execute failures each (unfinishable).",
+    "Model claims verified against agent stream logs: 101 substantive stage logs, 0 violations.",
+    "Cost analysis (API-equivalent, usual tier) is in the repo RESULTS.md — telemetry caveats apply per agent."
+  ]
 }

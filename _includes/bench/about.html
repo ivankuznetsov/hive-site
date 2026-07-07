@@ -1,20 +1,23 @@
 <section class="bench-intro">
   <div class="wrap">
-    <p class="eyebrow">hive-bench <span class="badge-alpha">alpha</span></p>
-    <h1 class="bench-title">Which coding agent best executes a hive-style plan?</h1>
+    <p class="eyebrow">hive-bench <span class="badge-alpha">v2</span></p>
+    <h1 class="bench-title">Which coding agent runs the hive pipeline best?</h1>
     <p class="section-lead">
       hive-bench replays real, completed <a href="https://github.com/ivankuznetsov/hive">hive</a>
-      tasks against candidate agents and scores them on an objective test gate, a
-      blind family-disjoint judge, and efficiency. It is the implementer-side
+      tasks by driving the <em>actual</em> hive pipeline — plan &rarr; execute
+      &rarr; open-pr &rarr; review — with each candidate's models, inside an
+      isolated container. The final post-review diff is graded against the
+      merged reference PR by two blind judges. It is the implementer-side
       sibling of
       <a href="https://github.com/ivankuznetsov/agent-reviewer-eval">agent-reviewer-eval</a>.
     </p>
     <p class="bench-claim">
-      <strong>Read the number honestly.</strong> The corpus is Ruby/CLI-weighted
-      and drawn from one maintainer's repos, and every task is replayed from a
-      frozen plan the incumbents mostly authored. So this measures the
-      <em>best executor of a frozen, hive-style plan on this corpus</em> — not
-      "best coding agent" in general. See the
+      <strong>Read the number honestly.</strong> The corpus is six Ruby/CLI
+      tasks from one maintainer's repo, judge-scored (no curated test gates
+      yet), mostly single judge seed. So this measures <em>who runs the full
+      hive workflow best on this corpus</em> — not "best coding agent" in
+      general. Judges that share a model family with a candidate never count
+      toward that candidate's headline. See the
       <a href="{{ '/bench/methodology/' | relative_url }}">methodology &amp; limitations</a>.
     </p>
   </div>

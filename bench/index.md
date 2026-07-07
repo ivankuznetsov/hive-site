@@ -3,9 +3,9 @@ layout: home
 title: hive-bench — coding-agent benchmark
 nav_exclude: true
 description: >-
-  hive-bench replays real completed hive tasks against candidate coding agents
-  and scores them on an objective test gate, a blind judge, and efficiency.
-  Scoped to hive-style, plan-first work.
+  hive-bench drives the real hive pipeline (plan, execute, open-pr, review)
+  with each candidate's models on real completed tasks, and grades the final
+  diff against the merged reference PR with two blind judges.
 permalink: /bench/
 ---
 

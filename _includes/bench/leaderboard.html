@@ -3,45 +3,61 @@
   <div class="wrap">
     <p class="bench-meta">
       Corpus <code>{{ b.corpus_version }}</code> · as of {{ b.generated_at }}
-      · gated&nbsp;{{ b.gated_total }} / judged&nbsp;{{ b.judged_total }}
+      {% if b.status == "partial" %}· <span class="bench-prelim">column still filling</span>{% endif %}
     </p>
 
-    {% if b.status == "pending" %}
+    {% if b.status == "partial" %}
       <p class="bench-pending">
-        The first benchmark pass is being curated. The slate below is locked;
-        scores publish once the v1 corpus run completes. Every row is marked
-        <span class="bench-prelim">preliminary</span> until then.
+        Some cells are still generating (subscription-window bound); they land
+        automatically and this table regenerates. Everything shown is final.
       </p>
     {% endif %}
 
+    <h2>Cross-family leaderboard</h2>
     <table class="bench-table">
       <thead>
         <tr>
-          <th scope="col">Agent</th>
-          <th scope="col">Gated pass rate</th>
-          <th scope="col">Judge quality</th>
-          <th scope="col">Mean wall-clock</th>
-          <th scope="col">Cost</th>
+          <th scope="col">Candidate</th>
+          <th scope="col">Cross-family judge</th>
+          <th scope="col">Mean (0–10)</th>
+          <th scope="col">Scored</th>
         </tr>
       </thead>
       <tbody>
-        {% for entry in b.agents %}
-          {% assign a = entry[1] %}
+        {% for a in b.headline %}
           <tr>
-            <th scope="row"><code>{{ entry[0] }}</code>{% if a.preliminary %} <span class="bench-prelim">preliminary</span>{% endif %}</th>
-            <td>{% if a.gated.pass_rate %}{{ a.gated.pass_rate | times: 100 | round: 1 }}%{% else %}—{% endif %}</td>
-            <td>{% if a.judged.mean_quality %}{{ a.judged.mean_quality }}/10{% else %}—{% endif %}</td>
-            <td>{% if a.efficiency.mean_wall_clock_sec %}{{ a.efficiency.mean_wall_clock_sec }}s{% else %}—{% endif %}</td>
-            <td>{% if a.efficiency.total_cost_usd %}${{ a.efficiency.total_cost_usd }}{% else %}—{% endif %}</td>
+            <th scope="row"><code>{{ a.id }}</code></th>
+            <td>{% if a.cross_family_judge %}<code>{{ a.cross_family_judge }}</code>{% else %}—{% endif %}</td>
+            <td>{% if a.cross_family_mean %}<strong>{{ a.cross_family_mean }}</strong>{% elsif a.note %}{{ a.note }}{% else %}in&nbsp;progress{% endif %}</td>
+            <td>{{ a.scored }}/{{ a.total }}</td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
 
-    <p class="bench-foot">
-      Ranks within overlapping judge confidence intervals are ties — do not
-      over-read small gaps. Machine-readable results:
-      <a href="{{ '/bench/results.json' | relative_url }}"><code>results.json</code></a>.
-    </p>
+    <h2>Full board (per task)</h2>
+    <p class="bench-meta">Cell = <code>gpt-5.5-pro / fable-5</code> independent scores; <code>·</code> = judge backfill pending.</p>
+    <table class="bench-table bench-matrix">
+      <thead>
+        <tr>
+          <th scope="col">Candidate</th>
+          {% for t in b.tasks %}<th scope="col">{{ t }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in b.matrix %}
+          <tr>
+            <th scope="row"><code>{{ row.id }}</code></th>
+            {% for t in b.tasks %}<td>{{ row.cells[t] }}</td>{% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <ul class="bench-foot">
+      {% for n in b.notes %}<li>{{ n }}</li>{% endfor %}
+      <li>Machine-readable results:
+        <a href="{{ '/bench/results.json' | relative_url }}"><code>results.json</code></a>.</li>
+    </ul>
   </div>
 </section>
