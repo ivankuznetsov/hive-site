@@ -12,6 +12,38 @@
     "fix-review",
     "daemon"
   ],
+  "task_meta": {
+    "add-i-key": {
+      "desc": "Add an 'i' key (with legend entry) opening a full task-info panel in the hive TUI.",
+      "type": "feature",
+      "pr": "https://github.com/ivankuznetsov/hive/pull/103"
+    },
+    "web-install": {
+      "desc": "Add a first-class local (non-Docker) install & run mode for the Hive web UI.",
+      "type": "feature",
+      "pr": "https://github.com/ivankuznetsov/hive/pull/622"
+    },
+    "install": {
+      "desc": "Figure out packaging so hive installs as a simple package on macOS and various Linux distros.",
+      "type": "feature",
+      "pr": "https://github.com/ivankuznetsov/hive/pull/127"
+    },
+    "fix-tmux": {
+      "desc": "Fix two bugs breaking Hive with Claude Code in tmux mode: missing launcher scripts and the ready-prompt detector.",
+      "type": "bugfix",
+      "pr": "https://github.com/ivankuznetsov/hive/pull/623"
+    },
+    "fix-review": {
+      "desc": "Fix review-stage stop-hook completion failures that leave finished review passes stuck in REVIEW_ERROR.",
+      "type": "bugfix",
+      "pr": "https://github.com/ivankuznetsov/hive/pull/625"
+    },
+    "daemon": {
+      "desc": "Make the Hive daemon auto-retry recoverable terminal error markers once the failing dependency is healthy again.",
+      "type": "feature",
+      "pr": "https://github.com/ivankuznetsov/hive/pull/624"
+    }
+  },
   "headline": [
     {
       "id": "all-codex",

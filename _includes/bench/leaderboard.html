@@ -36,12 +36,12 @@
     </table>
 
     <h2>Full board (per task)</h2>
-    <p class="bench-meta">Cell = <code>gpt-5.5-pro / fable-5</code> independent scores; <code>·</code> = judge backfill pending.</p>
+    <p class="bench-meta">Cell = <code>gpt-5.5-pro / fable-5</code> independent scores; <code>·</code> = judge backfill pending. Hover a task's <span class="bench-info">ⓘ</span> for its description.</p>
     <table class="bench-table bench-matrix">
       <thead>
         <tr>
           <th scope="col">Candidate</th>
-          {% for t in b.tasks %}<th scope="col">{{ t }}</th>{% endfor %}
+          {% for t in b.tasks %}{% assign m = b.task_meta[t] %}<th scope="col">{{ t }}&nbsp;<span class="bench-info" title="{{ m.desc | escape }}">ⓘ</span></th>{% endfor %}
         </tr>
       </thead>
       <tbody>
@@ -53,6 +53,15 @@
         {% endfor %}
       </tbody>
     </table>
+
+    <h2>The tasks</h2>
+    <p class="bench-meta">Each is a real, completed hive task; the candidate's diff is judged against the merged reference PR.</p>
+    <ul class="bench-tasks">
+      {% for entry in b.task_meta %}{% assign m = entry[1] %}
+        <li><code>{{ entry[0] }}</code> <span class="bench-type">{{ m.type }}</span> — {{ m.desc }}
+          <a href="{{ m.pr }}">reference&nbsp;PR</a></li>
+      {% endfor %}
+    </ul>
 
     <ul class="bench-foot">
       {% for n in b.notes %}<li>{{ n }}</li>{% endfor %}
