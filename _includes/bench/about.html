@@ -1,81 +1,121 @@
 <section class="bench-intro">
   <div class="wrap">
     <p class="eyebrow">hive-bench <span class="badge-alpha">v2</span></p>
-    <h1 class="bench-title">Which AI model ships real software best?</h1>
+    <h1 class="bench-title">Which model should drive an autonomous dev pipeline?</h1>
     <p class="section-lead">
       <a href="https://github.com/ivankuznetsov/hive">Hive</a> is an open-source
-      autonomous development pipeline: you give it a task idea, and AI agents
+      autonomous development pipeline: you hand it a task idea, and LLM agents
       carry it through brainstorm &rarr; plan &rarr; implementation &rarr; pull
-      request &rarr; code review, end to end. Which AI model should drive that
-      pipeline? That is the question hive-bench answers — with evidence instead
-      of vibes.
+      request &rarr; code review. I run it daily, so at some point I had to
+      decide which model to put behind it. hive-bench is how I decided: replay
+      tasks I already merged through the real pipeline under different models,
+      and grade what each one ships.
     </p>
 
-    <h2>Why measure this</h2>
+    <h2>Why measure this at all?</h2>
     <p>
-      Most coding benchmarks test models on isolated puzzles. But when an agent
-      pipeline does the work, the model isn't solving a puzzle — it has to scope
-      a fuzzy idea, plan, implement across a real codebase, open a PR, and
-      survive code review. Whether a model can carry a <em>whole workflow</em>
-      is a different question from whether it can pass a unit test, and it's the
-      question that actually decides which model you configure your tooling
-      with.
+      Public coding benchmarks score models on isolated problems with a known
+      pass condition. Inside a pipeline the model faces different work: scope a
+      fuzzy idea, write a plan, implement it across a live codebase, open a PR,
+      then survive code review of its own change. A model can be strong on the
+      first kind of work and mediocre at the second — and only the second tells
+      me what to put in hive's config.
     </p>
 
     <h2>What is measured</h2>
     <p>
-      We take six real tasks that were already completed in the hive repository
-      — each with a human-merged pull request as ground truth — rewind the
-      codebase to just before each task was done, and let a <em>candidate</em>
-      (the pipeline configured with a specific model, e.g. all-Opus, all-GPT,
-      all-GLM, or a mixed pair) run the entire pipeline on it, in an isolated
-      container, with no access to the original solution. The candidate's final
-      post-review diff is then compared against the PR a human actually merged.
+      The corpus is six real tasks from the hive repository, each already
+      finished and merged as a pull request. That merged PR is the ground
+      truth, and I'm the one who merged it.
+    </p>
+    <p>
+      A <em>candidate</em> is what gets measured: hive configured with one
+      model for every stage, or with a mixed pair, where one model writes the
+      plan and a different model implements it. The mixed pairs matter later —
+      one of the board's findings is about them.
+    </p>
+    <p>
+      For each task, the repo is rewound to the commit the original work
+      started from, and the candidate runs the full cycle in an isolated
+      container: plan, execute, open a sandboxed PR, run hive's production
+      review. It never sees the reference solution. What gets graded is its
+      final, post-review diff.
     </p>
 
     <h2>How it is scored</h2>
     <ol class="bench-steps">
       <li><strong>Two blind judges</strong> (<code>gpt-5.5-pro</code> and
-        <code>fable-5</code>) each grade the diff 0–10 on an absolute rubric —
-        "does this correctly and completely accomplish the task?" — with the
-        merged PR as a reference signal, not an answer key to match.</li>
-      <li><strong>No self-grading:</strong> a judge that shares a model family
-        with a candidate never counts toward that candidate's headline score.</li>
-      <li><strong>Verified, not trusted:</strong> every run's logs are checked
-        to confirm the claimed model actually ran, and judges must survive a
-        cross-examination round where they fact-check each other's verdicts
-        against the diff.</li>
+        <code>fable-5</code>) grade each diff independently, 0–10 on an
+        absolute rubric: does this accomplish the task? They see the merged PR
+        as a signal of what the task needed; a candidate is never scored on
+        how closely it matches it, and verbosity is explicitly not
+        rewarded.</li>
+      <li><strong>No self-grading:</strong> both judge families also compete
+        on the board, so a judge that shares a model family with a candidate
+        never counts toward that candidate's headline mean. Concretely:
+        <code>fable-5</code> headlines codex, which is openai-family, and
+        <code>gpt-5.5-pro</code> headlines the anthropic and open-model
+        candidates. One pairing, <code>opus-plan&rarr;codex-exec</code>,
+        touches both judge families, so it has no clean headline — its means
+        appear flagged on the board, and the methodology page explains how to
+        read them.</li>
+      <li><strong>Model claims are audited:</strong> every cell's logs are
+        checked to confirm the claimed model actually ran — 101 substantive
+        stage logs, 0 violations.</li>
+      <li><strong>Judges cross-check each other, as a diagnostic:</strong>
+        after scoring independently, they exchange anonymized verdicts and
+        verify each other's claims against the diff. This never moves the
+        headline numbers — the leaderboard keeps the independent scores.</li>
     </ol>
     <p>Full detail and limitations:
       <a href="{{ '/bench/methodology/' | relative_url }}">methodology</a>.</p>
 
-    <h2>What we found</h2>
+    <h2>What came out</h2>
     <p>
-      <strong>No single winner — three different frontiers.</strong>
-      <code>codex (gpt-5.5)</code> is the reliability frontier: it finished
-      every task without a single failure, but never excelled on hard ones.
-      <code>opus-4.8</code> is the capability frontier: the only model to score
-      above the floor on the hardest task (install packaging, 4.0 vs everyone
-      else's 2.0) — but its subscription limits made it the hardest candidate
-      to even run. <code>glm-5.2</code> is the value frontier: near-codex
-      quality, fully pay-per-token, with the board's best single result. And
-      mixing models (one plans, another implements) works for the closed pair
-      but reproducibly broke for the open one — a handoff is its own risk.
+      No candidate wins outright. The board splits into three frontiers —
+      reliability, capability, value — plus a warning about mixing models.
+    </p>
+    <p>
+      <code>codex (gpt-5.5)</code> holds the reliability frontier: a 5.2
+      headline mean from <code>fable-5</code>, its cross-family judge, with
+      all six tasks completed and zero stage failures. It also sat at the 2.0
+      floor on three tasks — web-install, install, and fix-review — in
+      gpt-5.5-pro's scoring.
+    </p>
+    <p>
+      <code>opus-4.8</code> is the capability frontier. It is the only
+      candidate that scored above the floor on the install packaging task —
+      4.0 where every other candidate got 2.0 — but its subscription limit
+      windows make it the slowest column to fill: a 3.75 mean over the four
+      tasks scored so far.
+    </p>
+    <p>
+      <code>glm-5.2</code> is the value frontier: a 4.0 mean across all six
+      tasks, fully pay-per-token.
+      <code>kimi-k2.7-code</code> lands at 3.2 and is bimodal — 8.0/8.5 on
+      fix-tmux against 1.0/1.0 on daemon — with a fragility at the execute
+      stage, where empty final turns stall hive's stage markers.
+    </p>
+    <p>
+      A cross-model handoff turned out to be its own failure mode. The open
+      glm&rarr;kimi pair reproducibly broke at execute on install and
+      fix-tmux — two funded attempts each — even though each model finishes
+      those stages solo on other tasks.
     </p>
 
-    <h2>Example: one task through the pipeline</h2>
+    <h2>One task, end to end</h2>
     <p class="bench-example">
       Task <code>fix-tmux</code>: <em>"Fix two issues running Hive with Claude
       Code in tmux mode"</em> — a real bug a human fixed in
       <a href="https://github.com/ivankuznetsov/hive/pull/623">PR&nbsp;#623</a>.
       Each candidate got the original idea and brainstorm, planned its own fix,
-      implemented it, opened a (sandboxed) PR, and ran hive's review loop.
-      The all-GLM candidate produced a 400-line diff that both judges scored
-      8.0–9.0 — it found both root causes and shipped tests. Codex scored
-      7.0/7.0 with a correct but shallower fix. On the same task the open
-      glm&rarr;kimi pair failed to produce a diff at all: the handoff between
-      planner and implementer broke — which is itself a result. Every cell in
-      the table below is one such run; hover a task's ⓘ for what it asked.
+      implemented it, opened a sandboxed PR, and ran hive's review loop. The
+      all-GLM candidate shipped a 429-line diff that the judges scored 8.0 and
+      9.0 — the best dual-judged cell on the board. Codex earned 7.0 from both
+      judges. The glm&rarr;kimi pair never produced a diff here: its execute
+      stage failed on both funded attempts, so its cell reads as an exclusion.
+      Every cell in the tables below is one such run; hover a task's ⓘ for
+      what it asked.
     </p>
   </div>
 </section>
