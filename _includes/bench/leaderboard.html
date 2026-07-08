@@ -22,6 +22,8 @@
           <th scope="col">Cross-family judge</th>
           <th scope="col">Mean (0–10)</th>
           <th scope="col">Scored</th>
+          <th scope="col">$ / task</th>
+          <th scope="col">Tokens / task</th>
         </tr>
       </thead>
       <tbody>
@@ -31,10 +33,15 @@
             <td>{% if a.cross_family_judge %}<code>{{ a.cross_family_judge }}</code>{% else %}—{% endif %}</td>
             <td>{% if a.cross_family_mean %}<strong>{{ a.cross_family_mean }}</strong>{% elsif a.note %}{{ a.note }}{% else %}in&nbsp;progress{% endif %}</td>
             <td>{{ a.scored }}/{{ a.total }}</td>
+            <td>{% if a.mean_cost_usd %}${{ a.mean_cost_usd }}{% else %}—{% endif %}</td>
+            <td>{% if a.mean_mtokens %}{{ a.mean_mtokens }}M{% else %}—{% endif %}</td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
+    <p class="bench-meta">Costs are API-equivalent at usual-tier token rates, recomputed
+      per model from the agent stream logs — subscription runs are priced as if
+      their tokens were bought at API rates, so the column compares like with like.</p>
 
     <h2>Full board (per task)</h2>
     <p class="bench-meta">Each cell shows two independent scores, <code>gpt-5.5-pro / fable-5</code>; <code>·</code> marks a judge backfill still pending. Hover a task's <span class="bench-info">ⓘ</span> for its description.</p>
@@ -50,6 +57,45 @@
           <tr>
             <th scope="row"><code>{{ row.id }}</code></th>
             {% for t in b.tasks %}<td>{{ row.cells[t] }}</td>{% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h2>Cost per cell</h2>
+    <p class="bench-meta">API-equivalent $ and total tokens for each scored run — every
+      model's tokens are attributed and priced separately, so mixed pairs are exact.</p>
+    <table class="bench-table bench-matrix">
+      <thead>
+        <tr>
+          <th scope="col">Candidate</th>
+          {% for t in b.tasks %}<th scope="col">{{ t }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in b.matrix %}
+          <tr>
+            <th scope="row"><code>{{ row.id }}</code></th>
+            {% for t in b.tasks %}<td>{{ row.costs[t] | default: "—" }}</td>{% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h2>Spend per model</h2>
+    <p class="bench-meta">Campaign-wide generation totals per model, from per-event
+      attribution in the stream logs (judging excluded). <code>claude-haiku</code> is the
+      claude CLI's internal utility model — it rides along in every claude session.</p>
+    <table class="bench-table">
+      <thead>
+        <tr><th scope="col">Model</th><th scope="col">Total tokens</th><th scope="col">API-equivalent $</th></tr>
+      </thead>
+      <tbody>
+        {% for s in b.model_spend %}
+          <tr>
+            <th scope="row"><code>{{ s.model }}</code></th>
+            <td>{{ s.mtokens }}M</td>
+            <td>${{ s.cost_usd }}</td>
           </tr>
         {% endfor %}
       </tbody>

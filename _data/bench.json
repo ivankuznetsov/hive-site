@@ -50,41 +50,80 @@
       "cross_family_judge": "fable-5",
       "cross_family_mean": 5.19,
       "scored": 6,
-      "total": 6
+      "total": 6,
+      "mean_cost_usd": 8.78,
+      "mean_mtokens": 11.0
     },
     {
       "id": "all-glm-5.2",
       "cross_family_judge": "gpt-5.5-pro",
       "cross_family_mean": 4.0,
       "scored": 6,
-      "total": 6
+      "total": 6,
+      "mean_cost_usd": 15.64,
+      "mean_mtokens": 65.0
     },
     {
       "id": "glm-plan->kimi-exec",
       "cross_family_judge": "gpt-5.5-pro",
       "cross_family_mean": 4.0,
       "scored": 2,
-      "total": 4
+      "total": 4,
+      "mean_cost_usd": 18.39,
+      "mean_mtokens": 90.8
     },
     {
       "id": "all-opus-4.8",
       "cross_family_judge": "gpt-5.5-pro",
       "cross_family_mean": 3.83,
       "scored": 6,
-      "total": 6
+      "total": 6,
+      "mean_cost_usd": 22.78,
+      "mean_mtokens": 38.9
     },
     {
       "id": "all-kimi-k2.7-code",
       "cross_family_judge": "gpt-5.5-pro",
       "cross_family_mean": 3.17,
       "scored": 6,
-      "total": 6
+      "total": 6,
+      "mean_cost_usd": 18.91,
+      "mean_mtokens": 86.1
     },
     {
       "id": "opus-plan->codex-exec",
       "scored": 0,
       "total": 6,
-      "note": "mixed family — no disjoint judge; flagged means only"
+      "note": "mixed family — no disjoint judge; flagged means only",
+      "mean_cost_usd": 12.94,
+      "mean_mtokens": 19.6
+    }
+  ],
+  "model_spend": [
+    {
+      "model": "claude-opus-4-8",
+      "cost_usd": 171.43,
+      "mtokens": 270.5
+    },
+    {
+      "model": "moonshotai/kimi-k2.7-code",
+      "cost_usd": 140.26,
+      "mtokens": 667.5
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "cost_usd": 103.82,
+      "mtokens": 420.5
+    },
+    {
+      "model": "gpt-5.5",
+      "cost_usd": 78.36,
+      "mtokens": 102.3
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "cost_usd": 4.25,
+      "mtokens": 24.7
     }
   ],
   "matrix": [
@@ -97,7 +136,17 @@
         "fix-tmux": "8.0 / 8.5",
         "fix-review": "4.0 / 6.0",
         "daemon": "4.0 / ·"
-      }
+      },
+      "costs": {
+        "add-i-key": "$4.53 · 5M tok",
+        "web-install": "$28.44 · 50M tok",
+        "install": "$43.78 · 76M tok",
+        "fix-tmux": "$12.12 · 16M tok",
+        "fix-review": "$18.95 · 32M tok",
+        "daemon": "$28.88 · 53M tok"
+      },
+      "mean_cost_usd": 22.78,
+      "mean_mtokens": 38.9
     },
     {
       "id": "all-codex",
@@ -108,7 +157,17 @@
         "fix-tmux": "7.0 / 7.0",
         "fix-review": "2.0 / 4.0",
         "daemon": "3.667 / 5.667"
-      }
+      },
+      "costs": {
+        "add-i-key": "$7.69 · 8M tok",
+        "web-install": "$11.36 · 15M tok",
+        "install": "$8.25 · 10M tok",
+        "fix-tmux": "$4.98 · 6M tok",
+        "fix-review": "$9.19 · 12M tok",
+        "daemon": "$11.18 · 14M tok"
+      },
+      "mean_cost_usd": 8.78,
+      "mean_mtokens": 11.0
     },
     {
       "id": "opus-plan->codex-exec",
@@ -119,7 +178,16 @@
         "fix-tmux": "8.0 / 8.5",
         "fix-review": "pending",
         "daemon": "4.0 / 5.0"
-      }
+      },
+      "costs": {
+        "add-i-key": "$5.77 · 6M tok",
+        "web-install": "$17.24 · 27M tok",
+        "install": "$15.86 · 24M tok",
+        "fix-tmux": "$8.19 · 10M tok",
+        "daemon": "$17.62 · 30M tok"
+      },
+      "mean_cost_usd": 12.94,
+      "mean_mtokens": 19.6
     },
     {
       "id": "all-glm-5.2",
@@ -130,7 +198,17 @@
         "fix-tmux": "8.0 / 9.0",
         "fix-review": "4.0 / 7.0",
         "daemon": "4.0 / ·"
-      }
+      },
+      "costs": {
+        "add-i-key": "$8.57 · 39M tok",
+        "web-install": "$15.30 · 69M tok",
+        "install": "$15.18 · 57M tok",
+        "fix-tmux": "$3.85 · 13M tok",
+        "fix-review": "$19.64 · 76M tok",
+        "daemon": "$31.29 · 136M tok"
+      },
+      "mean_cost_usd": 15.64,
+      "mean_mtokens": 65.0
     },
     {
       "id": "all-kimi-k2.7-code",
@@ -141,7 +219,17 @@
         "fix-tmux": "8.0 / 8.5",
         "fix-review": "2.0 / ·",
         "daemon": "1.0 / 1.0"
-      }
+      },
+      "costs": {
+        "add-i-key": "$25.28 · 125M tok",
+        "web-install": "$26.73 · 143M tok",
+        "install": "$23.30 · 87M tok",
+        "fix-tmux": "$14.56 · 36M tok",
+        "fix-review": "$21.01 · 116M tok",
+        "daemon": "$2.58 · 10M tok"
+      },
+      "mean_cost_usd": 18.91,
+      "mean_mtokens": 86.1
     },
     {
       "id": "glm-plan->kimi-exec",
@@ -152,7 +240,13 @@
         "fix-tmux": "excluded",
         "fix-review": "4.0 / ·",
         "daemon": "execute failed"
-      }
+      },
+      "costs": {
+        "add-i-key": "$16.31 · 80M tok",
+        "fix-review": "$20.47 · 101M tok"
+      },
+      "mean_cost_usd": 18.39,
+      "mean_mtokens": 90.8
     }
   ],
   "notes": [
