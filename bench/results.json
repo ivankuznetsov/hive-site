@@ -2,7 +2,7 @@
   "schema": "hive-bench-results",
   "schema_version": 1,
   "corpus_version": "v2",
-  "generated_at": "2026-07-08T12:11:44Z",
+  "generated_at": "2026-07-08T19:19:17Z",
   "cells": [
     {
       "task_id": "add-i-key-with-legend-260522-ca28",
@@ -1115,6 +1115,94 @@
       }
     },
     {
+      "task_id": "add-local-hive-web-install-260629-f4ca",
+      "agent_id": "opus-plan->codex-exec",
+      "mode": "hive",
+      "model_version": "opus-plan/codex-exec",
+      "run_status": "generated",
+      "subset": "judged",
+      "gate": {
+        "status": "no_gate",
+        "reason": "v2: judge-scored"
+      },
+      "judges": {
+        "fable-5": {
+          "mean": 6.0,
+          "interval": [
+            6.0,
+            6.0
+          ],
+          "reference_withheld": false,
+          "same_family": true
+        },
+        "gpt-5.5-pro": {
+          "mean": 3.0,
+          "interval": [
+            3.0,
+            3.0
+          ],
+          "reference_withheld": false,
+          "same_family": true
+        }
+      },
+      "efficiency": {
+        "input_tokens": 10597151,
+        "output_tokens": 104696,
+        "cached_tokens": 21844122,
+        "cache_creation_tokens": 948923,
+        "wall_clock_sec": 3413.85,
+        "cost_usd_reported": 6.942211,
+        "plan_forced_complete": true,
+        "open_pr_ok": true,
+        "review_ok": false,
+        "review_changed_diff": true
+      }
+    },
+    {
+      "task_id": "figure-out-way-to-install-260513-4a0a",
+      "agent_id": "opus-plan->codex-exec",
+      "mode": "hive",
+      "model_version": "opus-plan/codex-exec",
+      "run_status": "generated",
+      "subset": "judged",
+      "gate": {
+        "status": "no_gate",
+        "reason": "v2: judge-scored"
+      },
+      "judges": {
+        "fable-5": {
+          "mean": 6.0,
+          "interval": [
+            6.0,
+            6.0
+          ],
+          "reference_withheld": false,
+          "same_family": true
+        },
+        "gpt-5.5-pro": {
+          "mean": 2.0,
+          "interval": [
+            2.0,
+            2.0
+          ],
+          "reference_withheld": false,
+          "same_family": true
+        }
+      },
+      "efficiency": {
+        "input_tokens": 10508523,
+        "output_tokens": 105967,
+        "cached_tokens": 19810918,
+        "cache_creation_tokens": 558182,
+        "wall_clock_sec": 3007.28,
+        "cost_usd_reported": 6.653018,
+        "plan_forced_complete": true,
+        "open_pr_ok": true,
+        "review_ok": true,
+        "review_changed_diff": true
+      }
+    },
+    {
       "task_id": "fix-review-stage-claude-stop-260629-26ed",
       "agent_id": "all-opus-4.8",
       "mode": "hive",
@@ -1262,10 +1350,10 @@
       }
     },
     "opus-plan->codex-exec": {
-      "cells": 3,
+      "cells": 5,
       "preliminary": true,
       "generation": {
-        "generated": 3
+        "generated": 5
       },
       "gated": {
         "total": 0,
@@ -1273,10 +1361,10 @@
         "pass_rate": null
       },
       "judged": {
-        "scored_cells": 3,
+        "scored_cells": 5,
         "mean_quality": {
-          "fable-5": 5.167,
-          "gpt-5.5-pro": 4.667
+          "fable-5": 5.5,
+          "gpt-5.5-pro": 3.8
         },
         "mean_quality_cross_family": {
           "fable-5": null,
@@ -1395,16 +1483,6 @@
       "task_id": "add-local-hive-web-install-260629-f4ca",
       "agent_id": "all-kimi-k2.7-code",
       "reason": "fable-5: HiveBench::JudgeOutput::Error: claude judge exited 1:  | gpt-5.5-pro: HiveBench::JudgeOutput::Error: openrouter judge HTTP 403: {\"error\":{\"message\":\"Key limit exceeded (total limit). Manage it using https://openrouter.ai/workspaces/default/keys/a2eb79e37b28890e66ccb32944853541a487673aac78c54343b639fcffd6a649\",\"code\":403}}"
-    },
-    {
-      "task_id": "add-local-hive-web-install-260629-f4ca",
-      "agent_id": "opus-plan->codex-exec",
-      "reason": "provider limit during a hive stage"
-    },
-    {
-      "task_id": "figure-out-way-to-install-260513-4a0a",
-      "agent_id": "opus-plan->codex-exec",
-      "reason": "provider limit during a hive stage"
     },
     {
       "task_id": "fix-claude-tmux-ready-detector-260629-50cc",
