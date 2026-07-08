@@ -19,6 +19,7 @@
       <thead>
         <tr>
           <th scope="col">Candidate</th>
+          <th scope="col">Reasoning effort</th>
           <th scope="col">Cross-family judge</th>
           <th scope="col">Mean (0–10)</th>
           <th scope="col">Scored</th>
@@ -30,6 +31,7 @@
         {% for a in b.headline %}
           <tr>
             <th scope="row"><code>{{ a.id }}</code></th>
+            <td>{{ a.reasoning | default: "—" }}</td>
             <td>{% if a.cross_family_judge %}<code>{{ a.cross_family_judge }}</code>{% else %}—{% endif %}</td>
             <td>{% if a.cross_family_mean %}<strong>{{ a.cross_family_mean }}</strong>{% elsif a.note %}{{ a.note }}{% else %}in&nbsp;progress{% endif %}</td>
             <td>{{ a.scored }}/{{ a.total }}</td>

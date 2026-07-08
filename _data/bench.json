@@ -51,6 +51,7 @@
       "cross_family_mean": 5.19,
       "scored": 6,
       "total": 6,
+      "reasoning": "default (light — 15% reasoning share)",
       "mean_cost_usd": 8.78,
       "mean_mtokens": 11.0
     },
@@ -60,6 +61,7 @@
       "cross_family_mean": 4.0,
       "scored": 6,
       "total": 6,
+      "reasoning": "default",
       "mean_cost_usd": 15.64,
       "mean_mtokens": 65.0
     },
@@ -69,6 +71,7 @@
       "cross_family_mean": 4.0,
       "scored": 2,
       "total": 4,
+      "reasoning": "default",
       "mean_cost_usd": 18.39,
       "mean_mtokens": 90.8
     },
@@ -78,6 +81,7 @@
       "cross_family_mean": 3.83,
       "scored": 6,
       "total": 6,
+      "reasoning": "CLI default",
       "mean_cost_usd": 22.78,
       "mean_mtokens": 38.9
     },
@@ -87,16 +91,36 @@
       "cross_family_mean": 3.17,
       "scored": 6,
       "total": 6,
+      "reasoning": "default",
       "mean_cost_usd": 18.91,
       "mean_mtokens": 86.1
+    },
+    {
+      "id": "all-codex-xhigh",
+      "cross_family_judge": "fable-5",
+      "scored": 0,
+      "total": 6,
+      "reasoning": "xhigh (pinned)",
+      "mean_cost_usd": null,
+      "mean_mtokens": null
     },
     {
       "id": "opus-plan->codex-exec",
       "scored": 0,
       "total": 6,
+      "reasoning": "opus: default · codex: default",
       "note": "mixed family — no disjoint judge; flagged means only",
       "mean_cost_usd": 12.94,
       "mean_mtokens": 19.6
+    },
+    {
+      "id": "opus-plan->codex-exec-xhigh",
+      "scored": 0,
+      "total": 6,
+      "reasoning": "opus: default · codex: xhigh (pinned)",
+      "note": "mixed family — no disjoint judge; flagged means only",
+      "mean_cost_usd": null,
+      "mean_mtokens": null
     }
   ],
   "model_spend": [
@@ -170,6 +194,20 @@
       "mean_mtokens": 11.0
     },
     {
+      "id": "all-codex-xhigh",
+      "cells": {
+        "add-i-key": "pending",
+        "web-install": "pending",
+        "install": "pending",
+        "fix-tmux": "pending",
+        "fix-review": "pending",
+        "daemon": "pending"
+      },
+      "costs": {},
+      "mean_cost_usd": null,
+      "mean_mtokens": null
+    },
+    {
       "id": "opus-plan->codex-exec",
       "cells": {
         "add-i-key": "2.0 / 2.0",
@@ -188,6 +226,20 @@
       },
       "mean_cost_usd": 12.94,
       "mean_mtokens": 19.6
+    },
+    {
+      "id": "opus-plan->codex-exec-xhigh",
+      "cells": {
+        "add-i-key": "pending",
+        "web-install": "pending",
+        "install": "pending",
+        "fix-tmux": "pending",
+        "fix-review": "pending",
+        "daemon": "pending"
+      },
+      "costs": {},
+      "mean_cost_usd": null,
+      "mean_mtokens": null
     },
     {
       "id": "all-glm-5.2",
