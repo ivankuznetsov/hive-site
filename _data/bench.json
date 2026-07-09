@@ -310,6 +310,65 @@
       }
     ]
   },
+  "gates": [
+    {
+      "id": "all-opus-4.8",
+      "cells": {
+        "fix-tmux": "pass",
+        "fix-review": "fail",
+        "daemon": "fail"
+      }
+    },
+    {
+      "id": "all-codex",
+      "cells": {
+        "fix-tmux": "pass",
+        "fix-review": "fail",
+        "daemon": "fail"
+      }
+    },
+    {
+      "id": "all-codex-xhigh",
+      "cells": {
+        "fix-tmux": "pass",
+        "daemon": "fail"
+      }
+    },
+    {
+      "id": "opus-plan->codex-exec",
+      "cells": {
+        "fix-tmux": "pass",
+        "daemon": "fail"
+      }
+    },
+    {
+      "id": "all-glm-5.2",
+      "cells": {
+        "fix-tmux": "pass",
+        "fix-review": "fail",
+        "daemon": "fail"
+      }
+    },
+    {
+      "id": "all-kimi-k2.7-code",
+      "cells": {
+        "fix-tmux": "pass",
+        "fix-review": "fail",
+        "daemon": "fail"
+      }
+    },
+    {
+      "id": "glm-plan->kimi-exec",
+      "cells": {
+        "fix-review": "fail"
+      }
+    }
+  ],
+  "gate_nature": {
+    "fix-tmux": "behavioral",
+    "fix-review": "interface-strict",
+    "daemon": "interface-strict"
+  },
   "model_spend": [
     {
       "model": "gpt-5.5",

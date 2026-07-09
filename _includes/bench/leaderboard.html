@@ -93,6 +93,36 @@
       </tbody>
     </table>
 
+    {% if b.gates and b.gates.size > 0 %}
+    <h2>Objective gate — do the reference's held-out tests pass?</h2>
+    <p class="bench-meta">Three tasks carry runnable gates: the reference PR's own
+      test files are applied over each candidate's diff and run in a no-network
+      container. <code>fix-tmux</code>'s gate is <strong>behavioral</strong> (it
+      builds the gem and checks shipped scripts) — passing it means the change
+      demonstrably works. The <code>fix-review</code> and <code>daemon</code>
+      gates turned out to be <strong>interface-strict</strong>: they unit-test the
+      reference's internal class names, and every candidate chose a different
+      architecture, so a fail there means "diverged from the reference's
+      internals", not "doesn't work". Read them as conformance data, not a
+      ranking.</p>
+    <table class="bench-table">
+      <thead>
+        <tr>
+          <th scope="col">Candidate</th>
+          {% for gn in b.gate_nature %}<th scope="col">{{ gn[0] }}<br><small>{{ gn[1] }}</small></th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for g in b.gates %}
+          <tr>
+            <th scope="row"><code>{{ g.id }}</code></th>
+            {% for gn in b.gate_nature %}<td>{% assign v = g.cells[gn[0]] %}{% if v == "pass" %}✓ pass{% elsif v == "fail" %}✗{% else %}—{% endif %}</td>{% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
     <h2>Cost per cell</h2>
     <p class="bench-meta">API-equivalent $ and total tokens for each scored run — every
       model's tokens are attributed and priced separately, so mixed pairs are exact.</p>
