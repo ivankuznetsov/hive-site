@@ -133,11 +133,12 @@
     </table>
 
     <h2>The tasks</h2>
-    <p class="bench-meta">Six real tasks from the hive repo, each finished by a human and merged; every candidate diff is graded against that merged reference PR.</p>
+    <p class="bench-meta">Six real tasks from the hive repo, each finished by a human and merged; every candidate diff is graded against that merged reference PR. Provenance is disclosed because it can bias the corpus: the original plans were authored by claude-family agents, so tasks may inherit that family's framing.</p>
     <ul class="bench-tasks">
       {% for entry in b.task_meta %}{% assign m = entry[1] %}
         <li><code>{{ entry[0] }}</code> <span class="bench-type">{{ m.type }}</span> — {{ m.desc }}
-          <a href="{{ m.pr }}">reference&nbsp;PR</a></li>
+          <a href="{{ m.pr }}">reference&nbsp;PR</a>
+          <span class="bench-prov">· original plan: {{ m.plan_author }} · original implementer: <code>{{ m.original_model }}</code></span></li>
       {% endfor %}
     </ul>
 

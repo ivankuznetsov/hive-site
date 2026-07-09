@@ -20,7 +20,11 @@ execute → open-pr → review with hive's production review config — inside a
 isolated, resource-capped container, seeded with the task's frozen idea and
 brainstorm, with the repo rewound to the task's base commit.
 
-The candidate never sees the reference solution. The container has a
+The candidate never sees the reference solution, and it re-plans from the
+idea and brainstorm — the frozen original plan is judge context only. (In v2
+the judges graded against that frozen plan while candidates re-planned; the
+external review flagged the asymmetry, and v3 grades each diff against the
+candidate's own plan.) The container has a
 bench-local git origin and a stubbed `gh`, and every cell's logs are scanned
 for reference-PR access.
 
