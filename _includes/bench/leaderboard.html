@@ -14,15 +14,47 @@
       </p>
     {% endif %}
 
-    <h2>Cross-family leaderboard</h2>
+    <h2>Leaderboards — one table per judge</h2>
+    <p class="bench-meta">Two judges score every diff, but their scales differ
+      (<code>fable-5</code> runs 1–2 points more generous than
+      <code>gpt-5.5-pro</code>), so scores from different judges are never mixed
+      into one ranking. Rows where the judge shares a model family with the
+      candidate are flagged <span class="bench-prelim">same-family</span> — read
+      those with self-preference in mind. <strong>Quality</strong> averages the
+      completed runs; <strong>end-to-end</strong> counts every attempted task,
+      scoring failures as 0 — the number that punishes a configuration for not
+      finishing.</p>
+
+    {% for jt in b.judge_tables %}
+      <h3>By <code>{{ jt[0] }}</code></h3>
+      <table class="bench-table">
+        <thead>
+          <tr>
+            <th scope="col">Candidate</th>
+            <th scope="col">Quality (0–10)</th>
+            <th scope="col">End-to-end</th>
+            <th scope="col">Completed</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in jt[1] %}
+            <tr>
+              <th scope="row"><code>{{ a.id }}</code>{% if a.same_family %} <span class="bench-prelim">same-family</span>{% endif %}</th>
+              <td>{% if a.mean %}<strong>{{ a.mean }}</strong>{% else %}—{% endif %}</td>
+              <td>{% if a.e2e_mean %}{{ a.e2e_mean }}{% else %}—{% endif %}</td>
+              <td>{{ a.completed }}/{{ a.attempted }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endfor %}
+
+    <h2>Efficiency</h2>
     <table class="bench-table">
       <thead>
         <tr>
           <th scope="col">Candidate</th>
           <th scope="col">Reasoning effort</th>
-          <th scope="col">Cross-family judge</th>
-          <th scope="col">Mean (0–10)</th>
-          <th scope="col">Scored</th>
           <th scope="col">$ / task</th>
           <th scope="col">Tokens / task</th>
         </tr>
@@ -32,9 +64,6 @@
           <tr>
             <th scope="row"><code>{{ a.id }}</code></th>
             <td>{{ a.reasoning | default: "—" }}</td>
-            <td>{% if a.cross_family_judge %}<code>{{ a.cross_family_judge }}</code>{% else %}—{% endif %}</td>
-            <td>{% if a.cross_family_mean %}<strong>{{ a.cross_family_mean }}</strong>{% elsif a.note %}{{ a.note }}{% else %}in&nbsp;progress{% endif %}</td>
-            <td>{{ a.scored }}/{{ a.total }}</td>
             <td>{% if a.mean_cost_usd %}${{ a.mean_cost_usd }}{% else %}—{% endif %}</td>
             <td>{% if a.mean_mtokens %}{{ a.mean_mtokens }}M{% else %}—{% endif %}</td>
           </tr>

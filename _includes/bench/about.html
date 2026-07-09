@@ -50,15 +50,14 @@
         as a signal of what the task needed; a candidate is never scored on
         how closely it matches it, and verbosity is explicitly not
         rewarded.</li>
-      <li><strong>No self-grading:</strong> both judge families also compete
-        on the board, so a judge that shares a model family with a candidate
-        never counts toward that candidate's headline mean. Concretely:
-        <code>fable-5</code> headlines codex, which is openai-family, and
-        <code>gpt-5.5-pro</code> headlines the anthropic and open-model
-        candidates. One pairing, <code>opus-plan&rarr;codex-exec</code>,
-        touches both judge families, so it has no clean headline — its means
-        appear flagged on the board, and the methodology page explains how to
-        read them.</li>
+      <li><strong>One ranking per judge, never mixed:</strong> the two judges
+        score on visibly different scales — <code>fable-5</code> runs 1–2
+        points more generous — so each judge gets its own full table and
+        scores from different judges are never combined into one column. An
+        external review of this benchmark's design caught that an earlier
+        mixed presentation compared rulers instead of candidates; the current
+        tables fix it. Rows where a judge shares a model family with the
+        candidate stay in the table but carry a same-family flag.</li>
       <li><strong>Model claims are audited:</strong> every cell's logs are
         checked to confirm the claimed model actually ran — 101 substantive
         stage logs, 0 violations.</li>
@@ -72,35 +71,39 @@
 
     <h2>What came out</h2>
     <p>
-      No candidate wins outright. The board splits into three frontiers —
-      reliability, capability, value — plus a warning about mixing models.
+      No candidate wins outright, and the answer depends on which judge you
+      ask — which is itself a finding. Reading each judge's own table:
     </p>
     <p>
-      <code>codex (gpt-5.5)</code> holds the reliability frontier: a 5.2
-      headline mean from <code>fable-5</code>, its cross-family judge, with
-      all six tasks completed and zero stage failures. It also sat at the 2.0
-      floor on three tasks — web-install, install, and fix-review — in
-      gpt-5.5-pro's scoring.
+      <code>glm-5.2</code> is the strongest clean result on the board: it
+      leads both judges' rankings among candidates with no family conflict
+      (gpt 4.0, fable 6.0), completed all six tasks, and runs fully
+      pay-per-token. <code>codex (gpt-5.5)</code> at its default reasoning
+      effort is the reliability pick — six of six tasks, zero stage failures,
+      the cheapest and most token-efficient run — but the strict judge puts
+      its quality at 3.4, at the 2.0 floor on three of the six tasks.
     </p>
     <p>
-      <code>opus-4.8</code> is the capability frontier. It is the only
-      candidate that scored above the floor on the install packaging task —
-      4.0 where every other candidate got 2.0 — but its subscription limit
-      windows make it the slowest column to fill: a 3.75 mean over the four
-      tasks scored so far.
+      Pinning codex's reasoning to xhigh changed that: <code>all-codex-xhigh</code>
+      tops both judges' quality columns (gpt 4.25, fable 6.5, with the gpt
+      score carrying a same-family flag), lifting the install floor from 2.0
+      to 3.0 and matching the board's best fix-tmux at 8.0.
     </p>
     <p>
-      <code>glm-5.2</code> is the value frontier: a 4.0 mean across all six
-      tasks, fully pay-per-token.
-      <code>kimi-k2.7-code</code> lands at 3.2 and is bimodal — 8.0/8.5 on
-      fix-tmux against 1.0/1.0 on daemon — with a fragility at the execute
-      stage, where empty final turns stall hive's stage markers.
+      <code>opus-4.8</code> is the capability frontier on hard tasks — the
+      only above-floor install score before xhigh arrived (4.0 where everyone
+      got 2.0) — but subscription limit windows made it the hardest column to
+      even run. <code>kimi-k2.7-code</code> is bimodal: 8.0/8.5 on fix-tmux
+      against 1.0/1.0 on daemon, with a fragility at the execute stage where
+      empty final turns stall hive's stage markers.
     </p>
     <p>
       A cross-model handoff turned out to be its own failure mode. The open
       glm&rarr;kimi pair reproducibly broke at execute on install and
       fix-tmux — two funded attempts each — even though each model finishes
-      those stages solo on other tasks.
+      those stages solo on other tasks. The end-to-end column makes this
+      visible: counting its failures as zeros, the pair drops from a 4.0
+      quality mean to 1.3.
     </p>
 
     <h2>One task, end to end</h2>

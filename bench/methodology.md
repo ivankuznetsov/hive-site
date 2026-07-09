@@ -34,11 +34,21 @@ verbosity is explicitly not rewarded.
 
 ## Judge integrity
 
-Both judge families also compete on the board, so a judge never counts toward
-the headline of a same-family candidate: `gpt-5.5-pro` headlines the
-anthropic-family and open-model candidates, `fable-5` headlines the
-openai-family ones. `opus-plan→codex-exec` touches both families, so it has no
-family-disjoint judge and gets flagged means only.
+The two judges score on different scales — `fable-5` runs 1–2 points more
+generous than `gpt-5.5-pro` across the board — so the leaderboard never mixes
+their scores into one ranking. Each judge gets its own table over every
+candidate. Where a judge shares a model family with a candidate
+(`gpt-5.5-pro` with the codex candidates, `fable-5` with the opus ones), the
+row is flagged same-family rather than hidden: the score is shown, the
+self-preference risk is named. An external design review (gpt-5.5-pro itself,
+via API — transcript in the repo under `reviews/`) caught that an earlier
+presentation mixed the two scales into one "cross-family" column; the
+single-ruler tables replaced it.
+
+Each table carries two aggregates: **quality** (mean over completed runs) and
+**end-to-end** (mean over all attempted tasks, failures scored 0) — the second
+is intention-to-treat, so a configuration that fails to finish is penalized
+instead of being averaged over its survivors.
 
 A deliberation diagnostic makes the judges exchange anonymized verdicts and
 check each other's claims against the diff. Across 15 discussed verdicts,
