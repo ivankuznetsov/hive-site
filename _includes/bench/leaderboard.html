@@ -1,4 +1,5 @@
 {% assign b = site.data.bench %}
+{% assign mixed_candidate = b.candidates | where: "id", "opus-plan->codex-exec-xhigh" | first %}
 <section class="bench-board">
   <div class="wrap">
     <p class="bench-meta">
@@ -68,14 +69,15 @@
     </table>
 
     <h2>Efficiency</h2>
-    <table class="bench-table">
+    <div class="bench-table-scroll" role="region" aria-label="Average efficiency by model or configuration" tabindex="0">
+    <table class="bench-table bench-efficiency-summary">
       <thead>
         <tr>
           <th scope="col">Candidate</th>
           <th scope="col">Reasoning</th>
           <th scope="col">Mean wall time</th>
-          <th scope="col">API-equivalent $ / task</th>
-          <th scope="col">Reported tokens / task</th>
+          <th scope="col">Avg. API-equivalent $ / task</th>
+          <th scope="col">Avg. normalized tokens / task</th>
         </tr>
       </thead>
       <tbody>
@@ -88,18 +90,73 @@
                 <small>({{ candidate.time_sample }}/{{ candidate.total }} timed)</small>
               {% else %}unknown{% endif %}
             </td>
-            <td>{% if candidate.cost_per_task_usd %}${{ candidate.cost_per_task_usd }}{% else %}unknown{% endif %}</td>
-            <td>{% if candidate.reported_mtokens_per_task %}{{ candidate.reported_mtokens_per_task }}M{% else %}unknown{% endif %}</td>
+            <td>
+              {% if candidate.cost_per_task_usd %}${{ candidate.cost_per_task_usd }}
+                <small>({{ candidate.cost_sample }}/{{ candidate.total }} priced)</small>
+              {% else %}unknown{% endif %}
+            </td>
+            <td>
+              {% if candidate.normalized_mtokens_per_task %}{{ candidate.normalized_mtokens_per_task }}M
+                <small>({{ candidate.token_sample }}/{{ candidate.total }} measured)</small>
+              {% else %}unknown{% endif %}
+            </td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
+    </div>
     <p class="bench-meta">
-      Costs are estimates at API-equivalent token rates, not subscription
-      invoices. Means use recorded telemetry only; recovered artifacts account
-      for the incomplete timing samples. Codex input accounting does not expose
-      a cache split, so its cost estimate may be high.
+      Generation tokens and costs are recomputed uniformly from per-event stage
+      logs with <code>{{ b.efficiency_accounting.parser }}</code>. Cumulative
+      <code>result</code>/<code>system</code> counters are excluded, cached Codex
+      inputs are separated from uncached inputs, and each model in a mixed cell
+      is priced independently. Costs use the
+      <code>{{ b.efficiency_accounting.pricing_version }}</code> usual-tier table;
+      they are API-equivalent estimates, not subscription invoices, and exclude
+      judging. Grok exposes no usable usage events, so its values remain unknown.
     </p>
+    <p class="bench-meta">
+      Mixed Opus &rarr; Codex cost across six tasks:
+      ${{ mixed_candidate.cost_breakdown_usd["gpt-5.5"] }} Codex 5.5 +
+      ${{ mixed_candidate.cost_breakdown_usd["claude-opus-4-8"] }} Opus 4.8 +
+      ${{ mixed_candidate.cost_breakdown_usd["claude-haiku-4-5"] }} Haiku
+      utility calls = <strong>${{ mixed_candidate.cost_total_usd }} total, or
+      ${{ mixed_candidate.cost_per_task_usd }} per task on average</strong>.
+    </p>
+
+    <h3>Per-task efficiency by model/configuration</h3>
+    <p class="bench-meta">
+      Each cell shows API-equivalent generation cost, normalized generation
+      tokens, and recorded end-to-end wall time. An unknown value means the
+      runner did not preserve usable evidence; it does not mean zero.
+    </p>
+    <div class="bench-table-scroll" role="region" aria-label="Per-task efficiency by model or configuration" tabindex="0">
+    <table class="bench-table bench-matrix">
+      <thead>
+        <tr>
+          <th scope="col">Model / candidate</th>
+          {% for task in b.tasks %}
+            <th scope="col">{{ task.key }}&nbsp;<span class="bench-info" title="{{ task.desc | escape }}">ⓘ</span></th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for candidate in b.candidates %}
+          <tr>
+            <th scope="row"><code>{{ candidate.label }}</code></th>
+            {% for task in b.tasks %}
+              {% assign stat = candidate.efficiency_by_task[task.key] %}
+              <td>
+                {% if stat.cost_usd %}{% assign rounded_cost = stat.cost_usd | round: 2 %}{% assign one_decimal_cost = stat.cost_usd | round: 1 %}<strong>${{ rounded_cost }}{% if rounded_cost == one_decimal_cost %}0{% endif %}</strong>{% else %}<strong>cost unknown</strong>{% endif %}<br>
+                <small>{% if stat.normalized_mtokens %}{{ stat.normalized_mtokens }}M tokens{% else %}tokens unknown{% endif %}</small><br>
+                <small>{% if stat.wall_minutes %}{{ stat.wall_minutes }} min{% else %}time not recorded{% endif %}</small>
+              </td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
 
     <h2>Full board (per task)</h2>
     <p class="bench-meta">
@@ -107,6 +164,7 @@
       the machine-readable cell result or <strong>diff</strong> for the exact
       candidate patch. No task in this campaign has an objective gate.
     </p>
+    <div class="bench-table-scroll" role="region" aria-label="Quality scores by task and candidate" tabindex="0">
     <table class="bench-table bench-matrix">
       <thead>
         <tr>
@@ -131,6 +189,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
 
     <h2>The tasks</h2>
     <p class="bench-meta">

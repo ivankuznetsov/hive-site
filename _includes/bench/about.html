@@ -1,3 +1,7 @@
+{% assign b = site.data.bench %}
+{% assign mixed_candidate = b.candidates | where: "id", "opus-plan->codex-exec-xhigh" | first %}
+{% assign codex_candidate = b.candidates | where: "id", "codex-5.5-xhigh" | first %}
+{% assign glm_candidate = b.candidates | where: "id", "glm-5.2" | first %}
 <section class="bench-intro">
   <div class="wrap">
     <p class="eyebrow">hive-bench <span class="badge-alpha">preliminary v2-ce</span></p>
@@ -63,9 +67,14 @@
       The mixed Opus-plan &rarr; Codex-execute configuration is also strong:
       second under Sol at 4.783 and third under Fable at 6.167. Both primary
       judge families touch that candidate, however, so its rows carry a
-      same-family warning under both rulers. GLM 5.2 is the least expensive
-      configuration with complete cost telemetry at an estimated $21.97 per
-      task, but ranks last under Sol and fifth under Fable on this corpus.
+      same-family warning under both rulers. Uniform per-model reconstruction
+      puts its API-equivalent generation cost at an average of
+      ${{ mixed_candidate.cost_per_task_usd }} per task:
+      ${{ mixed_candidate.cost_total_usd | round: 2 }} over all six cells,
+      including Opus, Codex, and Haiku utility calls. Codex 5.5 xhigh is
+      nominally cheapest at an average of ${{ codex_candidate.cost_per_task_usd }}
+      per task; GLM follows at ${{ glm_candidate.cost_per_task_usd }}. These are
+      comparable token-priced estimates, not subscription bills.
     </p>
     <p>
       These are scoped findings, not a universal model ranking. Six tasks from

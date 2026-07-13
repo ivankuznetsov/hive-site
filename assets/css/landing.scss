@@ -424,6 +424,13 @@ section:nth-of-type(even) { background: var(--bg-alt); }
 .bench-table thead th { color: var(--muted, #9aa5b1); font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; }
 .bench-table tbody th { font-weight: 500; }
 .bench-table td { font-variant-numeric: tabular-nums; }
+.bench-table-scroll {
+  width: 100%; overflow-x: auto; margin-bottom: 1.25rem;
+  border-radius: 8px; -webkit-overflow-scrolling: touch;
+}
+.bench-table-scroll .bench-efficiency-summary { min-width: 760px; margin-bottom: 0; }
+.bench-table-scroll .bench-matrix { min-width: 900px; margin-bottom: 0; }
+.bench-table-scroll:focus-visible { outline: 2px solid var(--accent, #d97757); outline-offset: 2px; }
 .bench-prelim {
   display: inline-block; font-size: 0.62em; font-weight: 700; letter-spacing: 0.06em;
   text-transform: uppercase; padding: 0.12em 0.45em; border-radius: 999px; margin-left: 0.35em;

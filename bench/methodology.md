@@ -69,12 +69,27 @@ cells, five mixed Opus/Codex cells, and all six cells for the remaining
 candidates have usable timing evidence. A displayed time mean uses only those
 recorded cells and always shows its sample count.
 
-Reported tokens and API-equivalent cost are descriptive telemetry, not a
-billing claim. Grok's runner did not expose usable token counts or cost, and
-the mixed candidate lacks complete cost attribution, so both costs are
-reported as **unknown**. Codex input-token accounting does not expose a cache
-split; pricing all those inputs at the usual uncached rate may overstate its
-estimate. No missing number is imputed from another provider or model.
+Generation tokens and API-equivalent costs are recomputed uniformly from the
+per-event stage logs with `HiveBench::TokenReport`. Session-cumulative `result`
+and `system` events are excluded rather than counted again. Codex usage is
+normalized by subtracting `cached_input_tokens` from its inclusive input count,
+then pricing cached and uncached input separately. Event model ids provide the
+first attribution signal; stages provide the fallback for Codex events that do
+not carry a model id. Claude's internal Haiku utility calls remain a separate
+priced model instead of being charged at the Opus rate.
+
+That per-model attribution makes the mixed candidate priceable: across all six
+tasks, Codex 5.5 contributes $67.3351, Opus 4.8 contributes $47.6319, and Haiku
+utility calls contribute $0.6159, for **$115.5829 total or an average of
+$19.26 per task**.
+The site also publishes every task-level cost, normalized token count, and
+recorded wall time rather than only the mean.
+
+Costs use the versioned `2026-06-usual` price table and are descriptive
+API-equivalent estimates, not a billing claim. Judge usage is excluded. Grok's
+runner emits no usable token events, so its token and cost fields remain
+**unknown**, not zero. No missing value is imputed from another provider or
+model.
 
 ## Known limitations
 
@@ -90,7 +105,8 @@ estimate. No missing number is imputed from another provider or model.
 - **Corpus provenance can frame the task.** All original task plans were
   Claude-authored, even though candidates re-ran the workflow themselves.
 - **Recovered telemetry is incomplete.** Some finished cells predate complete
-  wall-time or cost capture; the site labels every affected aggregate.
+  wall-time capture, and Grok exposes no usable token stream. The site labels
+  every affected task cell and aggregate.
 - **Post-merge references.** The reference PRs are human-reviewed outcomes.
   They are strong task evidence, but model training contamination cannot be
   ruled out for already-public PRs.
