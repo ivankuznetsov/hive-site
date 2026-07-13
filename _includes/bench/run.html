@@ -14,21 +14,16 @@
       for full planning, implementation, PR, review, and judging runs.
     </p>
 
-    <h3>1. Install the native Hive workflow</h3>
+    <h3>1. Select Hive's built-in benchmark workflow</h3>
     <pre class="bench-cmd"><code>git clone https://github.com/ivankuznetsov/hive-bench.git
 cd hive-bench
 bundle install
-hive init .
-
-mkdir -p .hive-state/workflows
-cp -R workflows/bench.yml workflows/bench .hive-state/workflows/
-git -C .hive-state add workflows/bench.yml workflows/bench
-git -C .hive-state commit -m "Install bench workflow"</code></pre>
+hive init . --workflow bench</code></pre>
     <p>
-      Install the workflow <em>after</em> <code>hive init</code> because
-      <code>.hive-state</code> is Hive's own Git worktree. The benchmark is an
-      ordinary Hive custom workflow; it does not install a second scheduler or
-      rescue loop.
+      <code>bench</code> is a named workflow packaged with Hive. Its descriptor
+      and stage instructions do not need to be copied into
+      <code>.hive-state</code>. It runs through the normal Hive daemon,
+      locking, ordering, and concurrency controls; Honeycomb is not required.
     </p>
 
     <h3>2. Extract your completed task into your local corpus</h3>
@@ -45,9 +40,13 @@ git -C .hive-state commit -m "Install bench workflow"</code></pre>
     </p>
 
     <h3>3. Pre-register and run a campaign</h3>
-    <pre class="bench-cmd"><code>hive new &lt;hive-bench-project&gt; --workflow bench "benchmark my task"
+    <pre class="bench-cmd"><code>hive new &lt;hive-bench-project&gt; "benchmark my task"
 hive status</code></pre>
     <p>
+      The project default selected by <code>hive init</code> routes this task to
+      <code>bench</code>. For an existing Hive project with another default, use
+      <code>hive new &lt;project&gt; --workflow bench "benchmark my task"</code>.
+
       In the new task folder reported by <code>hive status</code>, copy
       <code>campaign.yml.example</code> to <code>campaign.yml</code>. Set a new
       campaign id, the absolute source-repository path, your corpus task slug,
