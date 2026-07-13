@@ -1,7 +1,7 @@
 {% assign b = site.data.bench %}
 {% assign mixed_candidate = b.candidates | where: "id", "opus-plan->codex-exec-xhigh" | first %}
-{% assign codex_candidate = b.candidates | where: "id", "codex-5.5-xhigh" | first %}
-{% assign glm_candidate = b.candidates | where: "id", "glm-5.2" | first %}
+{% assign codex_candidate = b.candidates | where: "id", "all-codex-xhigh" | first %}
+{% assign glm_candidate = b.candidates | where: "id", "all-glm-5.2" | first %}
 <section class="bench-intro">
   <div class="wrap">
     <p class="eyebrow">hive-bench <span class="badge-alpha">preliminary v2-ce</span></p>

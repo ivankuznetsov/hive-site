@@ -2,135 +2,20 @@
   <div class="wrap">
     <h2>Run the benchmark for your task on your machine</h2>
     <p>
-      A benchmarkable task is currently a <strong>completed Hive coding
-      task</strong> in <code>9-done</code> with a merged GitHub pull request.
-      The merged PR becomes a held-out reference; candidates receive the task
-      inputs but never that patch. If the task is still in flight or has no
-      merged reference, finish it before benchmarking it.
+      The benchmark is a named workflow built into Hive. Install Hive, initialize
+      a project with <code>bench</code>, and let the normal Hive daemon handle
+      ordering, locking, retries, and concurrency.
     </p>
-    <p>
-      You need Docker, Ruby 3.4, a Hive release that includes the built-in
-      <code>bench</code> workflow, authenticated agent CLIs for the candidates
-      and judges you select, and enough provider quota for full planning,
-      implementation, PR, review, and judging runs.
-    </p>
-
-    <h3>1. Select Hive's built-in benchmark workflow</h3>
-    <pre class="bench-cmd"><code>git clone https://github.com/ivankuznetsov/hive-bench.git
-cd hive-bench
-bundle install
-hive init . --workflow bench</code></pre>
-    <p>
-      <code>bench</code> is a named workflow packaged with Hive. Its descriptor
-      and stage instructions do not need to be copied into
-      <code>.hive-state</code>. It runs through the normal Hive daemon,
-      locking, ordering, and concurrency controls; Honeycomb is not required.
-    </p>
-
-    <h3>2. Extract your completed task into your local corpus</h3>
-    <pre class="bench-cmd"><code>ruby -I harness harness/extract.rb \
-  --task-dir /absolute/project/.hive-state/stages/9-done/&lt;task-slug&gt; \
-  --repo owner/repository \
-  --repo-path /absolute/project \
-  --out corpus</code></pre>
-    <p>
-      This creates <code>corpus/&lt;task-slug&gt;</code> from the frozen task
-      materials and merged PR. Keep that corpus entry local if the task is
-      private. The benchmark runner itself isolates the candidate from
-      <code>reference.patch</code>.
-    </p>
-
-    <h3>3. Pre-register and run a campaign</h3>
-    <pre class="bench-cmd"><code>hive new &lt;hive-bench-project&gt; "benchmark my task"
-hive status</code></pre>
-    <p>
-      The project default selected by <code>hive init</code> routes this task to
-      <code>bench</code>. For an existing Hive project with another default, use
-      <code>hive new &lt;project&gt; --workflow bench "benchmark my task"</code>.
-
-      In the new task folder reported by <code>hive status</code>, copy
-      <code>campaign.yml.example</code> to <code>campaign.yml</code>. Set a new
-      campaign id, the absolute source-repository path, your corpus task slug,
-      candidate ids, exact judges and reasoning effort, sample count, timeout,
-      budget declaration, and any exclusions. Then commit the file inside the
-      state worktree:
-    </p>
-    <pre class="bench-cmd"><code>cp campaign.yml.example \
-  .hive-state/stages/1-inbox/&lt;campaign-slug&gt;/campaign.yml
-$EDITOR .hive-state/stages/1-inbox/&lt;campaign-slug&gt;/campaign.yml
-git -C .hive-state add stages/1-inbox/&lt;campaign-slug&gt;/campaign.yml
-git -C .hive-state commit -m "Pre-register benchmark campaign"</code></pre>
-    <p>
-      Do not amend the campaign after a model run has spent tokens; start a new
-      campaign instead. The supplied example matches the maintained follow-up
-      method: Fable 5 plus GPT-5.6 Sol at <code>ultra</code>, three independent
-      samples per judge and cell. For a private smoke comparison, reduce the
-      task/candidate matrix deliberately before the first run.
-    </p>
-    <pre class="bench-cmd"><code>hive approve &lt;campaign-slug&gt;
-hive run &lt;campaign-slug&gt;
-
-# After each COMPLETE stage, advance and run the next stage:
-hive approve &lt;campaign-slug&gt;
-hive run &lt;campaign-slug&gt;</code></pre>
-    <p>
-      You can instead enroll the project in the Hive daemon and let normal Hive
-      dispatch, locking, retry, and per-project concurrency rules drive the
-      stages. One campaign task runs its matrix in stable serial order;
-      independent campaign tasks can run concurrently within Hive's configured
-      limits. Results land at
-      <code>runs/&lt;campaign-id&gt;/results.json</code> and the publish stage
-      renders its summary.
-    </p>
-    <p>
-      See the <a href="https://github.com/ivankuznetsov/hive-bench/blob/main/wiki/v3-workflow.md">benchmark
-      workflow reference</a>, the available
-      <a href="https://github.com/ivankuznetsov/hive-bench/blob/main/harness/profiles/candidates.rb">candidate
-      profiles</a>, and Hive's
-      <a href="{{ '/docs/custom-workflows/' | relative_url }}">custom-workflow guide</a>.
-    </p>
+    <pre class="bench-cmd"><code>hive init /path/to/benchmark-project --workflow bench
+hive new &lt;project-name&gt; "benchmark my task"</code></pre>
+    <p><a href="{{ '/bench/run/' | relative_url }}">Read the setup and campaign guide &rarr;</a></p>
 
     <h2>Submit a task to the public Hive benchmark</h2>
     <p>
-      Public submission adds a reusable task to the corpus; it does not run
-      paid model cells or immediately change the leaderboard. Once the entry is
-      reviewed and merged, maintainers can include it in a later pre-registered
-      public campaign.
+      A completed Hive task with a merged reference PR can be proposed for a
+      future public campaign directly from the CLI.
     </p>
-    <p>
-      Before invoking the command, remember that the task idea, brainstorm,
-      plan, provenance, and merged reference diff will become public. Check the
-      completed task for confidential material first. The task must be in
-      <code>9-done</code>, contain <code>worktree.yml</code> and
-      <code>pr.md</code>, belong to a registered Hive project with a GitHub
-      origin, and point to a merged reference PR.
-    </p>
-
-    <h3>1. Prepare a fork checkout</h3>
-    <pre class="bench-cmd"><code># Fork ivankuznetsov/hive-bench on GitHub, then:
-git clone https://github.com/&lt;you&gt;/hive-bench.git ~/Dev/hive-bench
-export HIVE_BENCH_PATH=~/Dev/hive-bench
-gh auth status</code></pre>
-
-    <h3>2. Extract and open the submission PR</h3>
-    <pre class="bench-cmd"><code>hive bench submit &lt;task-slug&gt;
-
-# If the same slug exists in more than one registered project:
-hive bench submit &lt;task-slug&gt; --project &lt;project-name&gt;</code></pre>
-    <p>
-      Hive reuses hive-bench's extractor, runs a local pattern-based scan over
-      the task spec for credentials and private hostnames, creates a submission
-      branch, pushes it, and opens the pull request. The public validator then
-      checks structure and provenance, candidate-visible answer leakage,
-      secrets across the complete entry, and reference reproducibility.
-    </p>
-    <p>
-      Validation of contributor code begins only after a maintainer applies
-      <code>safe-to-validate</code>. It runs on the pull-request commit with a
-      read-only GitHub token, no repository secrets, and an isolated benchmark
-      runner. Start at the
-      <a href="https://github.com/ivankuznetsov/hive-bench">hive-bench repository</a>
-      if you want to inspect the corpus schema or validator before submitting.
-    </p>
+    <pre class="bench-cmd"><code>hive bench submit &lt;task-slug&gt;</code></pre>
+    <p><a href="{{ '/bench/run/#submit-a-task-to-the-public-benchmark' | relative_url }}">Read the submission requirements &rarr;</a></p>
   </div>
 </section>

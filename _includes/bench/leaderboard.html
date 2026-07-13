@@ -1,5 +1,5 @@
 {% assign b = site.data.bench %}
-{% assign mixed_candidate = b.candidates | where: "id", "opus-plan->codex-exec-xhigh" | first %}
+{% assign ranked_candidate_ids = "all-codex-5.6-sol-xhigh,all-grok-4.5,opus-plan->codex-exec-xhigh,all-opus-4.8,all-glm-5.2,all-codex-xhigh" | split: "," %}
 <section class="bench-board">
   <div class="wrap">
     <p class="bench-meta">
@@ -81,7 +81,8 @@
         </tr>
       </thead>
       <tbody>
-        {% for candidate in b.candidates %}
+        {% for candidate_id in ranked_candidate_ids %}
+          {% assign candidate = b.candidates | where: "id", candidate_id | first %}
           <tr>
             <th scope="row"><code>{{ candidate.label }}</code></th>
             <td>{{ candidate.reasoning }}</td>
@@ -113,24 +114,10 @@
     </table>
     </div>
     <p class="bench-meta">
-      Generation tokens and costs are recomputed uniformly from per-event stage
-      logs with <code>{{ b.efficiency_accounting.parser }}</code>. Cumulative
-      <code>result</code>/<code>system</code> counters are excluded, cached Codex
-      inputs are separated from uncached inputs, and each model in a mixed cell
-      is priced independently. Every displayed total includes fresh input,
-      output, cache reads, and cache creation/writes; the split is shown so a
-      cache-heavy run cannot look like fresh-input usage. Costs use the
-      <code>{{ b.efficiency_accounting.pricing_version }}</code> usual-tier table;
-      they are API-equivalent estimates, not subscription invoices, and exclude
-      judging. Grok exposes no usable usage events, so its values remain unknown.
-    </p>
-    <p class="bench-meta">
-      Mixed Opus &rarr; Codex cost across six tasks:
-      ${{ mixed_candidate.cost_breakdown_usd["gpt-5.5"] }} Codex 5.5 +
-      ${{ mixed_candidate.cost_breakdown_usd["claude-opus-4-8"] }} Opus 4.8 +
-      ${{ mixed_candidate.cost_breakdown_usd["claude-haiku-4-5"] }} Haiku
-      utility calls = <strong>${{ mixed_candidate.cost_total_usd }} total, or
-      ${{ mixed_candidate.cost_per_task_usd }} per task on average</strong>.
+      Values include fresh input, output, cache reads, and cache writes. See the
+      <a href="{{ '/bench/methodology/#time-tokens-and-cost' | relative_url }}">token
+      accounting and pricing methodology</a> for the normalization rules,
+      mixed-model attribution, and known telemetry gaps.
     </p>
 
     <h3>Per-task efficiency by model/configuration</h3>
@@ -151,7 +138,8 @@
         </tr>
       </thead>
       <tbody>
-        {% for candidate in b.candidates %}
+        {% for candidate_id in ranked_candidate_ids %}
+          {% assign candidate = b.candidates | where: "id", candidate_id | first %}
           <tr>
             <th scope="row"><code>{{ candidate.label }}</code></th>
             {% for task in b.tasks %}
@@ -193,7 +181,8 @@
         </tr>
       </thead>
       <tbody>
-        {% for candidate in b.candidates %}
+        {% for candidate_id in ranked_candidate_ids %}
+          {% assign candidate = b.candidates | where: "id", candidate_id | first %}
           <tr>
             <th scope="row"><code>{{ candidate.label }}</code></th>
             {% for task in b.tasks %}
