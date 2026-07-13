@@ -2,7 +2,7 @@
 layout: home
 title: hive-bench methodology & limitations
 nav_exclude: true
-description: How hive-bench scores agents, and the limitations you must read the leaderboard against.
+description: How the published 36-cell hive-bench campaign was run and scored, and the limits on its preliminary findings.
 permalink: /bench/methodology/
 ---
 
@@ -10,43 +10,117 @@ permalink: /bench/methodology/
 
 # Methodology & limitations
 
-## What is measured
+## What one cell measures
 
-Each cell is `(corpus task × candidate agent)`. The agent is given only the
-frozen spec (idea + brainstorm + plan) — never the reference solution — and runs
-in an isolated, resource-capped container. Scoring is three tiers:
+One cell is one corpus task run by one candidate configuration. The published
+campaign has six tasks and six candidates, for **36 generated cells**. A
+candidate can use one model across the workflow or split stages between models;
+for example, `opus-plan->codex-exec-xhigh` uses Opus to plan and review and
+Codex 5.5 xhigh to execute.
 
-1. **Gate (objective floor).** The candidate's diff must build and flip the
-   task's `FAIL_TO_PASS` tests while keeping `PASS_TO_PASS` green, in a
-   no-network container. Tasks with no runnable gate fall into a separate
-   **judged** subset.
-2. **Judge.** A blind, family-disjoint LLM scores passing diffs on an absolute
-   rubric (the reference is a *signal*, not "closest wins"), across several
-   seeds → a stability interval. Verbosity is explicitly not rewarded.
-3. **Efficiency.** Cost, review/CI fix-passes, and wall-clock (measured on fresh
-   runs only).
+Each task is a real completed Hive task with a merged reference PR. The runner
+rewinds a source clone to the task's base commit and supplies its frozen
+candidate-visible inputs. The candidate does not receive the reference patch.
+It then runs the real Hive cycle in an isolated runner: planning,
+implementation, a sandbox-local pull request, and Hive's production review and
+fix loop. The scored artifact is the final post-review candidate diff, not an
+intermediate answer or a reimplemented approximation of Hive.
 
-## Known limitations (read the number against these)
+## Current scoring
 
-- **Single-author, Ruby/CLI-weighted corpus.** Tasks come from one maintainer's
-  repos. The published distribution shows the language/size mix; the claim is
-  scoped to "hive-style work on this corpus," not all software.
-- **Plan-author confound.** Replay is *from a frozen plan*, mostly authored by
-  the incumbent agents — so the headline is "best **executor** of a frozen
-  plan," not "best coding agent." Per-task plan-authorship is published.
-- **Incumbent anchoring.** The reference and (for reused cells) the diff come
-  from the incumbents. A reference-withheld ablation is run on a held-out subset
-  to bound the effect; the delta is published.
-- **Judge variance.** A single judge family is used; scores carry a stability
-  interval and overlapping intervals are reported as ties. Agents below a
-  minimum cell count are marked **preliminary**.
-- **Reused cells.** claude/codex cells may reuse recorded outputs (diff + cost +
-  fix-passes); their wall-clock is not comparable and is omitted.
+Two judges independently score every final diff from 0–10 against the task and
+merged reference:
 
-## Reproducibility
+- **Fable 5**, with reasoning enabled; its exact effort level was not preserved
+  in the benchmark record.
+- **GPT-5.6 Sol**, explicitly pinned to `xhigh` reasoning.
 
-Every result records the corpus version, each agent's harness + model version,
-and the run date. The corpus and harness are public at
-[hive-bench](https://github.com/ivankuznetsov/hive-bench).
+The merged PR tells a judge what the task ultimately required; candidates are
+not rewarded for textual or structural similarity. Each primary judge has one
+score sample per cell. The per-task board displays `Fable / Sol` in that order.
+
+Judge calibrations are not interchangeable. The site keeps separate Fable and
+Sol columns as the primary evidence and uses their arithmetic mean only as a
+presentation aid to sort one compact leaderboard. It is not a third judge or a
+claim that the two rulers share a scale. A score is marked **same-family** when
+that judge shares a model family with any model in the candidate configuration.
+Those scores remain visible but should be treated as weaker evidence because
+self-preference cannot be ruled out.
+
+GPT-5.5 Pro is a historical supplemental ruler. It scored only one cell for
+Codex 5.5 xhigh, GLM 5.2, and Grok 4.5. Those three observations remain in the
+canonical result data but are not used in the compact leaderboard ranking.
+
+## Coverage and objective evidence
+
+All 36 candidate runs produced scoreable patches, and all 36 exact patches are
+published. There are no pending or failed generation cells in the canonical
+result. Every objective-gate record is `no_gate`: the corpus does not yet have
+curated held-out tests suitable for a fair candidate-independent pass/fail
+claim. The current numbers are judge evidence, not test-pass rates.
+
+The site links every score to its machine-readable cell result and exact
+candidate patch. The campaign manifest, complete merged `results.json`, and
+all evidence directories are public in
+[hive-bench](https://github.com/ivankuznetsov/hive-bench/tree/main/runs/v2-ce).
+
+## Time, tokens, and cost
+
+Wall time is recorded per task where recoverable. Four Sol cells, five Grok
+cells, five mixed Opus/Codex cells, and all six cells for the remaining
+candidates have usable timing evidence. A displayed time mean uses only those
+recorded cells and always shows its sample count.
+
+Generation tokens and API-equivalent costs are recomputed uniformly from the
+per-event stage logs with `HiveBench::TokenReport`. Session-cumulative `result`
+and `system` events are excluded rather than counted again. Codex usage is
+normalized by subtracting `cached_input_tokens` from its inclusive input count,
+then pricing cached and uncached input separately. Event model ids provide the
+first attribution signal; stages provide the fallback for Codex events that do
+not carry a model id. Claude's internal Haiku utility calls remain a separate
+priced model instead of being charged at the Opus rate.
+
+The normalized token total includes four non-overlapping buckets: fresh input,
+output, cache reads, and cache creation/writes. The site publishes the split for
+every measured candidate/task cell and for each candidate average. “Cache” is
+therefore not subtracted from the displayed total: the cache read and write
+figures are components of that total. This distinction matters because most of
+the observed token volume is cache reuse rather than fresh input.
+
+That per-model attribution makes the mixed candidate priceable: across all six
+tasks, Codex 5.5 contributes $67.3351, Opus 4.8 contributes $47.6319, and Haiku
+utility calls contribute $0.6159, for **$115.5829 total or an average of
+$19.26 per task**.
+The site also publishes every task-level cost, token-bucket split, and recorded
+wall time rather than only the mean.
+
+Costs use the versioned `2026-06-usual` price table and are descriptive
+API-equivalent estimates, not a billing claim. Judge usage is excluded. Grok's
+runner emits no usable token events, so its token and cost fields remain
+**unknown**, not zero. No missing value is imputed from another provider or
+model.
+
+## Known limitations
+
+- **Small, single-project corpus.** Six Ruby/CLI tasks from one repository do
+  not support a universal "best coding model" claim.
+- **One sample per primary judge-cell.** There are no useful stability
+  intervals yet; small gaps may reverse under repeated judging.
+- **No objective gates.** Human-aligned judge scoring is the only current
+  quality signal.
+- **Judge-family overlap.** Sol candidates are judged by Sol, while Opus and
+  the mixed candidate are judged by Fable. Flags disclose this but cannot
+  remove the bias.
+- **Corpus provenance can frame the task.** All original task plans were
+  Claude-authored, even though candidates re-ran the workflow themselves.
+- **Recovered telemetry is incomplete.** Some finished cells predate complete
+  wall-time capture, and Grok exposes no usable token stream. The site labels
+  every affected task cell and aggregate.
+- **Post-merge references.** The reference PRs are human-reviewed outcomes.
+  They are strong task evidence, but model training contamination cannot be
+  ruled out for already-public PRs.
+
+The scoped claim is therefore: **what these configurations shipped through
+the full Hive workflow on this corpus**, not which model is universally best.
 
 </div></section>

@@ -1,21 +1,97 @@
+{% assign b = site.data.bench %}
+{% assign mixed_candidate = b.candidates | where: "id", "opus-plan->codex-exec-xhigh" | first %}
+{% assign codex_candidate = b.candidates | where: "id", "all-codex-xhigh" | first %}
+{% assign glm_candidate = b.candidates | where: "id", "all-glm-5.2" | first %}
 <section class="bench-intro">
   <div class="wrap">
-    <p class="eyebrow">hive-bench <span class="badge-alpha">alpha</span></p>
-    <h1 class="bench-title">Which coding agent best executes a hive-style plan?</h1>
+    <p class="eyebrow">hive-bench <span class="badge-alpha">preliminary</span></p>
+    <h1 class="bench-title">Which model should drive an autonomous dev pipeline?</h1>
     <p class="section-lead">
-      hive-bench replays real, completed <a href="https://github.com/ivankuznetsov/hive">hive</a>
-      tasks against candidate agents and scores them on an objective test gate, a
-      blind family-disjoint judge, and efficiency. It is the implementer-side
-      sibling of
-      <a href="https://github.com/ivankuznetsov/agent-reviewer-eval">agent-reviewer-eval</a>.
+      <a href="https://github.com/ivankuznetsov/hive">Hive</a> carries a task
+      through planning, implementation, pull request, and code review. This
+      benchmark replays real, already-merged tasks through that full production
+      workflow under different model configurations, then judges the final
+      post-review diff against the merged reference.
     </p>
-    <p class="bench-claim">
-      <strong>Read the number honestly.</strong> The corpus is Ruby/CLI-weighted
-      and drawn from one maintainer's repos, and every task is replayed from a
-      frozen plan the incumbents mostly authored. So this measures the
-      <em>best executor of a frozen, hive-style plan on this corpus</em> — not
-      "best coding agent" in general. See the
-      <a href="{{ '/bench/methodology/' | relative_url }}">methodology &amp; limitations</a>.
+
+    <h2>What this benchmark measures</h2>
+    <p>
+      The corpus contains six completed tasks from the Hive repository. For
+      each task, the source is rewound to the original base commit and the
+      candidate receives the frozen task inputs, but never the reference
+      patch. A candidate may use one model for every stage or split planning
+      and execution between models. Every candidate then runs real Hive in an
+      isolated runner: plan &rarr; execute &rarr; open PR &rarr; production
+      review and fix loop.
+    </p>
+    <p>
+      The current board is complete at <strong>36 of 36 generation
+      cells</strong>: six candidates &times; six tasks. It is still labeled
+      preliminary because each judge-cell pair has only one independent score
+      sample and this corpus has no curated objective test gates.
+    </p>
+
+    <h2>How the scores should be read</h2>
+    <ol class="bench-steps">
+      <li><strong>Two independent rulers:</strong> Fable 5 and GPT-5.6 Sol
+        score each final diff from 0&ndash;10. Sol was explicitly run at
+        <code>xhigh</code>. Fable ran with reasoning enabled, but its exact
+        effort level was not preserved in the benchmark record.</li>
+      <li><strong>Keep both judge scores visible:</strong> the leaderboard uses
+        their arithmetic mean only for a compact ordering because their
+        calibrations differ. Every row retains separate Fable and Sol columns,
+        and every matrix cell shows <code>Fable / Sol</code> in that order.</li>
+      <li><strong>Show family conflicts:</strong> when the judge and candidate
+        share a model family, that row is marked
+        <span class="bench-prelim">same-family</span>. The score remains
+        visible, but it is weaker evidence than a family-disjoint judgment.</li>
+      <li><strong>Keep efficiency descriptive:</strong> wall time, normalized
+        generation tokens, and API-equivalent cost are shown where the underlying
+        runner recorded them. Missing values are reported as unknown, never inferred.</li>
+    </ol>
+    <p>
+      Read the full <a href="{{ '/bench/methodology/' | relative_url }}">methodology
+      and limitations</a> before treating small score differences as meaningful.
+    </p>
+
+    <h2>What came out</h2>
+    <p>
+      GPT-5.6 Sol xhigh leads the compact combined ordering at 6.550: 6.917 by
+      Fable and 6.183 by Sol. Its Sol judgment is same-family, while its Fable
+      judgment is family-disjoint. The mixed Opus/Codex configuration follows
+      at 5.475, then Grok 4.5 at 5.275. Grok completed its recorded timed cells
+      fastest at 27.3 minutes on average; its token count and cost are
+      unavailable from its runner and therefore remain unknown.
+    </p>
+    <p>
+      The mixed Opus-plan &rarr; Codex-execute configuration is also strong:
+      second under Sol at 4.783 and third under Fable at 6.167. Both primary
+      judge families touch that candidate, however, so its rows carry a
+      same-family warning under both rulers. Uniform per-model reconstruction
+      puts its API-equivalent generation cost at an average of
+      ${{ mixed_candidate.cost_per_task_usd }} per task:
+      ${{ mixed_candidate.cost_total_usd | round: 2 }} over all six cells,
+      including Opus, Codex, and Haiku utility calls. Codex 5.5 xhigh is
+      nominally cheapest at an average of ${{ codex_candidate.cost_per_task_usd }}
+      per task; GLM follows at ${{ glm_candidate.cost_per_task_usd }}. These are
+      comparable token-priced estimates, not subscription bills.
+    </p>
+    <p>
+      These are scoped findings, not a universal model ranking. Six tasks from
+      one Ruby/CLI project and one score sample per judge cannot establish
+      broad superiority; they can show what happened when these exact
+      configurations drove this exact end-to-end workflow.
+    </p>
+
+    <h2>One task, end to end</h2>
+    <p class="bench-example">
+      <code>fix-tmux</code> asked candidates to repair launcher scripts and
+      Claude-ready detection, based on the task later merged as
+      <a href="https://github.com/ivankuznetsov/hive/pull/623">Hive PR&nbsp;#623</a>.
+      The mixed Opus &rarr; Codex candidate scored <strong>9.0 / 8.7</strong>
+      (Fable / Sol), the best Sol score for that task. GPT-5.6 Sol scored
+      <strong>9.0 / 8.5</strong>. The result and exact candidate patch behind
+      every score are linked from the full board below.
     </p>
   </div>
 </section>

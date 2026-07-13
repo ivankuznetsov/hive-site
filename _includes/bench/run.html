@@ -1,0 +1,21 @@
+<section class="bench-doc">
+  <div class="wrap">
+    <h2>Run the benchmark for your task on your machine</h2>
+    <p>
+      The benchmark is a named workflow built into Hive. Install Hive, initialize
+      a project with <code>bench</code>, and let the normal Hive daemon handle
+      ordering, locking, retries, and concurrency.
+    </p>
+    <pre class="bench-cmd"><code>hive init /path/to/benchmark-project --workflow bench
+hive new &lt;project-name&gt; "benchmark my task"</code></pre>
+    <p><a href="{{ '/bench/run/' | relative_url }}">Read the setup and campaign guide &rarr;</a></p>
+
+    <h2>Submit a task to the public Hive benchmark</h2>
+    <p>
+      A completed Hive task with a merged reference PR can be proposed for a
+      future public campaign directly from the CLI.
+    </p>
+    <pre class="bench-cmd"><code>hive bench submit &lt;task-slug&gt;</code></pre>
+    <p><a href="{{ '/bench/run/#submit-a-task-to-the-public-benchmark' | relative_url }}">Read the submission requirements &rarr;</a></p>
+  </div>
+</section>

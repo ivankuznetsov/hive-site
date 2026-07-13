@@ -3,11 +3,12 @@ layout: home
 title: hive-bench — coding-agent benchmark
 nav_exclude: true
 description: >-
-  hive-bench replays real completed hive tasks against candidate coding agents
-  and scores them on an objective test gate, a blind judge, and efficiency.
-  Scoped to hive-style, plan-first work.
+  Preliminary hive-bench results from 36 real Hive pipeline runs, scored
+  independently by Fable 5 and GPT-5.6 Sol, plus instructions for running
+  and contributing benchmark tasks.
 permalink: /bench/
 ---
 
 {% include bench/about.html %}
 {% include bench/leaderboard.html %}
+{% include bench/run.html %}
