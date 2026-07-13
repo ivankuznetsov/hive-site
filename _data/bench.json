@@ -1,6 +1,6 @@
 {
   "schema": "hive-bench-results-site",
-  "schema_version": 4,
+  "schema_version": 5,
   "corpus_version": "v2-ce",
   "generated_at": "2026-07-13T08:53:36Z",
   "status": "preliminary_complete",
@@ -21,7 +21,13 @@
       "result",
       "system"
     ],
-    "codex_cached_input_split": true
+    "codex_cached_input_split": true,
+    "token_total_buckets": [
+      "input",
+      "output",
+      "cache_read",
+      "cache_write"
+    ]
   },
   "primary_judges": [
     {
@@ -243,13 +249,14 @@
       "cost_sample": 6,
       "normalized_mtokens_per_task": 74.86,
       "token_sample": 6,
+      "token_totals": { "input": 7128536, "output": 993973, "cache_read": 441019136, "cache_write": 0 },
       "efficiency_by_task": {
-        "add-i-key": { "cost_usd": 20.9874, "normalized_mtokens": 28.26, "wall_minutes": 95.3 },
-        "web-install": { "cost_usd": 88.2255, "normalized_mtokens": 142.43, "wall_minutes": 227.4 },
-        "install": { "cost_usd": 105.2448, "normalized_mtokens": 167.52, "wall_minutes": 224.2 },
-        "fix-tmux": { "cost_usd": 20.3585, "normalized_mtokens": 32.37, "wall_minutes": 40.7 },
-        "fix-review": { "cost_usd": 18.9374, "normalized_mtokens": 29.98, "wall_minutes": null },
-        "daemon": { "cost_usd": 32.2178, "normalized_mtokens": 48.58, "wall_minutes": null }
+        "add-i-key": { "cost_usd": 20.9874, "normalized_mtokens": 28.26, "tokens": { "input": 735389, "output": 120344, "cache_read": 27400192, "cache_write": 0 }, "wall_minutes": 95.3 },
+        "web-install": { "cost_usd": 88.2255, "normalized_mtokens": 142.43, "tokens": { "input": 2161848, "output": 246859, "cache_read": 140020992, "cache_write": 0 }, "wall_minutes": 227.4 },
+        "install": { "cost_usd": 105.2448, "normalized_mtokens": 167.52, "tokens": { "input": 2388996, "output": 363868, "cache_read": 164767488, "cache_write": 0 }, "wall_minutes": 224.2 },
+        "fix-tmux": { "cost_usd": 20.3585, "normalized_mtokens": 32.37, "tokens": { "input": 580766, "output": 52902, "cache_read": 31735296, "cache_write": 0 }, "wall_minutes": 40.7 },
+        "fix-review": { "cost_usd": 18.9374, "normalized_mtokens": 29.98, "tokens": { "input": 437504, "output": 67028, "cache_read": 29478144, "cache_write": 0 }, "wall_minutes": null },
+        "daemon": { "cost_usd": 32.2178, "normalized_mtokens": 48.58, "tokens": { "input": 824033, "output": 142972, "cache_read": 47617024, "cache_write": 0 }, "wall_minutes": null }
       },
       "cells": {
         "add-i-key": {
@@ -298,18 +305,19 @@
       "cost_sample": 6,
       "normalized_mtokens_per_task": 27.67,
       "token_sample": 6,
+      "token_totals": { "input": 2316931, "output": 328495, "cache_read": 160063061, "cache_write": 3323418 },
       "cost_breakdown_usd": {
         "gpt-5.5": 67.3351,
         "claude-opus-4-8": 47.6319,
         "claude-haiku-4-5": 0.6159
       },
       "efficiency_by_task": {
-        "add-i-key": { "cost_usd": 25.7455, "normalized_mtokens": 39.89, "wall_minutes": null },
-        "web-install": { "cost_usd": 16.9525, "normalized_mtokens": 22.79, "wall_minutes": 50.9 },
-        "install": { "cost_usd": 31.017, "normalized_mtokens": 47.85, "wall_minutes": 75.0 },
-        "fix-tmux": { "cost_usd": 11.9163, "normalized_mtokens": 14.69, "wall_minutes": 73.0 },
-        "fix-review": { "cost_usd": 12.948, "normalized_mtokens": 18.12, "wall_minutes": 46.9 },
-        "daemon": { "cost_usd": 17.0037, "normalized_mtokens": 22.7, "wall_minutes": 58.2 }
+        "add-i-key": { "cost_usd": 25.7455, "normalized_mtokens": 39.89, "tokens": { "input": 392117, "output": 50805, "cache_read": 38684505, "cache_write": 759794 }, "wall_minutes": null },
+        "web-install": { "cost_usd": 16.9525, "normalized_mtokens": 22.79, "tokens": { "input": 480800, "output": 86830, "cache_read": 22032050, "cache_write": 186130 }, "wall_minutes": 50.9 },
+        "install": { "cost_usd": 31.017, "normalized_mtokens": 47.85, "tokens": { "input": 360883, "output": 59578, "cache_read": 46605064, "cache_write": 827662 }, "wall_minutes": 75.0 },
+        "fix-tmux": { "cost_usd": 11.9163, "normalized_mtokens": 14.69, "tokens": { "input": 253051, "output": 26094, "cache_read": 13814139, "cache_write": 593882 }, "wall_minutes": 73.0 },
+        "fix-review": { "cost_usd": 12.948, "normalized_mtokens": 18.12, "tokens": { "input": 315214, "output": 42512, "cache_read": 17486693, "cache_write": 270877 }, "wall_minutes": 46.9 },
+        "daemon": { "cost_usd": 17.0037, "normalized_mtokens": 22.7, "tokens": { "input": 514866, "output": 62676, "cache_read": 21440610, "cache_write": 685073 }, "wall_minutes": 58.2 }
       },
       "cells": {
         "add-i-key": {
@@ -358,13 +366,14 @@
       "cost_sample": 6,
       "normalized_mtokens_per_task": 59.82,
       "token_sample": 6,
+      "token_totals": { "input": 923038, "output": 36000, "cache_read": 349561272, "cache_write": 8424071 },
       "efficiency_by_task": {
-        "add-i-key": { "cost_usd": 24.2902, "normalized_mtokens": 39.03, "wall_minutes": 59.5 },
-        "web-install": { "cost_usd": 33.0767, "normalized_mtokens": 54.71, "wall_minutes": 44.0 },
-        "install": { "cost_usd": 74.3344, "normalized_mtokens": 125.82, "wall_minutes": 98.7 },
-        "fix-tmux": { "cost_usd": 11.3479, "normalized_mtokens": 17.23, "wall_minutes": 39.9 },
-        "fix-review": { "cost_usd": 27.7496, "normalized_mtokens": 47.07, "wall_minutes": 55.1 },
-        "daemon": { "cost_usd": 43.6381, "normalized_mtokens": 75.08, "wall_minutes": 85.0 }
+        "add-i-key": { "cost_usd": 24.2902, "normalized_mtokens": 39.03, "tokens": { "input": 139286, "output": 5040, "cache_read": 37692192, "cache_write": 1194544 }, "wall_minutes": 59.5 },
+        "web-install": { "cost_usd": 33.0767, "normalized_mtokens": 54.71, "tokens": { "input": 117334, "output": 5300, "cache_read": 53063280, "cache_write": 1523627 }, "wall_minutes": 44.0 },
+        "install": { "cost_usd": 74.3344, "normalized_mtokens": 125.82, "tokens": { "input": 279090, "output": 10667, "cache_read": 123327646, "cache_write": 2201693 }, "wall_minutes": 98.7 },
+        "fix-tmux": { "cost_usd": 11.3479, "normalized_mtokens": 17.23, "tokens": { "input": 128227, "output": 2492, "cache_read": 16384230, "cache_write": 714939 }, "wall_minutes": 39.9 },
+        "fix-review": { "cost_usd": 27.7496, "normalized_mtokens": 47.07, "tokens": { "input": 116038, "output": 5343, "cache_read": 45933297, "cache_write": 1017808 }, "wall_minutes": 55.1 },
+        "daemon": { "cost_usd": 43.6381, "normalized_mtokens": 75.08, "tokens": { "input": 143063, "output": 7158, "cache_read": 73160627, "cache_write": 1771460 }, "wall_minutes": 85.0 }
       },
       "cells": {
         "add-i-key": {
@@ -413,13 +422,14 @@
       "cost_sample": 0,
       "normalized_mtokens_per_task": null,
       "token_sample": 0,
+      "token_totals": null,
       "efficiency_by_task": {
-        "add-i-key": { "cost_usd": null, "normalized_mtokens": null, "wall_minutes": 30.1 },
-        "web-install": { "cost_usd": null, "normalized_mtokens": null, "wall_minutes": 32.1 },
-        "install": { "cost_usd": null, "normalized_mtokens": null, "wall_minutes": 27.3 },
-        "fix-tmux": { "cost_usd": null, "normalized_mtokens": null, "wall_minutes": null },
-        "fix-review": { "cost_usd": null, "normalized_mtokens": null, "wall_minutes": 23.2 },
-        "daemon": { "cost_usd": null, "normalized_mtokens": null, "wall_minutes": 23.9 }
+        "add-i-key": { "cost_usd": null, "normalized_mtokens": null, "tokens": null, "wall_minutes": 30.1 },
+        "web-install": { "cost_usd": null, "normalized_mtokens": null, "tokens": null, "wall_minutes": 32.1 },
+        "install": { "cost_usd": null, "normalized_mtokens": null, "tokens": null, "wall_minutes": 27.3 },
+        "fix-tmux": { "cost_usd": null, "normalized_mtokens": null, "tokens": null, "wall_minutes": null },
+        "fix-review": { "cost_usd": null, "normalized_mtokens": null, "tokens": null, "wall_minutes": 23.2 },
+        "daemon": { "cost_usd": null, "normalized_mtokens": null, "tokens": null, "wall_minutes": 23.9 }
       },
       "cells": {
         "add-i-key": {
@@ -468,13 +478,14 @@
       "cost_sample": 6,
       "normalized_mtokens_per_task": 24.01,
       "token_sample": 6,
+      "token_totals": { "input": 3342536, "output": 539602, "cache_read": 140181888, "cache_write": 0 },
       "efficiency_by_task": {
-        "add-i-key": { "cost_usd": 14.5531, "normalized_mtokens": 19.17, "wall_minutes": 51.0 },
-        "web-install": { "cost_usd": 20.9505, "normalized_mtokens": 29.53, "wall_minutes": 52.9 },
-        "install": { "cost_usd": 20.2089, "normalized_mtokens": 28.59, "wall_minutes": 67.0 },
-        "fix-tmux": { "cost_usd": 7.8062, "normalized_mtokens": 11.42, "wall_minutes": 26.0 },
-        "fix-review": { "cost_usd": 22.6186, "normalized_mtokens": 31.1, "wall_minutes": 75.0 },
-        "daemon": { "cost_usd": 16.8545, "normalized_mtokens": 24.25, "wall_minutes": 40.4 }
+        "add-i-key": { "cost_usd": 14.5531, "normalized_mtokens": 19.17, "tokens": { "input": 563535, "output": 82433, "cache_read": 18524800, "cache_write": 0 }, "wall_minutes": 51.0 },
+        "web-install": { "cost_usd": 20.9505, "normalized_mtokens": 29.53, "tokens": { "input": 709534, "output": 101380, "cache_read": 28722816, "cache_write": 0 }, "wall_minutes": 52.9 },
+        "install": { "cost_usd": 20.2089, "normalized_mtokens": 28.59, "tokens": { "input": 547432, "output": 116995, "cache_read": 27923712, "cache_write": 0 }, "wall_minutes": 67.0 },
+        "fix-tmux": { "cost_usd": 7.8062, "normalized_mtokens": 11.42, "tokens": { "input": 229784, "output": 35994, "cache_read": 11154944, "cache_write": 0 }, "wall_minutes": 26.0 },
+        "fix-review": { "cost_usd": 22.6186, "normalized_mtokens": 31.1, "tokens": { "input": 795250, "output": 118271, "cache_read": 30188416, "cache_write": 0 }, "wall_minutes": 75.0 },
+        "daemon": { "cost_usd": 16.8545, "normalized_mtokens": 24.25, "tokens": { "input": 497001, "output": 84529, "cache_read": 23667200, "cache_write": 0 }, "wall_minutes": 40.4 }
       },
       "cells": {
         "add-i-key": {
@@ -523,13 +534,14 @@
       "cost_sample": 6,
       "normalized_mtokens_per_task": 83.65,
       "token_sample": 6,
+      "token_totals": { "input": 42558032, "output": 3083984, "cache_read": 456278068, "cache_write": 0 },
       "efficiency_by_task": {
-        "add-i-key": { "cost_usd": 15.8465, "normalized_mtokens": 64.59, "wall_minutes": 114.1 },
-        "web-install": { "cost_usd": 22.0865, "normalized_mtokens": 93.86, "wall_minutes": 173.5 },
-        "install": { "cost_usd": 26.1523, "normalized_mtokens": 103.24, "wall_minutes": 124.4 },
-        "fix-tmux": { "cost_usd": 9.8041, "normalized_mtokens": 40.87, "wall_minutes": 91.4 },
-        "fix-review": { "cost_usd": 12.39, "normalized_mtokens": 17.05, "wall_minutes": 29.7 },
-        "daemon": { "cost_usd": 45.5327, "normalized_mtokens": 182.31, "wall_minutes": 153.4 }
+        "add-i-key": { "cost_usd": 15.8465, "normalized_mtokens": 64.59, "tokens": { "input": 4068790, "output": 385355, "cache_read": 60139434, "cache_write": 0 }, "wall_minutes": 114.1 },
+        "web-install": { "cost_usd": 22.0865, "normalized_mtokens": 93.86, "tokens": { "input": 4574516, "output": 591993, "cache_read": 88693017, "cache_write": 0 }, "wall_minutes": 173.5 },
+        "install": { "cost_usd": 26.1523, "normalized_mtokens": 103.24, "tokens": { "input": 7785827, "output": 558202, "cache_read": 94895206, "cache_write": 0 }, "wall_minutes": 124.4 },
+        "fix-tmux": { "cost_usd": 9.8041, "normalized_mtokens": 40.87, "tokens": { "input": 1456447, "output": 470493, "cache_read": 38938790, "cache_write": 0 }, "wall_minutes": 91.4 },
+        "fix-review": { "cost_usd": 12.39, "normalized_mtokens": 17.05, "tokens": { "input": 11528438, "output": 157356, "cache_read": 5366263, "cache_write": 0 }, "wall_minutes": 29.7 },
+        "daemon": { "cost_usd": 45.5327, "normalized_mtokens": 182.31, "tokens": { "input": 13144014, "output": 920585, "cache_read": 168245358, "cache_write": 0 }, "wall_minutes": 153.4 }
       },
       "cells": {
         "add-i-key": {
@@ -574,7 +586,7 @@
   "notes": [
     "Preliminary means one independent sample per Fable and Sol judge-cell pair. The follow-up campaign uses three samples and Sol ultra.",
     "All 36 generation cells completed. Every objective gate is no_gate in this campaign, so scores are judge evidence, not test-pass rates.",
-    "Efficiency is recomputed uniformly from per-event generation stage logs. Cumulative result/system events are excluded, Codex cached inputs are split from uncached inputs, and mixed-candidate tokens are priced against their actual model rows.",
+    "Efficiency is recomputed uniformly from per-event generation stage logs. Each total includes fresh input, output, cache reads, and cache creation/writes; the site publishes that split per task and candidate average.",
     "The mixed Opus → Codex estimate is $115.5829 across six cells: $67.3351 Codex 5.5, $47.6319 Opus 4.8, and $0.6159 Haiku utility calls, or $19.26 per task on average.",
     "Grok 4.5 exposes no usable token events, so its tokens and cost remain unknown rather than $0.",
     "Wall time is missing for recovered artifacts: Sol has 4/6 timed cells, Grok 5/6, and the mixed candidate 5/6. Means use only the recorded samples.",

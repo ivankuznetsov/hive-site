@@ -96,7 +96,14 @@
               {% else %}unknown{% endif %}
             </td>
             <td>
-              {% if candidate.normalized_mtokens_per_task %}{{ candidate.normalized_mtokens_per_task }}M
+              {% if candidate.normalized_mtokens_per_task %}
+                {% assign average_input_mtokens = candidate.token_totals.input | times: 0.000001 | divided_by: candidate.token_sample | round: 3 %}
+                {% assign average_output_mtokens = candidate.token_totals.output | times: 0.000001 | divided_by: candidate.token_sample | round: 3 %}
+                {% assign average_cache_read_mtokens = candidate.token_totals.cache_read | times: 0.000001 | divided_by: candidate.token_sample | round: 3 %}
+                {% assign average_cache_write_mtokens = candidate.token_totals.cache_write | times: 0.000001 | divided_by: candidate.token_sample | round: 3 %}
+                <strong>{{ candidate.normalized_mtokens_per_task }}M total</strong><br>
+                <small>fresh input {{ average_input_mtokens }}M · output {{ average_output_mtokens }}M</small><br>
+                <small>cache {{ average_cache_read_mtokens }}M read + {{ average_cache_write_mtokens }}M write</small><br>
                 <small>({{ candidate.token_sample }}/{{ candidate.total }} measured)</small>
               {% else %}unknown{% endif %}
             </td>
@@ -110,7 +117,9 @@
       logs with <code>{{ b.efficiency_accounting.parser }}</code>. Cumulative
       <code>result</code>/<code>system</code> counters are excluded, cached Codex
       inputs are separated from uncached inputs, and each model in a mixed cell
-      is priced independently. Costs use the
+      is priced independently. Every displayed total includes fresh input,
+      output, cache reads, and cache creation/writes; the split is shown so a
+      cache-heavy run cannot look like fresh-input usage. Costs use the
       <code>{{ b.efficiency_accounting.pricing_version }}</code> usual-tier table;
       they are API-equivalent estimates, not subscription invoices, and exclude
       judging. Grok exposes no usable usage events, so its values remain unknown.
@@ -126,12 +135,13 @@
 
     <h3>Per-task efficiency by model/configuration</h3>
     <p class="bench-meta">
-      Each cell shows API-equivalent generation cost, normalized generation
-      tokens, and recorded end-to-end wall time. An unknown value means the
-      runner did not preserve usable evidence; it does not mean zero.
+      Each cell shows API-equivalent generation cost, total normalized
+      generation tokens, the input/output/cache split, and recorded end-to-end
+      wall time. Cache is shown as reads plus creation/writes. An unknown value
+      means the runner did not preserve usable evidence; it does not mean zero.
     </p>
     <div class="bench-table-scroll" role="region" aria-label="Per-task efficiency by model or configuration" tabindex="0">
-    <table class="bench-table bench-matrix">
+    <table class="bench-table bench-matrix bench-efficiency-matrix">
       <thead>
         <tr>
           <th scope="col">Model / candidate</th>
@@ -148,7 +158,15 @@
               {% assign stat = candidate.efficiency_by_task[task.key] %}
               <td>
                 {% if stat.cost_usd %}{% assign rounded_cost = stat.cost_usd | round: 2 %}{% assign one_decimal_cost = stat.cost_usd | round: 1 %}<strong>${{ rounded_cost }}{% if rounded_cost == one_decimal_cost %}0{% endif %}</strong>{% else %}<strong>cost unknown</strong>{% endif %}<br>
-                <small>{% if stat.normalized_mtokens %}{{ stat.normalized_mtokens }}M tokens{% else %}tokens unknown{% endif %}</small><br>
+                {% if stat.tokens %}
+                  {% assign input_mtokens = stat.tokens.input | times: 0.000001 | round: 3 %}
+                  {% assign output_mtokens = stat.tokens.output | times: 0.000001 | round: 3 %}
+                  {% assign cache_read_mtokens = stat.tokens.cache_read | times: 0.000001 | round: 3 %}
+                  {% assign cache_write_mtokens = stat.tokens.cache_write | times: 0.000001 | round: 3 %}
+                  <small><strong>{{ stat.normalized_mtokens }}M total tokens</strong></small><br>
+                  <small>fresh input {{ input_mtokens }}M · output {{ output_mtokens }}M</small><br>
+                  <small>cache {{ cache_read_mtokens }}M read + {{ cache_write_mtokens }}M write</small><br>
+                {% else %}<small>tokens unknown</small><br>{% endif %}
                 <small>{% if stat.wall_minutes %}{{ stat.wall_minutes }} min{% else %}time not recorded{% endif %}</small>
               </td>
             {% endfor %}

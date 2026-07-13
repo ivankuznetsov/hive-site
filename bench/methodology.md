@@ -78,12 +78,19 @@ first attribution signal; stages provide the fallback for Codex events that do
 not carry a model id. Claude's internal Haiku utility calls remain a separate
 priced model instead of being charged at the Opus rate.
 
+The normalized token total includes four non-overlapping buckets: fresh input,
+output, cache reads, and cache creation/writes. The site publishes the split for
+every measured candidate/task cell and for each candidate average. “Cache” is
+therefore not subtracted from the displayed total: the cache read and write
+figures are components of that total. This distinction matters because most of
+the observed token volume is cache reuse rather than fresh input.
+
 That per-model attribution makes the mixed candidate priceable: across all six
 tasks, Codex 5.5 contributes $67.3351, Opus 4.8 contributes $47.6319, and Haiku
 utility calls contribute $0.6159, for **$115.5829 total or an average of
 $19.26 per task**.
-The site also publishes every task-level cost, normalized token count, and
-recorded wall time rather than only the mean.
+The site also publishes every task-level cost, token-bucket split, and recorded
+wall time rather than only the mean.
 
 Costs use the versioned `2026-06-usual` price table and are descriptive
 API-equivalent estimates, not a billing claim. Judge usage is excluded. Grok's
