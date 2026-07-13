@@ -4,7 +4,7 @@
 {% assign glm_candidate = b.candidates | where: "id", "all-glm-5.2" | first %}
 <section class="bench-intro">
   <div class="wrap">
-    <p class="eyebrow">hive-bench <span class="badge-alpha">preliminary v2-ce</span></p>
+    <p class="eyebrow">hive-bench <span class="badge-alpha">preliminary</span></p>
     <h1 class="bench-title">Which model should drive an autonomous dev pipeline?</h1>
     <p class="section-lead">
       <a href="https://github.com/ivankuznetsov/hive">Hive</a> carries a task
@@ -35,8 +35,8 @@
     <ol class="bench-steps">
       <li><strong>Two independent rulers:</strong> Fable 5 and GPT-5.6 Sol
         score each final diff from 0&ndash;10. Sol was explicitly run at
-        <code>xhigh</code>; Fable's reasoning effort was not exposed by its
-        runner.</li>
+        <code>xhigh</code>. Fable ran with reasoning enabled, but its exact
+        effort level was not preserved in the benchmark record.</li>
       <li><strong>Keep both judge scores visible:</strong> the leaderboard uses
         their arithmetic mean only for a compact ordering because their
         calibrations differ. Every row retains separate Fable and Sol columns,

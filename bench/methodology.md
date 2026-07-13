@@ -2,13 +2,13 @@
 layout: home
 title: hive-bench methodology & limitations
 nav_exclude: true
-description: How the 36-cell hive-bench v2-ce campaign was run, scored, and published, and the limits on its preliminary findings.
+description: How the published 36-cell hive-bench campaign was run and scored, and the limits on its preliminary findings.
 permalink: /bench/methodology/
 ---
 
 <section class="bench-doc"><div class="wrap" markdown="1">
 
-# Methodology & limitations (v2-ce)
+# Methodology & limitations
 
 ## What one cell measures
 
@@ -31,7 +31,8 @@ intermediate answer or a reimplemented approximation of Hive.
 Two judges independently score every final diff from 0–10 against the task and
 merged reference:
 
-- **Fable 5**, reasoning effort not exposed by the runner.
+- **Fable 5**, with reasoning enabled; its exact effort level was not preserved
+  in the benchmark record.
 - **GPT-5.6 Sol**, explicitly pinned to `xhigh` reasoning.
 
 The merged PR tells a judge what the task ultimately required; candidates are
@@ -121,22 +122,5 @@ model.
 
 The scoped claim is therefore: **what these configurations shipped through
 the full Hive workflow on this corpus**, not which model is universally best.
-
-## Follow-up campaign (not part of these scores)
-
-The native `bench` Hive workflow now defaults new campaigns to three
-independent samples per judge and cell, Fable 5 plus GPT-5.6 Sol at `ultra`,
-judging against the candidate-generated plan, and a diagnostic deliberation
-round in which each judge must make the strongest evidence-based case against
-its own initial score. Deliberated scores do not replace the independent
-leaderboard values.
-
-Those settings describe the follow-up campaign only. The current website keeps
-the v2-ce provenance exact: Sol `xhigh`, one sample per primary judge-cell, and
-no claim that the future three-sample results already exist.
-
-The workflow runs as a normal Hive custom workflow. Hive owns its daemon,
-locking, retry behavior, stable task ordering, and global/per-project
-concurrency; hive-bench does not add a parallel shell scheduler.
 
 </div></section>

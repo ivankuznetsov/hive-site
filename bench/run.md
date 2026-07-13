@@ -24,6 +24,11 @@ implementation, review, and judging runs.
 benchmark project with the named workflow. You do not need to copy a workflow
 descriptor or clone hive-bench to select it.
 
+> **Release status:** the built-in `bench` workflow is currently available in
+> [Hive PR #734](https://github.com/ivankuznetsov/hive/pull/734), not in the
+> latest `v0.4.1` release. Use a source checkout of that PR until a release
+> containing it is published.
+
 ```sh
 hive init /path/to/benchmark-project --workflow bench
 hive new <project-name> "benchmark my task"

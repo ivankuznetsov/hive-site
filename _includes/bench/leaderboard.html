@@ -5,7 +5,7 @@
 <section class="bench-board">
   <div class="wrap">
     <p class="bench-meta">
-      Corpus <code>{{ b.corpus_version }}</code> · generated {{ b.generated_at }} ·
+      Generated {{ b.generated_at }} ·
       {{ b.coverage.cells }}/{{ b.coverage.expected_cells }} cells complete ·
       <span class="bench-prelim">preliminary: one score sample per judge-cell</span>
     </p>
@@ -17,17 +17,30 @@
       <span class="bench-prelim">same-family</span> means that judge shares a
       model family with the candidate. Efficiency averages use only recorded cells.
     </p>
+    <div class="bench-sort-controls" data-bench-sort-controls>
+      <label for="bench-summary-sort">Sort by</label>
+      <select id="bench-summary-sort" data-bench-sort-select>
+        <option value="combined">Combined score</option>
+        <option value="candidate">Candidate</option>
+        <option value="fable">Fable score</option>
+        <option value="sol">Sol score</option>
+        <option value="time">Mean time</option>
+        <option value="cost">Cost per task</option>
+        <option value="tokens">Tokens per task</option>
+      </select>
+      <button type="button" data-bench-sort-direction aria-label="Change sort direction">Descending</button>
+    </div>
     <div class="bench-table-scroll bench-table-scroll--summary" role="region" aria-label="Combined quality and efficiency leaderboard" tabindex="0">
-    <table class="bench-table bench-summary-table">
+    <table class="bench-table bench-summary-table" data-bench-sortable>
       <thead>
         <tr>
-          <th scope="col">Candidate</th>
-          <th scope="col">Fable</th>
-          <th scope="col">Sol <small>xhigh</small></th>
-          <th scope="col">Combined</th>
-          <th scope="col">Mean time</th>
-          <th scope="col">$/task</th>
-          <th scope="col">Tokens/task</th>
+          <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="candidate" data-sort-type="text">Candidate <span aria-hidden="true"></span></button></th>
+          <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="fable" data-sort-type="number">Fable <span aria-hidden="true"></span></button></th>
+          <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="sol" data-sort-type="number">Sol <small>xhigh</small> <span aria-hidden="true"></span></button></th>
+          <th scope="col" aria-sort="descending"><button class="bench-sort-button" type="button" data-sort-key="combined" data-sort-type="number">Combined <span aria-hidden="true">↓</span></button></th>
+          <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="time" data-sort-type="number">Mean time <span aria-hidden="true"></span></button></th>
+          <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="cost" data-sort-type="number">$/task <span aria-hidden="true"></span></button></th>
+          <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="tokens" data-sort-type="number">Tokens/task <span aria-hidden="true"></span></button></th>
         </tr>
       </thead>
       <tbody>
@@ -37,7 +50,14 @@
           {% assign sol_row = sol_judge.rows | where: "id", candidate_id | first %}
           {% assign combined_total = fable_row.mean | plus: sol_row.mean %}
           {% assign combined_mean = combined_total | divided_by: 2.0 | round: 3 %}
-          <tr>
+          <tr
+            data-sort-candidate="{{ candidate.label | downcase | escape }}"
+            data-sort-fable="{{ fable_row.mean }}"
+            data-sort-sol="{{ sol_row.mean }}"
+            data-sort-combined="{{ combined_mean }}"
+            data-sort-time="{% if candidate.mean_minutes %}{{ candidate.mean_minutes }}{% endif %}"
+            data-sort-cost="{% if candidate.cost_per_task_usd %}{{ candidate.cost_per_task_usd }}{% endif %}"
+            data-sort-tokens="{% if candidate.normalized_mtokens_per_task %}{{ candidate.normalized_mtokens_per_task }}{% endif %}">
             <th scope="row">
               <code>{{ candidate.label }}</code>
               <small>{{ candidate.reasoning }}</small>
@@ -112,9 +132,11 @@
                   {% assign output_mtokens = stat.tokens.output | times: 0.000001 | round: 3 %}
                   {% assign cache_read_mtokens = stat.tokens.cache_read | times: 0.000001 | round: 3 %}
                   {% assign cache_write_mtokens = stat.tokens.cache_write | times: 0.000001 | round: 3 %}
-                  <small><strong>{{ stat.normalized_mtokens }}M total tokens</strong></small><br>
-                  <small>fresh input {{ input_mtokens }}M · output {{ output_mtokens }}M</small><br>
-                  <small>cache {{ cache_read_mtokens }}M read + {{ cache_write_mtokens }}M write</small><br>
+                  <small><strong>{{ stat.normalized_mtokens }}M total tokens</strong>
+                    <span class="bench-info" tabindex="0" role="img"
+                      aria-label="Token details: fresh input {{ input_mtokens }} million, output {{ output_mtokens }} million, cache read {{ cache_read_mtokens }} million, cache write {{ cache_write_mtokens }} million"
+                      title="Fresh input {{ input_mtokens }}M · output {{ output_mtokens }}M · cache read {{ cache_read_mtokens }}M · cache write {{ cache_write_mtokens }}M">ⓘ</span>
+                  </small><br>
                 {% else %}<small>tokens unknown</small><br>{% endif %}
                 <small>{% if stat.wall_minutes %}{{ stat.wall_minutes }} min{% else %}time not recorded{% endif %}</small>
                 </span>
@@ -190,3 +212,4 @@
     </ul>
   </div>
 </section>
+<script src="{{ '/assets/js/bench-sortable.js' | relative_url }}" defer></script>
