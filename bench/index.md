@@ -3,11 +3,12 @@ layout: home
 title: hive-bench — coding-agent benchmark
 nav_exclude: true
 description: >-
-  hive-bench drives the real hive pipeline (plan, execute, open-pr, review)
-  with each candidate's models on real completed tasks, and grades the final
-  diff against the merged reference PR with two blind judges.
+  Preliminary hive-bench results from 36 real Hive pipeline runs, scored
+  independently by Fable 5 and GPT-5.6 Sol, plus instructions for running
+  and contributing benchmark tasks.
 permalink: /bench/
 ---
 
 {% include bench/about.html %}
 {% include bench/leaderboard.html %}
+{% include bench/run.html %}

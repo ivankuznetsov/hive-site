@@ -2,180 +2,162 @@
 <section class="bench-board">
   <div class="wrap">
     <p class="bench-meta">
-      Corpus <code>{{ b.corpus_version }}</code> · as of {{ b.generated_at }}
-      {% if b.status == "partial" %}· <span class="bench-prelim">column still filling</span>{% endif %}
+      Corpus <code>{{ b.corpus_version }}</code> · generated {{ b.generated_at }} ·
+      {{ b.coverage.cells }}/{{ b.coverage.expected_cells }} cells complete ·
+      <span class="bench-prelim">preliminary: one score sample per judge-cell</span>
     </p>
 
-    {% if b.status == "partial" %}
-      <p class="bench-pending">
-        Some cells are still generating — those candidates run inside
-        subscription limit windows. New cells land automatically and this
-        table regenerates; every score already shown is final.
-      </p>
-    {% endif %}
-
     <h2>Leaderboards — one table per judge</h2>
-    <p class="bench-meta">Two judges score every diff, but their scales differ
-      (<code>fable-5</code> runs 1–2 points more generous than
-      <code>gpt-5.5-pro</code>), so scores from different judges are never mixed
-      into one ranking. Rows where the judge shares a model family with the
-      candidate are flagged <span class="bench-prelim">same-family</span> — read
-      those with self-preference in mind. <strong>Quality</strong> averages the
-      completed runs; <strong>end-to-end</strong> counts every attempted task,
-      scoring failures as 0 — the number that punishes a configuration for not
-      finishing.</p>
+    <p class="bench-meta">
+      Scores from different judges are never combined. A
+      <span class="bench-prelim">same-family</span> row means the judge shares
+      a model family with at least one model in that candidate configuration.
+    </p>
 
-    {% for jt in b.judge_tables %}
-      <h3>By <code>{{ jt[0] }}</code></h3>
+    {% for judge in b.primary_judges %}
+      <h3>By <code>{{ judge.label }}</code></h3>
+      <p class="bench-meta">
+        Reasoning effort: <code>{{ judge.reasoning_effort }}</code> ·
+        {{ judge.samples_per_cell }} sample per scored cell
+      </p>
       <table class="bench-table">
         <thead>
           <tr>
             <th scope="col">Candidate</th>
-            <th scope="col">Quality (0–10)</th>
-            <th scope="col">End-to-end</th>
-            <th scope="col">Completed</th>
+            <th scope="col">Mean (0–10)</th>
+            <th scope="col">Scored</th>
           </tr>
         </thead>
         <tbody>
-          {% for a in jt[1] %}
+          {% for row in judge.rows %}
             <tr>
-              <th scope="row"><code>{{ a.id }}</code>{% if a.same_family %} <span class="bench-prelim">same-family</span>{% endif %}</th>
-              <td>{% if a.mean %}<strong>{{ a.mean }}</strong>{% else %}—{% endif %}</td>
-              <td>{% if a.e2e_mean %}{{ a.e2e_mean }}{% else %}—{% endif %}</td>
-              <td>{{ a.completed }}/{{ a.attempted }}</td>
+              <th scope="row">
+                <code>{{ row.label }}</code>
+                {% if row.same_family %}<span class="bench-prelim">same-family</span>{% endif %}
+              </th>
+              <td><strong>{{ row.mean }}</strong></td>
+              <td>{{ row.scored }}/{{ row.total }}</td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
     {% endfor %}
 
+    <h3>Supplemental: <code>{{ b.supplemental_judge.label }}</code></h3>
+    <p class="bench-meta">{{ b.supplemental_judge.note }}</p>
+    <table class="bench-table">
+      <thead>
+        <tr>
+          <th scope="col">Candidate</th>
+          <th scope="col">Observed score</th>
+          <th scope="col">Coverage</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in b.supplemental_judge.rows %}
+          <tr>
+            <th scope="row">
+              <code>{{ row.label }}</code>
+              {% if row.same_family %}<span class="bench-prelim">same-family</span>{% endif %}
+            </th>
+            <td>{{ row.mean }}</td>
+            <td>{{ row.scored }}/{{ row.total }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
     <h2>Efficiency</h2>
     <table class="bench-table">
       <thead>
         <tr>
           <th scope="col">Candidate</th>
-          <th scope="col">Reasoning effort</th>
-          <th scope="col">$ / task</th>
-          <th scope="col">Tokens / task</th>
+          <th scope="col">Reasoning</th>
+          <th scope="col">Mean wall time</th>
+          <th scope="col">API-equivalent $ / task</th>
+          <th scope="col">Reported tokens / task</th>
         </tr>
       </thead>
       <tbody>
-        {% for a in b.headline %}
+        {% for candidate in b.candidates %}
           <tr>
-            <th scope="row"><code>{{ a.id }}</code></th>
-            <td>{{ a.reasoning | default: "—" }}</td>
-            <td>{% if a.mean_cost_usd %}${{ a.mean_cost_usd }}{% else %}—{% endif %}</td>
-            <td>{% if a.mean_mtokens %}{{ a.mean_mtokens }}M{% else %}—{% endif %}</td>
+            <th scope="row"><code>{{ candidate.label }}</code></th>
+            <td>{{ candidate.reasoning }}</td>
+            <td>
+              {% if candidate.mean_minutes %}{{ candidate.mean_minutes }} min
+                <small>({{ candidate.time_sample }}/{{ candidate.total }} timed)</small>
+              {% else %}unknown{% endif %}
+            </td>
+            <td>{% if candidate.cost_per_task_usd %}${{ candidate.cost_per_task_usd }}{% else %}unknown{% endif %}</td>
+            <td>{% if candidate.reported_mtokens_per_task %}{{ candidate.reported_mtokens_per_task }}M{% else %}unknown{% endif %}</td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
-    <p class="bench-meta">Costs are API-equivalent at usual-tier token rates, recomputed
-      per model from the agent stream logs — subscription runs are priced as if
-      their tokens were bought at API rates, so the column compares like with like.</p>
+    <p class="bench-meta">
+      Costs are estimates at API-equivalent token rates, not subscription
+      invoices. Means use recorded telemetry only; recovered artifacts account
+      for the incomplete timing samples. Codex input accounting does not expose
+      a cache split, so its cost estimate may be high.
+    </p>
 
     <h2>Full board (per task)</h2>
-    <p class="bench-meta">Each cell shows two independent scores, <code>gpt-5.5-pro / fable-5</code>; <code>·</code> marks a judge backfill still pending. Hover a task's <span class="bench-info">ⓘ</span> for its description.</p>
+    <p class="bench-meta">
+      Every cell shows <code>Fable 5 / GPT-5.6 Sol</code>. Click the score for
+      the machine-readable cell result or <strong>diff</strong> for the exact
+      candidate patch. No task in this campaign has an objective gate.
+    </p>
     <table class="bench-table bench-matrix">
       <thead>
         <tr>
           <th scope="col">Candidate</th>
-          {% for t in b.tasks %}{% assign m = b.task_meta[t] %}<th scope="col">{{ t }}&nbsp;<span class="bench-info" title="{{ m.desc | escape }}">ⓘ</span></th>{% endfor %}
+          {% for task in b.tasks %}
+            <th scope="col">{{ task.key }}&nbsp;<span class="bench-info" title="{{ task.desc | escape }}">ⓘ</span></th>
+          {% endfor %}
         </tr>
       </thead>
       <tbody>
-        {% for row in b.matrix %}
+        {% for candidate in b.candidates %}
           <tr>
-            <th scope="row"><code>{{ row.id }}</code></th>
-            {% for t in b.tasks %}<td>{{ row.cells[t] }}</td>{% endfor %}
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    {% if b.gates and b.gates.size > 0 %}
-    <h2>Objective gate — do the reference's held-out tests pass?</h2>
-    <p class="bench-meta">Three tasks carry runnable gates: the reference PR's own
-      test files are applied over each candidate's diff and run in a no-network
-      container. <code>fix-tmux</code>'s gate is <strong>behavioral</strong> (it
-      builds the gem and checks shipped scripts) — passing it means the change
-      demonstrably works. The <code>fix-review</code> and <code>daemon</code>
-      gates turned out to be <strong>interface-strict</strong>: they unit-test the
-      reference's internal class names, and every candidate chose a different
-      architecture, so a fail there means "diverged from the reference's
-      internals", not "doesn't work". Read them as conformance data, not a
-      ranking.</p>
-    <table class="bench-table">
-      <thead>
-        <tr>
-          <th scope="col">Candidate</th>
-          {% for gn in b.gate_nature %}<th scope="col">{{ gn[0] }}<br><small>{{ gn[1] }}</small></th>{% endfor %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for g in b.gates %}
-          <tr>
-            <th scope="row"><code>{{ g.id }}</code></th>
-            {% for gn in b.gate_nature %}<td>{% assign v = g.cells[gn[0]] %}{% if v == "pass" %}✓ pass{% elsif v == "fail" %}✗{% else %}—{% endif %}</td>{% endfor %}
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% endif %}
-
-    <h2>Cost per cell</h2>
-    <p class="bench-meta">API-equivalent $ and total tokens for each scored run — every
-      model's tokens are attributed and priced separately, so mixed pairs are exact.</p>
-    <table class="bench-table bench-matrix">
-      <thead>
-        <tr>
-          <th scope="col">Candidate</th>
-          {% for t in b.tasks %}<th scope="col">{{ t }}</th>{% endfor %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in b.matrix %}
-          <tr>
-            <th scope="row"><code>{{ row.id }}</code></th>
-            {% for t in b.tasks %}<td>{{ row.costs[t] | default: "—" }}</td>{% endfor %}
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    <h2>Spend per model</h2>
-    <p class="bench-meta">Campaign-wide generation totals per model, from per-event
-      attribution in the stream logs (judging excluded). <code>claude-haiku</code> is the
-      claude CLI's internal utility model — it rides along in every claude session.</p>
-    <table class="bench-table">
-      <thead>
-        <tr><th scope="col">Model</th><th scope="col">Total tokens</th><th scope="col">API-equivalent $</th></tr>
-      </thead>
-      <tbody>
-        {% for s in b.model_spend %}
-          <tr>
-            <th scope="row"><code>{{ s.model }}</code></th>
-            <td>{{ s.mtokens }}M</td>
-            <td>${{ s.cost_usd }}</td>
+            <th scope="row"><code>{{ candidate.label }}</code></th>
+            {% for task in b.tasks %}
+              {% assign cell = candidate.cells[task.key] %}
+              <td>
+                <a href="{{ cell.result_url }}">{{ cell.scores }}</a><br>
+                <small><a href="{{ cell.patch_url }}">diff</a></small>
+              </td>
+            {% endfor %}
           </tr>
         {% endfor %}
       </tbody>
     </table>
 
     <h2>The tasks</h2>
-    <p class="bench-meta">Six real tasks from the hive repo, each finished by a human and merged; every candidate diff is graded against that merged reference PR. Provenance is disclosed because it can bias the corpus: the original plans were authored by claude-family agents, so tasks may inherit that family's framing.</p>
+    <p class="bench-meta">
+      Six real Hive tasks, each completed and merged. The original plans all
+      came from Claude-family agents, which is disclosed corpus provenance and
+      a possible framing bias.
+    </p>
     <ul class="bench-tasks">
-      {% for entry in b.task_meta %}{% assign m = entry[1] %}
-        <li><code>{{ entry[0] }}</code> <span class="bench-type">{{ m.type }}</span> — {{ m.desc }}
-          <a href="{{ m.pr }}">reference&nbsp;PR</a>
-          <span class="bench-prov">· original plan: {{ m.plan_author }} · original implementer: <code>{{ m.original_model }}</code></span></li>
+      {% for task in b.tasks %}
+        <li>
+          <code>{{ task.key }}</code> <span class="bench-type">{{ task.type }}</span>
+          — {{ task.desc }} <a href="{{ task.pr }}">reference&nbsp;PR</a>
+          <span class="bench-prov">· original plan: {{ task.plan_author }} · original implementer: <code>{{ task.original_model }}</code></span>
+        </li>
       {% endfor %}
     </ul>
 
+    <h2>Evidence</h2>
+    <p>
+      The complete campaign is public: <a href="{{ b.evidence.readme }}">campaign
+      notes</a>, <a href="{{ b.evidence.manifest }}">manifest</a>,
+      <a href="{{ b.evidence.results }}">canonical results</a>, and all
+      <a href="{{ b.evidence.cells }}">36 candidate patches</a>.
+    </p>
     <ul class="bench-foot">
-      {% for n in b.notes %}<li>{{ n }}</li>{% endfor %}
-      <li>Machine-readable results:
-        <a href="{{ '/bench/results.json' | relative_url }}"><code>results.json</code></a>.</li>
+      {% for note in b.notes %}<li>{{ note }}</li>{% endfor %}
+      <li>Website data: <a href="{{ '/bench/results.json' | relative_url }}"><code>results.json</code></a>.</li>
     </ul>
   </div>
 </section>

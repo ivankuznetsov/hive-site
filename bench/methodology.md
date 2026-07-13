@@ -2,99 +2,117 @@
 layout: home
 title: hive-bench methodology & limitations
 nav_exclude: true
-description: How hive-bench v2 scores agents, and the limitations you must read the leaderboard against.
+description: How the 36-cell hive-bench v2-ce campaign was run, scored, and published, and the limits on its preliminary findings.
 permalink: /bench/methodology/
 ---
 
 <section class="bench-doc"><div class="wrap" markdown="1">
 
-# Methodology & limitations (v2)
+# Methodology & limitations (v2-ce)
 
-## What is measured
+## What one cell measures
 
-One cell on the board is one corpus task run by one candidate. A **candidate**
-is a model configuration for hive's stages — `all-opus-4.8`, `all-glm-5.2`, or
-a mixed pair like `glm-plan→kimi-exec`, where one model plans and another
-implements. The cell runs the **real hive pipeline** — plan (`/ce-plan`) →
-execute → open-pr → review with hive's production review config — inside an
-isolated, resource-capped container, seeded with the task's frozen idea and
-brainstorm, with the repo rewound to the task's base commit.
+One cell is one corpus task run by one candidate configuration. The published
+campaign has six tasks and six candidates, for **36 generated cells**. A
+candidate can use one model across the workflow or split stages between models;
+for example, `opus-plan->codex-exec-xhigh` uses Opus to plan and review and
+Codex 5.5 xhigh to execute.
 
-The candidate never sees the reference solution, and it re-plans from the
-idea and brainstorm — the frozen original plan is judge context only. (In v2
-the judges graded against that frozen plan while candidates re-planned; the
-external review flagged the asymmetry, and v3 grades each diff against the
-candidate's own plan.) The container has a
-bench-local git origin and a stubbed `gh`, and every cell's logs are scanned
-for reference-PR access.
+Each task is a real completed Hive task with a merged reference PR. The runner
+rewinds a source clone to the task's base commit and supplies its frozen
+candidate-visible inputs. The candidate does not receive the reference patch.
+It then runs the real Hive cycle in an isolated runner: planning,
+implementation, a sandbox-local pull request, and Hive's production review and
+fix loop. The scored artifact is the final post-review candidate diff, not an
+intermediate answer or a reimplemented approximation of Hive.
 
-## How a diff is scored
+## Current scoring
 
-The final post-review diff is graded against the merged reference PR by two
-independent blind judges — `gpt-5.5-pro` and `fable-5` — on an absolute 0–10
-rubric: does this accomplish the task? The merged PR is provided to the judges
-as a signal; a candidate is never scored on how closely it matches it, and
-verbosity is explicitly not rewarded.
+Two judges independently score every final diff from 0–10 against the task and
+merged reference:
 
-## Judge integrity
+- **Fable 5**, reasoning effort not exposed by the runner.
+- **GPT-5.6 Sol**, explicitly pinned to `xhigh` reasoning.
 
-The two judges score on different scales — `fable-5` runs 1–2 points more
-generous than `gpt-5.5-pro` across the board — so the leaderboard never mixes
-their scores into one ranking. Each judge gets its own table over every
-candidate. Where a judge shares a model family with a candidate
-(`gpt-5.5-pro` with the codex candidates, `fable-5` with the opus ones), the
-row is flagged same-family rather than hidden: the score is shown, the
-self-preference risk is named. An external design review (gpt-5.5-pro itself,
-via API — transcript in the repo under `reviews/`) caught that an earlier
-presentation mixed the two scales into one "cross-family" column; the
-single-ruler tables replaced it.
+The merged PR tells a judge what the task ultimately required; candidates are
+not rewarded for textual or structural similarity. Each primary judge has one
+score sample per cell. The per-task board displays `Fable / Sol` in that order.
 
-Each table carries two aggregates: **quality** (mean over completed runs) and
-**end-to-end** (mean over all attempted tasks, failures scored 0) — the second
-is intention-to-treat, so a configuration that fails to finish is penalized
-instead of being averaged over its survivors.
+Judge calibrations are not interchangeable, so there is no average across
+Fable and Sol. The site publishes one complete six-candidate table for each
+judge. A row is marked **same-family** when the judge shares a model family with
+any model in the candidate configuration. Those scores remain visible but
+should be treated as weaker evidence because self-preference cannot be ruled
+out.
 
-A deliberation diagnostic makes the judges exchange anonymized verdicts and
-check each other's claims against the diff. Across 15 discussed verdicts,
-gpt-5.5-pro's mean revision was 0.00; fable-5 revised only downward, and only
-after verifying gpt's claims against the diff. The leaderboard keeps the
-independent scores; the deliberation transcripts ship with the repo.
+GPT-5.5 Pro is a historical supplemental ruler. It scored only one cell for
+Codex 5.5 xhigh, GLM 5.2, and Grok 4.5. Those three observations are shown in a
+separate partial table and are not used to rank the full slate.
 
-Model claims are verified, too: every cell's agent stream logs are
-cross-checked against the candidate's claimed models. On the published board
-that is 101 substantive stage logs and 0 violations.
+## Coverage and objective evidence
 
-## What a run costs
+All 36 candidate runs produced scoreable patches, and all 36 exact patches are
+published. There are no pending or failed generation cells in the canonical
+result. Every objective-gate record is `no_gate`: the corpus does not yet have
+curated held-out tests suitable for a fair candidate-independent pass/fail
+claim. The current numbers are judge evidence, not test-pass rates.
 
-A full-cycle run on the open models comes to about $13 per task — roughly 4×
-the cost of a bare execute — because the review stage re-reads the accumulated
-context, around 49M cache-read tokens per task.
+The site links every score to its machine-readable cell result and exact
+candidate patch. The campaign manifest, complete merged `results.json`, and
+all evidence directories are public in
+[hive-bench](https://github.com/ivankuznetsov/hive-bench/tree/main/runs/v2-ce).
 
-## Known limitations (read the numbers against these)
+## Time, tokens, and cost
 
-- **Single-author, Ruby/CLI corpus, n=6.** Every task comes from my repo. The
-  claim is "best on this corpus", not best on software in general.
-- **Judge-scored only.** No curated test gates yet, so there is no objective
-  pass/fail floor under the judge scores. (The gate machinery exists; it
-  requires positively-observed per-test results once curation lands.)
-- **Mostly a single judge seed.** Stability intervals collapse at one sample;
-  small gaps between candidates are not meaningful.
-- **Post-review gold.** Candidates are judged against merged, human-reviewed
-  PRs, so a score reads as distance from mergeable.
-- **Named exclusions.** I excluded `glm-plan→kimi-exec` on install and
-  fix-tmux after two funded, reproducible execute failures each; the pair also
-  failed web-install (empty diff) and daemon (at execute). Every other hole on
-  the board is labeled with its cause — subscription limit windows or budget
-  caps — never silently dropped.
-- **Availability shapes coverage.** Subscription candidates (opus) are bound
-  to limit windows; per-token candidates can always be re-run. Coverage
-  differences are disclosed per row.
+Wall time is recorded per task where recoverable. Four Sol cells, five Grok
+cells, five mixed Opus/Codex cells, and all six cells for the remaining
+candidates have usable timing evidence. A displayed time mean uses only those
+recorded cells and always shows its sample count.
 
-## Reproducibility
+Reported tokens and API-equivalent cost are descriptive telemetry, not a
+billing claim. Grok's runner did not expose usable token counts or cost, and
+the mixed candidate lacks complete cost attribution, so both costs are
+reported as **unknown**. Codex input-token accounting does not expose a cache
+split; pricing all those inputs at the usual uncached rate may overstate its
+estimate. No missing number is imputed from another provider or model.
 
-Every cell records harness and model versions, run status, telemetry, and both
-judges' scores. The corpus, the harness, the deliberation transcripts, and the
-canonical `results.json` are public at
-[hive-bench](https://github.com/ivankuznetsov/hive-bench).
+## Known limitations
+
+- **Small, single-project corpus.** Six Ruby/CLI tasks from one repository do
+  not support a universal "best coding model" claim.
+- **One sample per primary judge-cell.** There are no useful stability
+  intervals yet; small gaps may reverse under repeated judging.
+- **No objective gates.** Human-aligned judge scoring is the only current
+  quality signal.
+- **Judge-family overlap.** Sol candidates are judged by Sol, while Opus and
+  the mixed candidate are judged by Fable. Flags disclose this but cannot
+  remove the bias.
+- **Corpus provenance can frame the task.** All original task plans were
+  Claude-authored, even though candidates re-ran the workflow themselves.
+- **Recovered telemetry is incomplete.** Some finished cells predate complete
+  wall-time or cost capture; the site labels every affected aggregate.
+- **Post-merge references.** The reference PRs are human-reviewed outcomes.
+  They are strong task evidence, but model training contamination cannot be
+  ruled out for already-public PRs.
+
+The scoped claim is therefore: **what these configurations shipped through
+the full Hive workflow on this corpus**, not which model is universally best.
+
+## Follow-up campaign (not part of these scores)
+
+The native `bench` Hive workflow now defaults new campaigns to three
+independent samples per judge and cell, Fable 5 plus GPT-5.6 Sol at `ultra`,
+judging against the candidate-generated plan, and a diagnostic deliberation
+round in which each judge must make the strongest evidence-based case against
+its own initial score. Deliberated scores do not replace the independent
+leaderboard values.
+
+Those settings describe the follow-up campaign only. The current website keeps
+the v2-ce provenance exact: Sol `xhigh`, one sample per primary judge-cell, and
+no claim that the future three-sample results already exist.
+
+The workflow runs as a normal Hive custom workflow. Hive owns its daemon,
+locking, retry behavior, stable task ordering, and global/per-project
+concurrency; hive-bench does not add a parallel shell scheduler.
 
 </div></section>

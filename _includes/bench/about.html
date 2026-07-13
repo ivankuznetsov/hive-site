@@ -1,153 +1,88 @@
 <section class="bench-intro">
   <div class="wrap">
-    <p class="eyebrow">hive-bench <span class="badge-alpha">v2</span></p>
+    <p class="eyebrow">hive-bench <span class="badge-alpha">preliminary v2-ce</span></p>
     <h1 class="bench-title">Which model should drive an autonomous dev pipeline?</h1>
     <p class="section-lead">
-      <a href="https://github.com/ivankuznetsov/hive">Hive</a> is an open-source
-      autonomous development pipeline: you hand it a task idea, and LLM agents
-      carry it through brainstorm &rarr; plan &rarr; implementation &rarr; pull
-      request &rarr; code review. I run it daily, so at some point I had to
-      decide which model to put behind it. hive-bench is how I decided: replay
-      tasks I already merged through the real pipeline under different models,
-      and grade what each one ships.
+      <a href="https://github.com/ivankuznetsov/hive">Hive</a> carries a task
+      through planning, implementation, pull request, and code review. This
+      benchmark replays real, already-merged tasks through that full production
+      workflow under different model configurations, then judges the final
+      post-review diff against the merged reference.
     </p>
 
-    <h2>Why measure this at all?</h2>
+    <h2>What this benchmark measures</h2>
     <p>
-      Public coding benchmarks score models on isolated problems with a known
-      pass condition. Inside a pipeline the model faces different work: scope a
-      fuzzy idea, write a plan, implement it across a live codebase, open a PR,
-      then survive code review of its own change. A model can be strong on the
-      first kind of work and mediocre at the second — and only the second tells
-      me what to put in hive's config.
+      The corpus contains six completed tasks from the Hive repository. For
+      each task, the source is rewound to the original base commit and the
+      candidate receives the frozen task inputs, but never the reference
+      patch. A candidate may use one model for every stage or split planning
+      and execution between models. Every candidate then runs real Hive in an
+      isolated runner: plan &rarr; execute &rarr; open PR &rarr; production
+      review and fix loop.
+    </p>
+    <p>
+      The current board is complete at <strong>36 of 36 generation
+      cells</strong>: six candidates &times; six tasks. It is still labeled
+      preliminary because each judge-cell pair has only one independent score
+      sample and this corpus has no curated objective test gates.
     </p>
 
-    <h2>What is measured</h2>
-    <p>
-      The corpus is six real tasks from the hive repository, each already
-      finished and merged as a pull request. That merged PR is the ground
-      truth, and I'm the one who merged it.
-    </p>
-    <p>
-      A <em>candidate</em> is what gets measured: hive configured with one
-      model for every stage, or with a mixed pair, where one model writes the
-      plan and a different model implements it. The mixed pairs matter later —
-      one of the board's findings is about them.
-    </p>
-    <p>
-      For each task, the repo is rewound to the commit the original work
-      started from, and the candidate runs the full cycle in an isolated
-      container: plan, execute, open a sandboxed PR, run hive's production
-      review. It never sees the reference solution. What gets graded is its
-      final, post-review diff.
-    </p>
-
-    <h2>How it is scored</h2>
+    <h2>How the scores should be read</h2>
     <ol class="bench-steps">
-      <li><strong>Two blind judges</strong> (<code>gpt-5.5-pro</code> and
-        <code>fable-5</code>) grade each diff independently, 0–10 on an
-        absolute rubric: does this accomplish the task? They see the merged PR
-        as a signal of what the task needed; a candidate is never scored on
-        how closely it matches it, and verbosity is explicitly not
-        rewarded.</li>
-      <li><strong>One ranking per judge, never mixed:</strong> the two judges
-        score on visibly different scales — <code>fable-5</code> runs 1–2
-        points more generous — so each judge gets its own full table and
-        scores from different judges are never combined into one column. An
-        external review of this benchmark's design caught that an earlier
-        mixed presentation compared rulers instead of candidates; the current
-        tables fix it. Rows where a judge shares a model family with the
-        candidate stay in the table but carry a same-family flag.</li>
-      <li><strong>Model claims are audited:</strong> every cell's logs are
-        checked to confirm the claimed model actually ran — 101 substantive
-        stage logs, 0 violations.</li>
-      <li><strong>Judges cross-check each other, as a diagnostic:</strong>
-        after scoring independently, they exchange anonymized verdicts and
-        verify each other's claims against the diff. This never moves the
-        headline numbers — the leaderboard keeps the independent scores.</li>
+      <li><strong>Two independent rulers:</strong> Fable 5 and GPT-5.6 Sol
+        score each final diff from 0&ndash;10. Sol was explicitly run at
+        <code>xhigh</code>; Fable's reasoning effort was not exposed by its
+        runner.</li>
+      <li><strong>Never average judges together:</strong> each judge gets a
+        separate leaderboard because their calibration differs. Every matrix
+        cell shows <code>Fable / Sol</code> in that order.</li>
+      <li><strong>Show family conflicts:</strong> when the judge and candidate
+        share a model family, that row is marked
+        <span class="bench-prelim">same-family</span>. The score remains
+        visible, but it is weaker evidence than a family-disjoint judgment.</li>
+      <li><strong>Keep efficiency descriptive:</strong> wall time, reported
+        tokens, and API-equivalent cost are shown where the underlying runner
+        recorded them. Missing values are reported as unknown, never inferred.</li>
     </ol>
-    <p>Full detail and limitations:
-      <a href="{{ '/bench/methodology/' | relative_url }}">methodology</a>.</p>
+    <p>
+      Read the full <a href="{{ '/bench/methodology/' | relative_url }}">methodology
+      and limitations</a> before treating small score differences as meaningful.
+    </p>
 
     <h2>What came out</h2>
     <p>
-      No candidate wins outright, and the answer depends on which judge you
-      ask — which is itself a finding. Reading each judge's own table:
+      GPT-5.6 Sol xhigh leads both preliminary leaderboards: 6.917 by Fable and
+      6.183 by Sol. Its Sol judgment is same-family, while its Fable judgment
+      is family-disjoint. Grok 4.5 is second under Fable at 6.333 and lands
+      close to Opus under Sol (4.217 versus 4.250), while completing the
+      recorded timed cells fastest at 27.3 minutes on average. Grok's token
+      count and cost are unavailable from its runner and therefore remain
+      unknown.
     </p>
     <p>
-      <code>glm-5.2</code> is the strongest clean result on the board: it
-      leads both judges' rankings among candidates with no family conflict
-      (gpt 4.0, fable 6.0), completed all six tasks, and runs fully
-      pay-per-token. <code>codex (gpt-5.5)</code> at its default reasoning
-      effort is the reliability pick — six of six tasks, zero stage failures,
-      the cheapest and most token-efficient run — but the strict judge puts
-      its quality at 3.4, at the 2.0 floor on three of the six tasks.
+      The mixed Opus-plan &rarr; Codex-execute configuration is also strong:
+      second under Sol at 4.783 and third under Fable at 6.167. Both primary
+      judge families touch that candidate, however, so its rows carry a
+      same-family warning under both rulers. GLM 5.2 is the least expensive
+      configuration with complete cost telemetry at an estimated $21.97 per
+      task, but ranks last under Sol and fifth under Fable on this corpus.
     </p>
     <p>
-      Pinning codex's reasoning to xhigh changed that: <code>all-codex-xhigh</code>
-      tops both judges' quality columns (gpt 4.25, fable 6.5, with the gpt
-      score carrying a same-family flag), lifting the install floor from 2.0
-      to 3.0 and matching the board's best fix-tmux at 8.0.
-    </p>
-    <p>
-      <code>opus-4.8</code> is the capability frontier on hard tasks — the
-      only above-floor install score before xhigh arrived (4.0 where everyone
-      got 2.0) — but subscription limit windows made it the hardest column to
-      even run. <code>kimi-k2.7-code</code> is bimodal: 8.0/8.5 on fix-tmux
-      against 1.0/1.0 on daemon, with a fragility at the execute stage where
-      empty final turns stall hive's stage markers.
-    </p>
-    <p>
-      A cross-model handoff turned out to be its own failure mode. The open
-      glm&rarr;kimi pair reproducibly broke at execute on install and
-      fix-tmux — two funded attempts each — even though each model finishes
-      those stages solo on other tasks. The end-to-end column makes this
-      visible: counting its failures as zeros, the pair drops from a 4.0
-      quality mean to 1.3.
-    </p>
-
-    <h2>Send your task to the benchmark</h2>
-    <p>
-      The corpus grows from real, completed hive tasks — and if you run hive,
-      yours qualify. Any task that reached <code>9-done</code> with a merged PR
-      can become a benchmark entry:
-    </p>
-    <pre class="bench-cmd"><code>hive bench submit &lt;task-slug&gt;</code></pre>
-    <p>
-      The command extracts the task's frozen idea and brainstorm plus the merged
-      PR as the reference, runs a secret/PII scan over the spec <em>before</em>
-      anything leaves your machine (the same scanner the benchmark's own gate
-      uses, so the local check can't be weaker than the one that judges the PR),
-      and opens a pull request against
-      <a href="https://github.com/ivankuznetsov/hive-bench">hive-bench</a>.
-      CI then validates the entry in a sandbox — fork PRs run with a read-only
-      token, no secrets, and only after a maintainer applies a
-      <code>safe-to-validate</code> label.
-    </p>
-    <p>
-      What gets a submission rejected, automatically: reference-solution lines
-      appearing in the candidate-visible spec (if the brainstorm quotes the
-      answer, executing the task collapses to transcription — three of my own
-      tasks were rejected for exactly this), secrets or private hostnames
-      anywhere in the entry, and a reference that fails to reproduce against
-      its own gate. Fresh tasks are especially valuable: a task benchmarked
-      before models could have trained on its PR is the cleanest contamination
-      defense this design has.
+      These are scoped findings, not a universal model ranking. Six tasks from
+      one Ruby/CLI project and one score sample per judge cannot establish
+      broad superiority; they can show what happened when these exact
+      configurations drove this exact end-to-end workflow.
     </p>
 
     <h2>One task, end to end</h2>
     <p class="bench-example">
-      Task <code>fix-tmux</code>: <em>"Fix two issues running Hive with Claude
-      Code in tmux mode"</em> — a real bug a human fixed in
-      <a href="https://github.com/ivankuznetsov/hive/pull/623">PR&nbsp;#623</a>.
-      Each candidate got the original idea and brainstorm, planned its own fix,
-      implemented it, opened a sandboxed PR, and ran hive's review loop. The
-      all-GLM candidate shipped a 429-line diff that the judges scored 8.0 and
-      9.0 — the best dual-judged cell on the board. Codex earned 7.0 from both
-      judges. The glm&rarr;kimi pair never produced a diff here: its execute
-      stage failed on both funded attempts, so its cell reads as an exclusion.
-      Every cell in the tables below is one such run; hover a task's ⓘ for
-      what it asked.
+      <code>fix-tmux</code> asked candidates to repair launcher scripts and
+      Claude-ready detection, based on the task later merged as
+      <a href="https://github.com/ivankuznetsov/hive/pull/623">Hive PR&nbsp;#623</a>.
+      The mixed Opus &rarr; Codex candidate scored <strong>9.0 / 8.7</strong>
+      (Fable / Sol), the best Sol score for that task. GPT-5.6 Sol scored
+      <strong>9.0 / 8.5</strong>. The result and exact candidate patch behind
+      every score are linked from the full board below.
     </p>
   </div>
 </section>

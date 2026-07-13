@@ -1,563 +1,497 @@
 {
   "schema": "hive-bench-results-site",
-  "schema_version": 2,
-  "corpus_version": "v2 (6 tasks, full hive cycle)",
-  "generated_at": "2026-07-09",
-  "status": "partial",
-  "tasks": [
-    "add-i-key",
-    "web-install",
-    "install",
-    "fix-tmux",
-    "fix-review",
-    "daemon"
-  ],
-  "task_meta": {
-    "add-i-key": {
-      "plan_author": "claude",
-      "original_model": "claude-opus-4-7",
-      "desc": "Add an 'i' key (with legend entry) opening a full task-info panel in the hive TUI.",
-      "type": "feature",
-      "pr": "https://github.com/ivankuznetsov/hive/pull/103"
-    },
-    "web-install": {
-      "plan_author": "claude",
-      "original_model": "claude-haiku-4-5",
-      "desc": "Add a first-class local (non-Docker) install & run mode for the Hive web UI.",
-      "type": "feature",
-      "pr": "https://github.com/ivankuznetsov/hive/pull/622"
-    },
-    "install": {
-      "plan_author": "claude",
-      "original_model": "claude-opus-4-7",
-      "desc": "Figure out packaging so hive installs as a simple package on macOS and various Linux distros.",
-      "type": "feature",
-      "pr": "https://github.com/ivankuznetsov/hive/pull/127"
-    },
-    "fix-tmux": {
-      "plan_author": "claude",
-      "original_model": "claude-haiku-4-5",
-      "desc": "Fix two bugs breaking Hive with Claude Code in tmux mode: missing launcher scripts and the ready-prompt detector.",
-      "type": "bugfix",
-      "pr": "https://github.com/ivankuznetsov/hive/pull/623"
-    },
-    "fix-review": {
-      "plan_author": "claude",
-      "original_model": "claude-haiku-4-5",
-      "desc": "Fix review-stage stop-hook completion failures that leave finished review passes stuck in REVIEW_ERROR.",
-      "type": "bugfix",
-      "pr": "https://github.com/ivankuznetsov/hive/pull/625"
-    },
-    "daemon": {
-      "plan_author": "claude",
-      "original_model": "claude-haiku-4-5",
-      "desc": "Make the Hive daemon auto-retry recoverable terminal error markers once the failing dependency is healthy again.",
-      "type": "feature",
-      "pr": "https://github.com/ivankuznetsov/hive/pull/624"
-    }
+  "schema_version": 3,
+  "corpus_version": "v2-ce",
+  "generated_at": "2026-07-13T08:53:36Z",
+  "status": "preliminary_complete",
+  "coverage": {
+    "cells": 36,
+    "expected_cells": 36,
+    "tasks": 6,
+    "candidates": 6
   },
-  "headline": [
+  "primary_judges": [
     {
-      "id": "all-codex-xhigh",
-      "cross_family_judge": "fable-5",
-      "cross_family_mean": 6.5,
-      "scored": 2,
-      "total": 6,
-      "completion": "5/6",
-      "reasoning": "xhigh (pinned)",
-      "mean_cost_usd": 17.9,
-      "mean_mtokens": 23.8
+      "id": "gpt-5.6-sol",
+      "label": "GPT-5.6 Sol",
+      "reasoning_effort": "xhigh",
+      "samples_per_cell": 1,
+      "rows": [
+        {
+          "id": "all-codex-5.6-sol-xhigh",
+          "label": "GPT-5.6 Sol xhigh",
+          "mean": 6.183,
+          "scored": 6,
+          "total": 6,
+          "same_family": true
+        },
+        {
+          "id": "opus-plan->codex-exec-xhigh",
+          "label": "Opus plan → Codex 5.5 xhigh",
+          "mean": 4.783,
+          "scored": 6,
+          "total": 6,
+          "same_family": true
+        },
+        {
+          "id": "all-opus-4.8",
+          "label": "Opus 4.8",
+          "mean": 4.25,
+          "scored": 6,
+          "total": 6,
+          "same_family": false
+        },
+        {
+          "id": "all-grok-4.5",
+          "label": "Grok 4.5 xhigh",
+          "mean": 4.217,
+          "scored": 6,
+          "total": 6,
+          "same_family": false
+        },
+        {
+          "id": "all-codex-xhigh",
+          "label": "Codex 5.5 xhigh",
+          "mean": 3.867,
+          "scored": 6,
+          "total": 6,
+          "same_family": true
+        },
+        {
+          "id": "all-glm-5.2",
+          "label": "GLM 5.2",
+          "mean": 3.617,
+          "scored": 6,
+          "total": 6,
+          "same_family": false
+        }
+      ]
     },
     {
-      "id": "all-codex",
-      "cross_family_judge": "fable-5",
-      "cross_family_mean": 5.19,
-      "scored": 6,
-      "total": 6,
-      "completion": "6/6",
-      "reasoning": "default (light — 15% reasoning share)",
-      "mean_cost_usd": 8.78,
-      "mean_mtokens": 11.0
-    },
-    {
-      "id": "all-glm-5.2",
-      "cross_family_judge": "gpt-5.5-pro",
-      "cross_family_mean": 4.0,
-      "scored": 6,
-      "total": 6,
-      "completion": "6/6",
-      "reasoning": "default",
-      "mean_cost_usd": 15.64,
-      "mean_mtokens": 65.0
-    },
-    {
-      "id": "glm-plan->kimi-exec",
-      "cross_family_judge": "gpt-5.5-pro",
-      "cross_family_mean": 4.0,
-      "scored": 2,
-      "total": 4,
-      "completion": "2/6",
-      "reasoning": "default",
-      "mean_cost_usd": 18.39,
-      "mean_mtokens": 90.8
-    },
-    {
-      "id": "all-opus-4.8",
-      "cross_family_judge": "gpt-5.5-pro",
-      "cross_family_mean": 3.83,
-      "scored": 6,
-      "total": 6,
-      "completion": "6/6",
-      "reasoning": "CLI default",
-      "mean_cost_usd": 22.78,
-      "mean_mtokens": 38.9
-    },
-    {
-      "id": "all-kimi-k2.7-code",
-      "cross_family_judge": "gpt-5.5-pro",
-      "cross_family_mean": 3.17,
-      "scored": 6,
-      "total": 6,
-      "completion": "6/6",
-      "reasoning": "default",
-      "mean_cost_usd": 18.91,
-      "mean_mtokens": 86.1
-    },
-    {
-      "id": "opus-plan->codex-exec",
-      "scored": 0,
-      "total": 6,
-      "completion": "5/6",
-      "reasoning": "opus: default · codex: default",
-      "note": "mixed family — no disjoint judge; flagged means only",
-      "mean_cost_usd": 12.4,
-      "mean_mtokens": 19.0
-    },
-    {
-      "id": "opus-plan->codex-exec-xhigh",
-      "scored": 0,
-      "total": 6,
-      "completion": "0/6",
-      "reasoning": "opus: default · codex: xhigh (pinned)",
-      "note": "mixed family — no disjoint judge; flagged means only",
-      "mean_cost_usd": null,
-      "mean_mtokens": null
+      "id": "fable-5",
+      "label": "Fable 5",
+      "reasoning_effort": "unspecified",
+      "samples_per_cell": 1,
+      "rows": [
+        {
+          "id": "all-codex-5.6-sol-xhigh",
+          "label": "GPT-5.6 Sol xhigh",
+          "mean": 6.917,
+          "scored": 6,
+          "total": 6,
+          "same_family": false
+        },
+        {
+          "id": "all-grok-4.5",
+          "label": "Grok 4.5 xhigh",
+          "mean": 6.333,
+          "scored": 6,
+          "total": 6,
+          "same_family": false
+        },
+        {
+          "id": "opus-plan->codex-exec-xhigh",
+          "label": "Opus plan → Codex 5.5 xhigh",
+          "mean": 6.167,
+          "scored": 6,
+          "total": 6,
+          "same_family": true
+        },
+        {
+          "id": "all-opus-4.8",
+          "label": "Opus 4.8",
+          "mean": 6.083,
+          "scored": 6,
+          "total": 6,
+          "same_family": true
+        },
+        {
+          "id": "all-glm-5.2",
+          "label": "GLM 5.2",
+          "mean": 4.833,
+          "scored": 6,
+          "total": 6,
+          "same_family": false
+        },
+        {
+          "id": "all-codex-xhigh",
+          "label": "Codex 5.5 xhigh",
+          "mean": 4.667,
+          "scored": 6,
+          "total": 6,
+          "same_family": false
+        }
+      ]
     }
   ],
-  "judge_tables": {
-    "gpt-5.5-pro": [
+  "supplemental_judge": {
+    "id": "gpt-5.5-pro",
+    "label": "GPT-5.5 Pro",
+    "note": "Historical supplemental ruler; it scored only the add-i-key cell for Codex 5.5 xhigh, GLM 5.2, and Grok 4.5 and is not used to rank the full slate.",
+    "rows": [
       {
         "id": "all-codex-xhigh",
-        "mean": 4.25,
-        "e2e_mean": 2.83,
-        "completed": 5,
-        "attempted": 6,
-        "scored": 4,
-        "same_family": true,
-        "excluded": 0
+        "label": "Codex 5.5 xhigh",
+        "mean": 5,
+        "scored": 1,
+        "total": 6,
+        "same_family": true
       },
       {
         "id": "all-glm-5.2",
-        "mean": 4.0,
-        "e2e_mean": 4.0,
-        "completed": 6,
-        "attempted": 6,
-        "scored": 6,
-        "same_family": false,
-        "excluded": 0
+        "label": "GLM 5.2",
+        "mean": 4,
+        "scored": 1,
+        "total": 6,
+        "same_family": false
       },
       {
-        "id": "glm-plan->kimi-exec",
-        "mean": 4.0,
-        "e2e_mean": 1.33,
-        "completed": 2,
-        "attempted": 6,
-        "scored": 2,
-        "same_family": false,
-        "excluded": 2
-      },
-      {
-        "id": "all-opus-4.8",
-        "mean": 3.83,
-        "e2e_mean": 3.83,
-        "completed": 6,
-        "attempted": 6,
-        "scored": 6,
-        "same_family": false,
-        "excluded": 0
-      },
-      {
-        "id": "opus-plan->codex-exec",
-        "mean": 3.8,
-        "e2e_mean": 3.17,
-        "completed": 5,
-        "attempted": 6,
-        "scored": 5,
-        "same_family": true,
-        "excluded": 0
-      },
-      {
-        "id": "all-codex",
-        "mean": 3.44,
-        "e2e_mean": 3.44,
-        "completed": 6,
-        "attempted": 6,
-        "scored": 6,
-        "same_family": true,
-        "excluded": 0
-      },
-      {
-        "id": "all-kimi-k2.7-code",
-        "mean": 3.17,
-        "e2e_mean": 3.17,
-        "completed": 6,
-        "attempted": 6,
-        "scored": 6,
-        "same_family": false,
-        "excluded": 0
-      },
-      {
-        "id": "opus-plan->codex-exec-xhigh",
-        "mean": null,
-        "e2e_mean": null,
-        "completed": 0,
-        "attempted": 6,
-        "scored": 0,
-        "same_family": true,
-        "excluded": 0
-      }
-    ],
-    "fable-5": [
-      {
-        "id": "all-codex-xhigh",
-        "mean": 6.5,
-        "e2e_mean": 2.17,
-        "completed": 5,
-        "attempted": 6,
-        "scored": 2,
-        "same_family": false,
-        "excluded": 0
-      },
-      {
-        "id": "all-glm-5.2",
-        "mean": 6.03,
-        "e2e_mean": 5.03,
-        "completed": 6,
-        "attempted": 6,
-        "scored": 5,
-        "same_family": false,
-        "excluded": 0
-      },
-      {
-        "id": "opus-plan->codex-exec",
-        "mean": 5.4,
-        "e2e_mean": 4.5,
-        "completed": 5,
-        "attempted": 6,
-        "scored": 5,
-        "same_family": true,
-        "excluded": 0
-      },
-      {
-        "id": "all-opus-4.8",
-        "mean": 5.27,
-        "e2e_mean": 4.39,
-        "completed": 6,
-        "attempted": 6,
-        "scored": 5,
-        "same_family": true,
-        "excluded": 0
-      },
-      {
-        "id": "all-codex",
-        "mean": 5.19,
-        "e2e_mean": 5.19,
-        "completed": 6,
-        "attempted": 6,
-        "scored": 6,
-        "same_family": false,
-        "excluded": 0
-      },
-      {
-        "id": "all-kimi-k2.7-code",
-        "mean": 4.17,
-        "e2e_mean": 2.78,
-        "completed": 6,
-        "attempted": 6,
-        "scored": 4,
-        "same_family": false,
-        "excluded": 0
-      },
-      {
-        "id": "opus-plan->codex-exec-xhigh",
-        "mean": null,
-        "e2e_mean": null,
-        "completed": 0,
-        "attempted": 6,
-        "scored": 0,
-        "same_family": true,
-        "excluded": 0
-      },
-      {
-        "id": "glm-plan->kimi-exec",
-        "mean": null,
-        "e2e_mean": null,
-        "completed": 2,
-        "attempted": 6,
-        "scored": 0,
-        "same_family": false,
-        "excluded": 2
+        "id": "all-grok-4.5",
+        "label": "Grok 4.5 xhigh",
+        "mean": 4,
+        "scored": 1,
+        "total": 6,
+        "same_family": false
       }
     ]
   },
-  "gates": [
+  "score_order": [
+    "fable-5",
+    "gpt-5.6-sol"
+  ],
+  "tasks": [
     {
-      "id": "all-opus-4.8",
-      "cells": {
-        "fix-tmux": "pass",
-        "fix-review": "fail",
-        "daemon": "fail"
-      }
+      "key": "add-i-key",
+      "id": "add-i-key-with-legend-260522-ca28",
+      "type": "feature",
+      "desc": "Add an i key and legend entry that open a full task-information panel in the Hive TUI.",
+      "pr": "https://github.com/ivankuznetsov/hive/pull/127",
+      "plan_author": "claude",
+      "original_model": "claude-opus-4-7"
     },
     {
-      "id": "all-codex",
-      "cells": {
-        "fix-tmux": "pass",
-        "fix-review": "fail",
-        "daemon": "fail"
-      }
+      "key": "web-install",
+      "id": "add-local-hive-web-install-260629-f4ca",
+      "type": "feature",
+      "desc": "Add a first-class local, non-Docker install and run mode for the Hive web UI.",
+      "pr": "https://github.com/ivankuznetsov/hive/pull/622",
+      "plan_author": "claude",
+      "original_model": "claude-haiku-4-5"
     },
     {
-      "id": "all-codex-xhigh",
-      "cells": {
-        "fix-tmux": "pass",
-        "daemon": "fail"
-      }
+      "key": "install",
+      "id": "figure-out-way-to-install-260513-4a0a",
+      "type": "feature",
+      "desc": "Package Hive for straightforward installation on macOS and several Linux distributions.",
+      "pr": "https://github.com/ivankuznetsov/hive/pull/103",
+      "plan_author": "claude",
+      "original_model": "claude-opus-4-7"
     },
     {
-      "id": "opus-plan->codex-exec",
-      "cells": {
-        "fix-tmux": "pass",
-        "daemon": "fail"
-      }
+      "key": "fix-tmux",
+      "id": "fix-claude-tmux-ready-detector-260629-50cc",
+      "type": "bugfix",
+      "desc": "Fix missing launcher scripts and ready-prompt detection for Claude Code in tmux mode.",
+      "pr": "https://github.com/ivankuznetsov/hive/pull/623",
+      "plan_author": "claude",
+      "original_model": "claude-haiku-4-5"
     },
     {
-      "id": "all-glm-5.2",
-      "cells": {
-        "fix-tmux": "pass",
-        "fix-review": "fail",
-        "daemon": "fail"
-      }
+      "key": "fix-review",
+      "id": "fix-review-stage-claude-stop-260629-26ed",
+      "type": "bugfix",
+      "desc": "Recover completed review passes from Claude stop-hook failures instead of leaving REVIEW_ERROR.",
+      "pr": "https://github.com/ivankuznetsov/hive/pull/625",
+      "plan_author": "claude",
+      "original_model": "claude-haiku-4-5"
     },
     {
-      "id": "all-kimi-k2.7-code",
-      "cells": {
-        "fix-tmux": "pass",
-        "fix-review": "fail",
-        "daemon": "fail"
-      }
-    },
-    {
-      "id": "glm-plan->kimi-exec",
-      "cells": {
-        "fix-review": "fail"
-      }
+      "key": "daemon",
+      "id": "make-the-hive-daemon-automatically-260629-223d",
+      "type": "feature",
+      "desc": "Make the Hive daemon retry recoverable terminal errors after the failing dependency becomes healthy.",
+      "pr": "https://github.com/ivankuznetsov/hive/pull/624",
+      "plan_author": "claude",
+      "original_model": "claude-haiku-4-5"
     }
   ],
-  "gate_nature": {
-    "fix-tmux": "behavioral",
-    "fix-review": "interface-strict",
-    "daemon": "interface-strict"
-  },
-  "model_spend": [
+  "candidates": [
     {
-      "model": "gpt-5.5",
-      "cost_usd": 169.08,
-      "mtokens": 223.2
-    },
-    {
-      "model": "claude-opus-4-8",
-      "cost_usd": 167.56,
-      "mtokens": 265.4
-    },
-    {
-      "model": "moonshotai/kimi-k2.7-code",
-      "cost_usd": 140.26,
-      "mtokens": 667.5
-    },
-    {
-      "model": "z-ai/glm-5.2",
-      "cost_usd": 103.82,
-      "mtokens": 420.5
-    },
-    {
-      "model": "claude-haiku-4-5-20251001",
-      "cost_usd": 4.25,
-      "mtokens": 24.7
-    }
-  ],
-  "matrix": [
-    {
-      "id": "all-opus-4.8",
+      "id": "all-codex-5.6-sol-xhigh",
+      "label": "GPT-5.6 Sol xhigh",
+      "reasoning": "xhigh (pinned)",
+      "note": "Sol drives plan, execute, and review.",
+      "completed": 6,
+      "total": 6,
+      "mean_minutes": 146.9,
+      "time_sample": 4,
+      "cost_per_task_usd": 378.43,
+      "reported_mtokens_per_task": 74.86,
       "cells": {
-        "add-i-key": "1.0 / 1.333",
-        "web-install": "2.0 / 4.0",
-        "install": "4.0 / 6.5",
-        "fix-tmux": "8.0 / 8.5",
-        "fix-review": "4.0 / 6.0",
-        "daemon": "4.0 / ·"
-      },
-      "costs": {
-        "add-i-key": "$4.53 · 5M tok",
-        "web-install": "$28.44 · 50M tok",
-        "install": "$43.78 · 76M tok",
-        "fix-tmux": "$12.12 · 16M tok",
-        "fix-review": "$18.95 · 32M tok",
-        "daemon": "$28.88 · 53M tok"
-      },
-      "mean_cost_usd": 22.78,
-      "mean_mtokens": 38.9
-    },
-    {
-      "id": "all-codex",
-      "cells": {
-        "add-i-key": "4.0 / 6.0",
-        "web-install": "2.0 / 4.5",
-        "install": "2.0 / 4.0",
-        "fix-tmux": "7.0 / 7.0",
-        "fix-review": "2.0 / 4.0",
-        "daemon": "3.667 / 5.667"
-      },
-      "costs": {
-        "add-i-key": "$7.69 · 8M tok",
-        "web-install": "$11.36 · 15M tok",
-        "install": "$8.25 · 10M tok",
-        "fix-tmux": "$4.98 · 6M tok",
-        "fix-review": "$9.19 · 12M tok",
-        "daemon": "$11.18 · 14M tok"
-      },
-      "mean_cost_usd": 8.78,
-      "mean_mtokens": 11.0
-    },
-    {
-      "id": "all-codex-xhigh",
-      "cells": {
-        "add-i-key": "4.0 / 6.0",
-        "web-install": "2.0 / ·",
-        "install": "3.0 / ·",
-        "fix-tmux": "8.0 / ·",
-        "fix-review": "pending",
-        "daemon": "· / 7.0"
-      },
-      "costs": {
-        "add-i-key": "$10.05 · 12M tok",
-        "web-install": "$25.41 · 34M tok",
-        "install": "$25.51 · 37M tok",
-        "fix-tmux": "$7.60 · 9M tok",
-        "daemon": "$20.94 · 27M tok"
-      },
-      "mean_cost_usd": 17.9,
-      "mean_mtokens": 23.8
-    },
-    {
-      "id": "opus-plan->codex-exec",
-      "cells": {
-        "add-i-key": "2.0 / 2.0",
-        "web-install": "3.0 / 6.0",
-        "install": "2.0 / 6.0",
-        "fix-tmux": "8.0 / 8.0",
-        "fix-review": "plan failed",
-        "daemon": "4.0 / 5.0"
-      },
-      "costs": {
-        "add-i-key": "$5.77 · 6M tok",
-        "web-install": "$17.24 · 27M tok",
-        "install": "$15.86 · 24M tok",
-        "fix-tmux": "$5.52 · 6M tok",
-        "daemon": "$17.62 · 30M tok"
-      },
-      "mean_cost_usd": 12.4,
-      "mean_mtokens": 19.0
+        "add-i-key": {
+          "scores": "7.0 / 7.0",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-codex-5.6-sol-xhigh--add-i-key-with-legend-260522-ca28/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-codex-5.6-sol-xhigh--add-i-key-with-legend-260522-ca28/candidate.patch"
+        },
+        "web-install": {
+          "scores": "7.0 / 5.5",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-codex-5.6-sol-xhigh--add-local-hive-web-install-260629-f4ca/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-codex-5.6-sol-xhigh--add-local-hive-web-install-260629-f4ca/candidate.patch"
+        },
+        "install": {
+          "scores": "5.5 / 3.5",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-codex-5.6-sol-xhigh--figure-out-way-to-install-260513-4a0a/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-codex-5.6-sol-xhigh--figure-out-way-to-install-260513-4a0a/candidate.patch"
+        },
+        "fix-tmux": {
+          "scores": "9.0 / 8.5",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-codex-5.6-sol-xhigh--fix-claude-tmux-ready-detector-260629-50cc/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-codex-5.6-sol-xhigh--fix-claude-tmux-ready-detector-260629-50cc/candidate.patch"
+        },
+        "fix-review": {
+          "scores": "6.0 / 7.1",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-codex-5.6-sol-xhigh--fix-review-stage-claude-stop-260629-26ed/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-codex-5.6-sol-xhigh--fix-review-stage-claude-stop-260629-26ed/candidate.patch"
+        },
+        "daemon": {
+          "scores": "7.0 / 5.5",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-codex-5.6-sol-xhigh--make-the-hive-daemon-automatically-260629-223d/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-codex-5.6-sol-xhigh--make-the-hive-daemon-automatically-260629-223d/candidate.patch"
+        }
+      }
     },
     {
       "id": "opus-plan->codex-exec-xhigh",
+      "label": "Opus plan → Codex 5.5 xhigh",
+      "reasoning": "Opus default · Codex xhigh",
+      "note": "Opus plans and reviews; Codex 5.5 xhigh executes.",
+      "completed": 6,
+      "total": 6,
+      "mean_minutes": 60.8,
+      "time_sample": 5,
+      "cost_per_task_usd": null,
+      "reported_mtokens_per_task": 32.78,
       "cells": {
-        "add-i-key": "pending",
-        "web-install": "pending",
-        "install": "pending",
-        "fix-tmux": "pending",
-        "fix-review": "pending",
-        "daemon": "pending"
-      },
-      "costs": {},
-      "mean_cost_usd": null,
-      "mean_mtokens": null
+        "add-i-key": {
+          "scores": "6.0 / 5.0",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/opus-plan-%3Ecodex-exec-xhigh--add-i-key-with-legend-260522-ca28/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/opus-plan-%3Ecodex-exec-xhigh--add-i-key-with-legend-260522-ca28/candidate.patch"
+        },
+        "web-install": {
+          "scores": "5.0 / 3.0",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/opus-plan-%3Ecodex-exec-xhigh--add-local-hive-web-install-260629-f4ca/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/opus-plan-%3Ecodex-exec-xhigh--add-local-hive-web-install-260629-f4ca/candidate.patch"
+        },
+        "install": {
+          "scores": "6.5 / 4.5",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/opus-plan-%3Ecodex-exec-xhigh--figure-out-way-to-install-260513-4a0a/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/opus-plan-%3Ecodex-exec-xhigh--figure-out-way-to-install-260513-4a0a/candidate.patch"
+        },
+        "fix-tmux": {
+          "scores": "9.0 / 8.7",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/opus-plan-%3Ecodex-exec-xhigh--fix-claude-tmux-ready-detector-260629-50cc/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/opus-plan-%3Ecodex-exec-xhigh--fix-claude-tmux-ready-detector-260629-50cc/candidate.patch"
+        },
+        "fix-review": {
+          "scores": "4.0 / 3.0",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/opus-plan-%3Ecodex-exec-xhigh--fix-review-stage-claude-stop-260629-26ed/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/opus-plan-%3Ecodex-exec-xhigh--fix-review-stage-claude-stop-260629-26ed/candidate.patch"
+        },
+        "daemon": {
+          "scores": "6.5 / 4.5",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/opus-plan-%3Ecodex-exec-xhigh--make-the-hive-daemon-automatically-260629-223d/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/opus-plan-%3Ecodex-exec-xhigh--make-the-hive-daemon-automatically-260629-223d/candidate.patch"
+        }
+      }
+    },
+    {
+      "id": "all-opus-4.8",
+      "label": "Opus 4.8",
+      "reasoning": "Claude CLI default",
+      "note": "Opus drives plan, execute, and review.",
+      "completed": 6,
+      "total": 6,
+      "mean_minutes": 63.7,
+      "time_sample": 6,
+      "cost_per_task_usd": 57.23,
+      "reported_mtokens_per_task": 88.27,
+      "cells": {
+        "add-i-key": {
+          "scores": "6.0 / 5.0",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-opus-4.8--add-i-key-with-legend-260522-ca28/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-opus-4.8--add-i-key-with-legend-260522-ca28/candidate.patch"
+        },
+        "web-install": {
+          "scores": "4.5 / 2.5",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-opus-4.8--add-local-hive-web-install-260629-f4ca/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-opus-4.8--add-local-hive-web-install-260629-f4ca/candidate.patch"
+        },
+        "install": {
+          "scores": "6.0 / 2.5",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-opus-4.8--figure-out-way-to-install-260513-4a0a/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-opus-4.8--figure-out-way-to-install-260513-4a0a/candidate.patch"
+        },
+        "fix-tmux": {
+          "scores": "8.0 / 7.5",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-opus-4.8--fix-claude-tmux-ready-detector-260629-50cc/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-opus-4.8--fix-claude-tmux-ready-detector-260629-50cc/candidate.patch"
+        },
+        "fix-review": {
+          "scores": "5.0 / 3.0",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-opus-4.8--fix-review-stage-claude-stop-260629-26ed/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-opus-4.8--fix-review-stage-claude-stop-260629-26ed/candidate.patch"
+        },
+        "daemon": {
+          "scores": "7.0 / 5.0",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-opus-4.8--make-the-hive-daemon-automatically-260629-223d/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-opus-4.8--make-the-hive-daemon-automatically-260629-223d/candidate.patch"
+        }
+      }
+    },
+    {
+      "id": "all-grok-4.5",
+      "label": "Grok 4.5 xhigh",
+      "reasoning": "xhigh (pinned)",
+      "note": "Grok drives plan, execute, and review; usage tokens and cost are unavailable.",
+      "completed": 6,
+      "total": 6,
+      "mean_minutes": 27.3,
+      "time_sample": 5,
+      "cost_per_task_usd": null,
+      "reported_mtokens_per_task": null,
+      "cells": {
+        "add-i-key": {
+          "scores": "5.5 / 5.1",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-grok-4.5--add-i-key-with-legend-260522-ca28/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-grok-4.5--add-i-key-with-legend-260522-ca28/candidate.patch"
+        },
+        "web-install": {
+          "scores": "6.0 / 4.0",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-grok-4.5--add-local-hive-web-install-260629-f4ca/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-grok-4.5--add-local-hive-web-install-260629-f4ca/candidate.patch"
+        },
+        "install": {
+          "scores": "6.5 / 2.0",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-grok-4.5--figure-out-way-to-install-260513-4a0a/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-grok-4.5--figure-out-way-to-install-260513-4a0a/candidate.patch"
+        },
+        "fix-tmux": {
+          "scores": "7.5 / 6.2",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-grok-4.5--fix-claude-tmux-ready-detector-260629-50cc/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-grok-4.5--fix-claude-tmux-ready-detector-260629-50cc/candidate.patch"
+        },
+        "fix-review": {
+          "scores": "5.0 / 3.0",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-grok-4.5--fix-review-stage-claude-stop-260629-26ed/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-grok-4.5--fix-review-stage-claude-stop-260629-26ed/candidate.patch"
+        },
+        "daemon": {
+          "scores": "7.5 / 5.0",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-grok-4.5--make-the-hive-daemon-automatically-260629-223d/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-grok-4.5--make-the-hive-daemon-automatically-260629-223d/candidate.patch"
+        }
+      }
+    },
+    {
+      "id": "all-codex-xhigh",
+      "label": "Codex 5.5 xhigh",
+      "reasoning": "xhigh (pinned)",
+      "note": "GPT-5.5 drives plan, execute, and review.",
+      "completed": 6,
+      "total": 6,
+      "mean_minutes": 52,
+      "time_sample": 6,
+      "cost_per_task_usd": 122.3,
+      "reported_mtokens_per_task": 24.01,
+      "cells": {
+        "add-i-key": {
+          "scores": "5.5 / 4.5",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-codex-xhigh--add-i-key-with-legend-260522-ca28/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-codex-xhigh--add-i-key-with-legend-260522-ca28/candidate.patch"
+        },
+        "web-install": {
+          "scores": "3.0 / 3.5",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-codex-xhigh--add-local-hive-web-install-260629-f4ca/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-codex-xhigh--add-local-hive-web-install-260629-f4ca/candidate.patch"
+        },
+        "install": {
+          "scores": "5.0 / 2.5",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-codex-xhigh--figure-out-way-to-install-260513-4a0a/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-codex-xhigh--figure-out-way-to-install-260513-4a0a/candidate.patch"
+        },
+        "fix-tmux": {
+          "scores": "5.0 / 6.5",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-codex-xhigh--fix-claude-tmux-ready-detector-260629-50cc/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-codex-xhigh--fix-claude-tmux-ready-detector-260629-50cc/candidate.patch"
+        },
+        "fix-review": {
+          "scores": "3.5 / 2.0",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-codex-xhigh--fix-review-stage-claude-stop-260629-26ed/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-codex-xhigh--fix-review-stage-claude-stop-260629-26ed/candidate.patch"
+        },
+        "daemon": {
+          "scores": "6.0 / 4.2",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-codex-xhigh--make-the-hive-daemon-automatically-260629-223d/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-codex-xhigh--make-the-hive-daemon-automatically-260629-223d/candidate.patch"
+        }
+      }
     },
     {
       "id": "all-glm-5.2",
+      "label": "GLM 5.2",
+      "reasoning": "provider default",
+      "note": "GLM drives plan, execute, and review through pi.",
+      "completed": 6,
+      "total": 6,
+      "mean_minutes": 114.4,
+      "time_sample": 6,
+      "cost_per_task_usd": 21.97,
+      "reported_mtokens_per_task": 83.65,
       "cells": {
-        "add-i-key": "4.0 / 6.167",
-        "web-install": "2.0 / 3.5",
-        "install": "2.0 / 4.5",
-        "fix-tmux": "8.0 / 9.0",
-        "fix-review": "4.0 / 7.0",
-        "daemon": "4.0 / ·"
-      },
-      "costs": {
-        "add-i-key": "$8.57 · 39M tok",
-        "web-install": "$15.30 · 69M tok",
-        "install": "$15.18 · 57M tok",
-        "fix-tmux": "$3.85 · 13M tok",
-        "fix-review": "$19.64 · 76M tok",
-        "daemon": "$31.29 · 136M tok"
-      },
-      "mean_cost_usd": 15.64,
-      "mean_mtokens": 65.0
-    },
-    {
-      "id": "all-kimi-k2.7-code",
-      "cells": {
-        "add-i-key": "4.0 / ·",
-        "web-install": "2.0 / 3.5",
-        "install": "2.0 / 3.667",
-        "fix-tmux": "8.0 / 8.5",
-        "fix-review": "2.0 / ·",
-        "daemon": "1.0 / 1.0"
-      },
-      "costs": {
-        "add-i-key": "$25.28 · 125M tok",
-        "web-install": "$26.73 · 143M tok",
-        "install": "$23.30 · 87M tok",
-        "fix-tmux": "$14.56 · 36M tok",
-        "fix-review": "$21.01 · 116M tok",
-        "daemon": "$2.58 · 10M tok"
-      },
-      "mean_cost_usd": 18.91,
-      "mean_mtokens": 86.1
-    },
-    {
-      "id": "glm-plan->kimi-exec",
-      "cells": {
-        "add-i-key": "4.0 / ·",
-        "web-install": "empty diff",
-        "install": "excluded",
-        "fix-tmux": "excluded",
-        "fix-review": "4.0 / ·",
-        "daemon": "execute failed"
-      },
-      "costs": {
-        "add-i-key": "$16.31 · 80M tok",
-        "fix-review": "$20.47 · 101M tok"
-      },
-      "mean_cost_usd": 18.39,
-      "mean_mtokens": 90.8
+        "add-i-key": {
+          "scores": "6.5 / 5.5",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-glm-5.2--add-i-key-with-legend-260522-ca28/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-glm-5.2--add-i-key-with-legend-260522-ca28/candidate.patch"
+        },
+        "web-install": {
+          "scores": "3.0 / 3.0",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-glm-5.2--add-local-hive-web-install-260629-f4ca/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-glm-5.2--add-local-hive-web-install-260629-f4ca/candidate.patch"
+        },
+        "install": {
+          "scores": "6.0 / 2.0",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-glm-5.2--figure-out-way-to-install-260513-4a0a/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-glm-5.2--figure-out-way-to-install-260513-4a0a/candidate.patch"
+        },
+        "fix-tmux": {
+          "scores": "7.0 / 7.2",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-glm-5.2--fix-claude-tmux-ready-detector-260629-50cc/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-glm-5.2--fix-claude-tmux-ready-detector-260629-50cc/candidate.patch"
+        },
+        "fix-review": {
+          "scores": "1.5 / 1.0",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-glm-5.2--fix-review-stage-claude-stop-260629-26ed/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-glm-5.2--fix-review-stage-claude-stop-260629-26ed/candidate.patch"
+        },
+        "daemon": {
+          "scores": "5.0 / 3.0",
+          "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-glm-5.2--make-the-hive-daemon-automatically-260629-223d/results.json",
+          "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-glm-5.2--make-the-hive-daemon-automatically-260629-223d/candidate.patch"
+        }
+      }
     }
   ],
+  "evidence": {
+    "readme": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/README.md",
+    "manifest": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/manifest.json",
+    "results": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/results.json",
+    "cells": "https://github.com/ivankuznetsov/hive-bench/tree/main/runs/v2-ce/cells"
+  },
   "notes": [
-    "Cells are gpt-5.5-pro / fable-5 independent scores (0–10, absolute rubric, reference provided as signal).",
-    "Cross-family mean uses only the judge whose model family is disjoint from the candidate.",
-    "glm-plan→kimi-exec install & fix-tmux are excluded: two funded, reproducible execute failures each (unfinishable).",
-    "Model claims verified against agent stream logs: 101 substantive stage logs, 0 violations.",
-    "Cost analysis (API-equivalent, usual tier) is in the repo RESULTS.md — telemetry caveats apply per agent."
+    "Preliminary means one independent sample per Fable and Sol judge-cell pair. The follow-up campaign uses three samples and Sol ultra.",
+    "All 36 generation cells completed. Every objective gate is no_gate in this campaign, so scores are judge evidence, not test-pass rates.",
+    "Grok 4.5 and the mixed Opus → Codex candidate do not expose complete cost data; those values are reported as unknown.",
+    "Wall time is missing for recovered artifacts: Sol has 4/6 timed cells, Grok 5/6, and the mixed candidate 5/6. Means use only the recorded samples.",
+    "Codex input-token accounting does not expose a cache split, so its API-equivalent cost estimate may be overstated."
   ]
 }
