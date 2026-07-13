@@ -38,16 +38,17 @@ The merged PR tells a judge what the task ultimately required; candidates are
 not rewarded for textual or structural similarity. Each primary judge has one
 score sample per cell. The per-task board displays `Fable / Sol` in that order.
 
-Judge calibrations are not interchangeable, so there is no average across
-Fable and Sol. The site publishes one complete six-candidate table for each
-judge. A row is marked **same-family** when the judge shares a model family with
-any model in the candidate configuration. Those scores remain visible but
-should be treated as weaker evidence because self-preference cannot be ruled
-out.
+Judge calibrations are not interchangeable. The site keeps separate Fable and
+Sol columns as the primary evidence and uses their arithmetic mean only as a
+presentation aid to sort one compact leaderboard. It is not a third judge or a
+claim that the two rulers share a scale. A score is marked **same-family** when
+that judge shares a model family with any model in the candidate configuration.
+Those scores remain visible but should be treated as weaker evidence because
+self-preference cannot be ruled out.
 
 GPT-5.5 Pro is a historical supplemental ruler. It scored only one cell for
-Codex 5.5 xhigh, GLM 5.2, and Grok 4.5. Those three observations are shown in a
-separate partial table and are not used to rank the full slate.
+Codex 5.5 xhigh, GLM 5.2, and Grok 4.5. Those three observations remain in the
+canonical result data but are not used in the compact leaderboard ranking.
 
 ## Coverage and objective evidence
 

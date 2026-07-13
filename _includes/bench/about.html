@@ -37,9 +37,10 @@
         score each final diff from 0&ndash;10. Sol was explicitly run at
         <code>xhigh</code>; Fable's reasoning effort was not exposed by its
         runner.</li>
-      <li><strong>Never average judges together:</strong> each judge gets a
-        separate leaderboard because their calibration differs. Every matrix
-        cell shows <code>Fable / Sol</code> in that order.</li>
+      <li><strong>Keep both judge scores visible:</strong> the leaderboard uses
+        their arithmetic mean only for a compact ordering because their
+        calibrations differ. Every row retains separate Fable and Sol columns,
+        and every matrix cell shows <code>Fable / Sol</code> in that order.</li>
       <li><strong>Show family conflicts:</strong> when the judge and candidate
         share a model family, that row is marked
         <span class="bench-prelim">same-family</span>. The score remains
@@ -55,13 +56,12 @@
 
     <h2>What came out</h2>
     <p>
-      GPT-5.6 Sol xhigh leads both preliminary leaderboards: 6.917 by Fable and
-      6.183 by Sol. Its Sol judgment is same-family, while its Fable judgment
-      is family-disjoint. Grok 4.5 is second under Fable at 6.333 and lands
-      close to Opus under Sol (4.217 versus 4.250), while completing the
-      recorded timed cells fastest at 27.3 minutes on average. Grok's token
-      count and cost are unavailable from its runner and therefore remain
-      unknown.
+      GPT-5.6 Sol xhigh leads the compact combined ordering at 6.550: 6.917 by
+      Fable and 6.183 by Sol. Its Sol judgment is same-family, while its Fable
+      judgment is family-disjoint. The mixed Opus/Codex configuration follows
+      at 5.475, then Grok 4.5 at 5.275. Grok completed its recorded timed cells
+      fastest at 27.3 minutes on average; its token count and cost are
+      unavailable from its runner and therefore remain unknown.
     </p>
     <p>
       The mixed Opus-plan &rarr; Codex-execute configuration is also strong:

@@ -1,5 +1,7 @@
 {% assign b = site.data.bench %}
-{% assign ranked_candidate_ids = "all-codex-5.6-sol-xhigh,all-grok-4.5,opus-plan->codex-exec-xhigh,all-opus-4.8,all-glm-5.2,all-codex-xhigh" | split: "," %}
+{% assign ranked_candidate_ids = "all-codex-5.6-sol-xhigh,opus-plan->codex-exec-xhigh,all-grok-4.5,all-opus-4.8,all-codex-xhigh,all-glm-5.2" | split: "," %}
+{% assign sol_judge = b.primary_judges | where: "id", "gpt-5.6-sol" | first %}
+{% assign fable_judge = b.primary_judges | where: "id", "fable-5" | first %}
 <section class="bench-board">
   <div class="wrap">
     <p class="bench-meta">
@@ -8,105 +10,61 @@
       <span class="bench-prelim">preliminary: one score sample per judge-cell</span>
     </p>
 
-    <h2>Leaderboards — one table per judge</h2>
+    <h2>Leaderboard</h2>
     <p class="bench-meta">
-      Scores from different judges are never combined. A
-      <span class="bench-prelim">same-family</span> row means the judge shares
-      a model family with at least one model in that candidate configuration.
+      Ranked by the presentation-only mean of Fable and Sol. The two judge
+      columns remain the primary evidence because their calibrations differ.
+      <span class="bench-prelim">same-family</span> means that judge shares a
+      model family with the candidate. Efficiency averages use only recorded cells.
     </p>
-
-    {% for judge in b.primary_judges %}
-      <h3>By <code>{{ judge.label }}</code></h3>
-      <p class="bench-meta">
-        Reasoning effort: <code>{{ judge.reasoning_effort }}</code> ·
-        {{ judge.samples_per_cell }} sample per scored cell
-      </p>
-      <table class="bench-table">
-        <thead>
-          <tr>
-            <th scope="col">Candidate</th>
-            <th scope="col">Mean (0–10)</th>
-            <th scope="col">Scored</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in judge.rows %}
-            <tr>
-              <th scope="row">
-                <code>{{ row.label }}</code>
-                {% if row.same_family %}<span class="bench-prelim">same-family</span>{% endif %}
-              </th>
-              <td><strong>{{ row.mean }}</strong></td>
-              <td>{{ row.scored }}/{{ row.total }}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    {% endfor %}
-
-    <h3>Supplemental: <code>{{ b.supplemental_judge.label }}</code></h3>
-    <p class="bench-meta">{{ b.supplemental_judge.note }}</p>
-    <table class="bench-table">
+    <div class="bench-table-scroll bench-table-scroll--summary" role="region" aria-label="Combined quality and efficiency leaderboard" tabindex="0">
+    <table class="bench-table bench-summary-table">
       <thead>
         <tr>
           <th scope="col">Candidate</th>
-          <th scope="col">Observed score</th>
-          <th scope="col">Coverage</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in b.supplemental_judge.rows %}
-          <tr>
-            <th scope="row">
-              <code>{{ row.label }}</code>
-              {% if row.same_family %}<span class="bench-prelim">same-family</span>{% endif %}
-            </th>
-            <td>{{ row.mean }}</td>
-            <td>{{ row.scored }}/{{ row.total }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    <h2>Efficiency</h2>
-    <div class="bench-table-scroll" role="region" aria-label="Average efficiency by model or configuration" tabindex="0">
-    <table class="bench-table bench-efficiency-summary">
-      <thead>
-        <tr>
-          <th scope="col">Candidate</th>
-          <th scope="col">Reasoning</th>
-          <th scope="col">Mean wall time</th>
-          <th scope="col">Avg. API-equivalent $ / task</th>
-          <th scope="col">Avg. normalized tokens / task</th>
+          <th scope="col">Fable</th>
+          <th scope="col">Sol <small>xhigh</small></th>
+          <th scope="col">Combined</th>
+          <th scope="col">Mean time</th>
+          <th scope="col">$/task</th>
+          <th scope="col">Tokens/task</th>
         </tr>
       </thead>
       <tbody>
         {% for candidate_id in ranked_candidate_ids %}
           {% assign candidate = b.candidates | where: "id", candidate_id | first %}
+          {% assign fable_row = fable_judge.rows | where: "id", candidate_id | first %}
+          {% assign sol_row = sol_judge.rows | where: "id", candidate_id | first %}
+          {% assign combined_total = fable_row.mean | plus: sol_row.mean %}
+          {% assign combined_mean = combined_total | divided_by: 2.0 | round: 3 %}
           <tr>
-            <th scope="row"><code>{{ candidate.label }}</code></th>
-            <td>{{ candidate.reasoning }}</td>
-            <td>
-              {% if candidate.mean_minutes %}{{ candidate.mean_minutes }} min
-                <small>({{ candidate.time_sample }}/{{ candidate.total }} timed)</small>
-              {% else %}unknown{% endif %}
+            <th scope="row">
+              <code>{{ candidate.label }}</code>
+              <small>{{ candidate.reasoning }}</small>
+            </th>
+            <td data-label="Fable">
+              <span class="bench-cell-value"><strong>{{ fable_row.mean }}</strong>
+              {% if fable_row.same_family %}<span class="bench-prelim">same-family</span>{% endif %}</span>
             </td>
-            <td>
-              {% if candidate.cost_per_task_usd %}${{ candidate.cost_per_task_usd }}
-                <small>({{ candidate.cost_sample }}/{{ candidate.total }} priced)</small>
-              {% else %}unknown{% endif %}
+            <td data-label="Sol xhigh">
+              <span class="bench-cell-value"><strong>{{ sol_row.mean }}</strong>
+              {% if sol_row.same_family %}<span class="bench-prelim">same-family</span>{% endif %}</span>
             </td>
-            <td>
-              {% if candidate.normalized_mtokens_per_task %}
-                {% assign average_input_mtokens = candidate.token_totals.input | times: 0.000001 | divided_by: candidate.token_sample | round: 3 %}
-                {% assign average_output_mtokens = candidate.token_totals.output | times: 0.000001 | divided_by: candidate.token_sample | round: 3 %}
-                {% assign average_cache_read_mtokens = candidate.token_totals.cache_read | times: 0.000001 | divided_by: candidate.token_sample | round: 3 %}
-                {% assign average_cache_write_mtokens = candidate.token_totals.cache_write | times: 0.000001 | divided_by: candidate.token_sample | round: 3 %}
-                <strong>{{ candidate.normalized_mtokens_per_task }}M total</strong><br>
-                <small>fresh input {{ average_input_mtokens }}M · output {{ average_output_mtokens }}M</small><br>
-                <small>cache {{ average_cache_read_mtokens }}M read + {{ average_cache_write_mtokens }}M write</small><br>
-                <small>({{ candidate.token_sample }}/{{ candidate.total }} measured)</small>
-              {% else %}unknown{% endif %}
+            <td data-label="Combined"><span class="bench-cell-value"><strong>{{ combined_mean }}</strong></span></td>
+            <td data-label="Mean time">
+              <span class="bench-cell-value">{% if candidate.mean_minutes %}{{ candidate.mean_minutes }} min
+                <small>{{ candidate.time_sample }}/{{ candidate.total }} timed</small>
+              {% else %}unknown{% endif %}</span>
+            </td>
+            <td data-label="Cost / task">
+              <span class="bench-cell-value">{% if candidate.cost_per_task_usd %}${{ candidate.cost_per_task_usd }}
+                <small>{{ candidate.cost_sample }}/{{ candidate.total }} priced</small>
+              {% else %}unknown{% endif %}</span>
+            </td>
+            <td data-label="Tokens / task">
+              <span class="bench-cell-value">{% if candidate.normalized_mtokens_per_task %}{{ candidate.normalized_mtokens_per_task }}M
+                <small>{{ candidate.token_sample }}/{{ candidate.total }} measured</small>
+              {% else %}unknown{% endif %}</span>
             </td>
           </tr>
         {% endfor %}
@@ -114,7 +72,9 @@
     </table>
     </div>
     <p class="bench-meta">
-      Values include fresh input, output, cache reads, and cache writes. See the
+      Combined is <code>(Fable + Sol) / 2</code> and is used only to provide one
+      compact ordering. Token totals include fresh input, output, cache reads,
+      and cache writes. See the
       <a href="{{ '/bench/methodology/#time-tokens-and-cost' | relative_url }}">token
       accounting and pricing methodology</a> for the normalization rules,
       mixed-model attribution, and known telemetry gaps.
@@ -127,8 +87,8 @@
       wall time. Cache is shown as reads plus creation/writes. An unknown value
       means the runner did not preserve usable evidence; it does not mean zero.
     </p>
-    <div class="bench-table-scroll" role="region" aria-label="Per-task efficiency by model or configuration" tabindex="0">
-    <table class="bench-table bench-matrix bench-efficiency-matrix">
+    <div class="bench-table-scroll bench-table-scroll--responsive" role="region" aria-label="Per-task efficiency by model or configuration" tabindex="0">
+    <table class="bench-table bench-matrix bench-responsive-matrix bench-efficiency-matrix">
       <thead>
         <tr>
           <th scope="col">Model / candidate</th>
@@ -144,7 +104,8 @@
             <th scope="row"><code>{{ candidate.label }}</code></th>
             {% for task in b.tasks %}
               {% assign stat = candidate.efficiency_by_task[task.key] %}
-              <td>
+              <td data-task="{{ task.key }}">
+                <span class="bench-cell-value">
                 {% if stat.cost_usd %}{% assign rounded_cost = stat.cost_usd | round: 2 %}{% assign one_decimal_cost = stat.cost_usd | round: 1 %}<strong>${{ rounded_cost }}{% if rounded_cost == one_decimal_cost %}0{% endif %}</strong>{% else %}<strong>cost unknown</strong>{% endif %}<br>
                 {% if stat.tokens %}
                   {% assign input_mtokens = stat.tokens.input | times: 0.000001 | round: 3 %}
@@ -156,6 +117,7 @@
                   <small>cache {{ cache_read_mtokens }}M read + {{ cache_write_mtokens }}M write</small><br>
                 {% else %}<small>tokens unknown</small><br>{% endif %}
                 <small>{% if stat.wall_minutes %}{{ stat.wall_minutes }} min{% else %}time not recorded{% endif %}</small>
+                </span>
               </td>
             {% endfor %}
           </tr>
@@ -170,8 +132,8 @@
       the machine-readable cell result or <strong>diff</strong> for the exact
       candidate patch. No task in this campaign has an objective gate.
     </p>
-    <div class="bench-table-scroll" role="region" aria-label="Quality scores by task and candidate" tabindex="0">
-    <table class="bench-table bench-matrix">
+    <div class="bench-table-scroll bench-table-scroll--responsive" role="region" aria-label="Quality scores by task and candidate" tabindex="0">
+    <table class="bench-table bench-matrix bench-responsive-matrix bench-score-matrix">
       <thead>
         <tr>
           <th scope="col">Candidate</th>
@@ -187,9 +149,11 @@
             <th scope="row"><code>{{ candidate.label }}</code></th>
             {% for task in b.tasks %}
               {% assign cell = candidate.cells[task.key] %}
-              <td>
+              <td data-task="{{ task.key }}">
+                <span class="bench-cell-value">
                 <a href="{{ cell.result_url }}">{{ cell.scores }}</a><br>
                 <small><a href="{{ cell.patch_url }}">diff</a></small>
+                </span>
               </td>
             {% endfor %}
           </tr>
@@ -223,7 +187,6 @@
     </p>
     <ul class="bench-foot">
       {% for note in b.notes %}<li>{{ note }}</li>{% endfor %}
-      <li>Website data: <a href="{{ '/bench/results.json' | relative_url }}"><code>results.json</code></a>.</li>
     </ul>
   </div>
 </section>
