@@ -2,7 +2,7 @@
 layout: home
 title: hive-bench methodology & limitations
 nav_exclude: true
-description: How the published 36-cell hive-bench campaign was run and scored, and the limits on its preliminary findings.
+description: How 36 hive-bench runs measured coding agents across planning, implementation, pull requests, review, and fixes—and how to read the limits.
 permalink: /bench/methodology/
 ---
 
@@ -23,8 +23,73 @@ rewinds a source clone to the task's base commit and supplies its frozen
 candidate-visible inputs. The candidate does not receive the reference patch.
 It then runs the real Hive cycle in an isolated runner: planning,
 implementation, a sandbox-local pull request, and Hive's production review and
-fix loop. The scored artifact is the final post-review candidate diff, not an
-intermediate answer or a reimplemented approximation of Hive.
+fix loop. The scored artifact is the final captured candidate diff. When review
+finalization failed, the harness restored the saved post-execute diff rather
+than scoring partial review side effects.
+
+## Workflow and reviewer configuration
+
+[Compound Engineering]({{ '/docs/concepts/#compound-engineering-in-practice' | relative_url }})
+powered planning through `/ce-plan`. Implementation then used Hive's normal
+plan-driven development stage; it did not invoke `/ce-work`.
+Hive opened a benchmark-local pull request and ran its production review,
+courageous triage, and fix loop for at most two passes and two hours. No review
+CI command or browser test was configured for this campaign.
+
+The production reviewers below were part of the candidate workflow and could
+change the diff before scoring. They are separate from the Fable and Sol judges,
+which only evaluated the finished artifact afterward.
+
+<div class="bench-table-scroll" role="region" aria-label="Candidate workflow and reviewer configuration" tabindex="0">
+<table class="bench-table bench-config-table">
+  <thead>
+    <tr>
+      <th scope="col">Candidate</th>
+      <th scope="col">Stage owners</th>
+      <th scope="col">Pre-score reviewer panel</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row">GPT-5.6 Sol xhigh</th>
+      <td>Plan, implement, PR, triage, fix: Sol xhigh</td>
+      <td><code>codex-ce-code-review</code> using Sol xhigh</td>
+    </tr>
+    <tr>
+      <th scope="row">Opus plan &rarr; Codex 5.5 xhigh</th>
+      <td>Plan, PR, triage, fix: Opus 4.8;<br>Implement: Codex 5.5 xhigh</td>
+      <td><code>claude-ce-code-review</code> using Opus; <code>codex-ce-code-review</code> using Codex; <code>pr-review-toolkit</code> using Opus</td>
+    </tr>
+    <tr>
+      <th scope="row">Opus 4.8</th>
+      <td>Plan, implement, PR, triage, fix: Opus 4.8</td>
+      <td><code>claude-ce-code-review</code> and <code>pr-review-toolkit</code>, both using Opus</td>
+    </tr>
+    <tr>
+      <th scope="row">Grok 4.5 xhigh</th>
+      <td>Plan, implement, PR, triage, fix: Grok 4.5 xhigh</td>
+      <td><code>grok-ce-code-review</code> using Grok's embedded CE review template</td>
+    </tr>
+    <tr>
+      <th scope="row">Codex 5.5 xhigh</th>
+      <td>Plan, implement, PR, triage, fix: Codex 5.5 xhigh</td>
+      <td><code>codex-ce-code-review</code> using Codex 5.5 xhigh</td>
+    </tr>
+    <tr>
+      <th scope="row">GLM 5.2</th>
+      <td>Plan, implement, PR, triage, fix: GLM 5.2 through Pi</td>
+      <td><code>pi-ce-code-review</code> using GLM 5.2 through Pi</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+The publication commit's harness defines the
+[candidate stage assignments](https://github.com/ivankuznetsov/hive-bench/blob/122e6473971b6ccf7c3a24e1273fb7cffbbb7631/harness/profiles/candidates.rb)
+and [review-panel derivation](https://github.com/ivankuznetsov/hive-bench/blob/122e6473971b6ccf7c3a24e1273fb7cffbbb7631/harness/lib/hive_config.rb).
+The evidence bundle does not bind each result to that harness revision or
+contain its resolved `config.yml`, so the table documents the publication code,
+not independently serialized per-cell configuration provenance.
 
 ## Current scoring
 
@@ -49,14 +114,14 @@ self-preference cannot be ruled out.
 
 GPT-5.5 Pro is a historical supplemental ruler. It scored only one cell for
 Codex 5.5 xhigh, GLM 5.2, and Grok 4.5. Those three observations remain in the
-canonical result data but are not used in the compact leaderboard ranking.
+published score data but are not used in the compact leaderboard ranking.
 
 ## Coverage and objective evidence
 
 All 36 candidate runs produced scoreable patches, and all 36 exact patches are
-published. There are no pending or failed generation cells in the canonical
-result. Every objective-gate record is `no_gate`: the corpus does not yet have
-curated held-out tests suitable for a fair candidate-independent pass/fail
+published. There are no pending or failed generation cells in the published
+score result. Every objective-gate record is `no_gate`: the corpus does not yet
+have curated held-out tests suitable for a fair candidate-independent pass/fail
 claim. The current numbers are judge evidence, not test-pass rates.
 
 The site links every score to its machine-readable cell result and exact
@@ -79,6 +144,14 @@ then pricing cached and uncached input separately. Event model ids provide the
 first attribution signal; stages provide the fallback for Codex events that do
 not carry a model id. Claude's internal Haiku utility calls remain a separate
 priced model instead of being charged at the Opus rate.
+
+All 32 displayed wall times match the corresponding `wall_clock_sec` values in
+the published score results. The per-event source logs used to reconstruct the
+normalized token split and costs are not public. Those displayed values are
+available in the site's [data snapshot]({{ '/bench/results.json' | relative_url }}),
+but visitors cannot yet independently rerun that accounting from the public
+evidence bundle; older token and cost fields in the score results are not the
+source for the current table.
 
 The normalized token total includes four non-overlapping buckets: fresh input,
 output, cache reads, and cache creation/writes. The site publishes the split for
@@ -116,6 +189,10 @@ model.
 - **Recovered telemetry is incomplete.** Some finished cells predate complete
   wall-time capture, and Grok exposes no usable token stream. The site labels
   every affected task cell and aggregate.
+- **Token and cost source logs are not published.** The normalized site snapshot
+  is public, but the underlying provider streams needed to reproduce that
+  accounting are intentionally excluded from the evidence bundle. Published
+  per-cell wall times remain directly checkable.
 - **Post-merge references.** The reference PRs are human-reviewed outcomes.
   They are strong task evidence, but model training contamination cannot be
   ruled out for already-public PRs.

@@ -38,7 +38,6 @@
     var controls = board && board.querySelector("[data-bench-sort-controls]");
     var select = controls && controls.querySelector("[data-bench-sort-select]");
     var directionButton = controls && controls.querySelector("[data-bench-sort-direction]");
-    var mobileQuery = window.matchMedia("(max-width: 700px)");
     var activeHeader = headers.find(function (button) {
       return button.closest("th").getAttribute("aria-sort") !== "none";
     }) || headers[0];
@@ -72,9 +71,14 @@
     }
 
     function syncHeaderTabStops() {
+      var controlsVisible = controls && window.getComputedStyle(controls).display !== "none";
+      var focusedHeader = headers.includes(document.activeElement);
+      var focusedControls = controls && controls.contains(document.activeElement);
       headers.forEach(function (button) {
-        button.tabIndex = mobileQuery.matches ? -1 : 0;
+        button.tabIndex = controlsVisible ? -1 : 0;
       });
+      if (controlsVisible && focusedHeader && select) select.focus();
+      if (!controlsVisible && focusedControls) headersByKey.get(state.key).focus();
     }
 
     headers.forEach(function (button) {
@@ -105,11 +109,7 @@
       });
     }
 
-    if (mobileQuery.addEventListener) {
-      mobileQuery.addEventListener("change", syncHeaderTabStops);
-    } else {
-      mobileQuery.addListener(syncHeaderTabStops);
-    }
+    window.addEventListener("resize", syncHeaderTabStops);
 
     syncHeaderTabStops();
     render();

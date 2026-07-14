@@ -6,8 +6,7 @@
   <div class="wrap">
     <p class="bench-meta">
       Generated {{ b.generated_at }} ·
-      {{ b.coverage.cells }}/{{ b.coverage.expected_cells }} cells complete ·
-      <span class="bench-prelim">preliminary: one score sample per judge-cell</span>
+      {{ b.coverage.cells }}/{{ b.coverage.expected_cells }} cells complete
     </p>
 
     <h2>Leaderboard</h2>
@@ -113,7 +112,18 @@
         <tr>
           <th scope="col">Model / candidate</th>
           {% for task in b.tasks %}
-            <th scope="col">{{ task.key }}&nbsp;<span class="bench-info" title="{{ task.desc | escape }}">ⓘ</span></th>
+            <th scope="col">
+              {%- assign task_key_parts = task.key | split: "-" -%}
+              {%- for task_key_part in task_key_parts -%}
+                {%- if forloop.last -%}
+                  <span class="bench-info-cluster">{{- task_key_part -}}<button type="button" class="bench-info"
+                    aria-label="{{ task.key | escape }}: {{ task.desc | escape }}"
+                    data-bench-tooltip="{{ task.desc | escape }}"><span class="bench-info-glyph" aria-hidden="true">i</span></button></span>
+                {%- else -%}
+                  {{- task_key_part -}}-
+                {%- endif -%}
+              {%- endfor -%}
+            </th>
           {% endfor %}
         </tr>
       </thead>
@@ -132,10 +142,9 @@
                   {% assign output_mtokens = stat.tokens.output | times: 0.000001 | round: 3 %}
                   {% assign cache_read_mtokens = stat.tokens.cache_read | times: 0.000001 | round: 3 %}
                   {% assign cache_write_mtokens = stat.tokens.cache_write | times: 0.000001 | round: 3 %}
-                  <small><strong>{{ stat.normalized_mtokens }}M total tokens</strong>
-                    <span class="bench-info" tabindex="0" role="img"
+                  <small><strong>{{ stat.normalized_mtokens }}M </strong><span class="bench-info-cluster"><strong>tokens</strong><button type="button" class="bench-info"
                       aria-label="Token details: fresh input {{ input_mtokens }} million, output {{ output_mtokens }} million, cache read {{ cache_read_mtokens }} million, cache write {{ cache_write_mtokens }} million"
-                      title="Fresh input {{ input_mtokens }}M · output {{ output_mtokens }}M · cache read {{ cache_read_mtokens }}M · cache write {{ cache_write_mtokens }}M">ⓘ</span>
+                      data-bench-tooltip="Fresh input {{ input_mtokens }}M · output {{ output_mtokens }}M · cache read {{ cache_read_mtokens }}M · cache write {{ cache_write_mtokens }}M"><span class="bench-info-glyph" aria-hidden="true">i</span></button></span>
                   </small><br>
                 {% else %}<small>tokens unknown</small><br>{% endif %}
                 <small>{% if stat.wall_minutes %}{{ stat.wall_minutes }} min{% else %}time not recorded{% endif %}</small>
@@ -160,7 +169,18 @@
         <tr>
           <th scope="col">Candidate</th>
           {% for task in b.tasks %}
-            <th scope="col">{{ task.key }}&nbsp;<span class="bench-info" title="{{ task.desc | escape }}">ⓘ</span></th>
+            <th scope="col">
+              {%- assign task_key_parts = task.key | split: "-" -%}
+              {%- for task_key_part in task_key_parts -%}
+                {%- if forloop.last -%}
+                  <span class="bench-info-cluster">{{- task_key_part -}}<button type="button" class="bench-info"
+                    aria-label="{{ task.key | escape }}: {{ task.desc | escape }}"
+                    data-bench-tooltip="{{ task.desc | escape }}"><span class="bench-info-glyph" aria-hidden="true">i</span></button></span>
+                {%- else -%}
+                  {{- task_key_part -}}-
+                {%- endif -%}
+              {%- endfor -%}
+            </th>
           {% endfor %}
         </tr>
       </thead>
@@ -200,12 +220,35 @@
       {% endfor %}
     </ul>
 
-    <h2>Evidence</h2>
+    <h2>Audit the campaign</h2>
     <p>
-      The complete campaign is public: <a href="{{ b.evidence.readme }}">campaign
-      notes</a>, <a href="{{ b.evidence.manifest }}">manifest</a>,
-      <a href="{{ b.evidence.results }}">canonical results</a>, and all
-      <a href="{{ b.evidence.cells }}">36 candidate patches</a>.
+      Every leaderboard score can be traced to its machine-readable result and
+      the exact final diff that was judged. The published evidence lets you:
+    </p>
+    <ul>
+      <li>Read the <a href="{{ b.evidence.readme }}">publication notes</a> for
+        coverage, judge settings, limitations, and publication exclusions.</li>
+      <li>Use the <a href="{{ b.evidence.manifest }}">manifest</a> to map every
+        candidate/task cell to its files and verify each patch's byte size and
+        SHA-256 hash.</li>
+      <li>Inspect the <a href="{{ b.evidence.results }}">published score
+        results</a> for quality scores, judge provenance, same-family flags,
+        and gate status.</li>
+      <li>Download the <a href="{{ '/bench/results.json' | relative_url }}">site
+        data snapshot</a> containing the displayed time, normalized token values,
+        and API-equivalent cost estimates.</li>
+      <li>Read or compare all <a href="{{ b.evidence.cells }}">36 candidate
+        patches</a>&mdash;the final code artifacts the judges scored.</li>
+    </ul>
+    <p>
+      Together, these artifacts let you audit a score against the code, compare
+      how candidates solved the same task, and verify the current patch against
+      the manifest's recorded byte size and SHA-256. Raw provider streams, build
+      logs, target clones, and auth material are intentionally not published.
+      Displayed wall times can be checked in the score results. The normalized
+      token splits and recomputed costs can be inspected in the site snapshot,
+      but not independently recomputed from the public bundle; older token and
+      cost fields in the score results are not the source for this table.
     </p>
     <ul class="bench-foot">
       {% for note in b.notes %}<li>{{ note }}</li>{% endfor %}
@@ -213,3 +256,4 @@
   </div>
 </section>
 <script src="{{ '/assets/js/bench-sortable.js' | relative_url }}" defer></script>
+<script src="{{ '/assets/js/bench-tooltips.js' | relative_url }}" defer></script>
