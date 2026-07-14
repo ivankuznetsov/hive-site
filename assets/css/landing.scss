@@ -414,6 +414,11 @@ section:nth-of-type(even) { background: var(--bg-alt); }
 .bench-table thead th { color: var(--muted, #9aa5b1); font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; }
 .bench-table tbody th { font-weight: 500; }
 .bench-table td { font-variant-numeric: tabular-nums; }
+.bench-config-table { table-layout: fixed; }
+.bench-config-table th, .bench-config-table td { overflow-wrap: anywhere; vertical-align: top; }
+.bench-config-table th:first-child { width: 22%; }
+.bench-config-table th:nth-child(2) { width: 34%; }
+.bench-config-table code { white-space: normal; }
 .bench-table-scroll {
   width: 100%; overflow-x: auto; margin-bottom: 1.25rem;
   border-radius: 8px; -webkit-overflow-scrolling: touch;
@@ -436,7 +441,7 @@ section:nth-of-type(even) { background: var(--bg-alt); }
   appearance: none; background: transparent; border: 1px solid currentColor; border-radius: 50%;
   color: var(--muted, #9aa5b1); cursor: default; display: inline-grid; font: 700 0.62rem/1 var(--font);
   height: 1rem; letter-spacing: 0; margin: 0 0 0 0.12rem; padding: 0; place-items: center;
-  text-transform: none; vertical-align: 0.05em; width: 1rem;
+  text-transform: none; vertical-align: 0.15em; width: 1rem;
 }
 .bench-info-glyph { display: block; transform: translateY(0.5px); }
 .bench-info:hover,
@@ -461,6 +466,12 @@ section:nth-of-type(even) { background: var(--bg-alt); }
 .bench-doc--detail { padding-block: 3rem; }
 
 @media (max-width: 800px) {
+  .bench-config-table { font-size: 0.85rem; }
+  .bench-config-table th, .bench-config-table td { padding: 0.55rem 0.4rem; }
+  .bench-config-table thead th { font-size: 0.7rem; letter-spacing: 0.03em; }
+  .bench-config-table th:first-child { width: 25%; }
+  .bench-config-table th:nth-child(2) { width: 32%; }
+
   .bench-sort-controls {
     align-items: center; display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 0.9rem;
   }

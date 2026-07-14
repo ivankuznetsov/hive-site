@@ -220,12 +220,35 @@
       {% endfor %}
     </ul>
 
-    <h2>Evidence</h2>
+    <h2>Audit the campaign</h2>
     <p>
-      The complete campaign is public: <a href="{{ b.evidence.readme }}">campaign
-      notes</a>, <a href="{{ b.evidence.manifest }}">manifest</a>,
-      <a href="{{ b.evidence.results }}">canonical results</a>, and all
-      <a href="{{ b.evidence.cells }}">36 candidate patches</a>.
+      Every leaderboard score can be traced to its machine-readable result and
+      the exact final diff that was judged. The published evidence lets you:
+    </p>
+    <ul>
+      <li>Read the <a href="{{ b.evidence.readme }}">publication notes</a> for
+        coverage, judge settings, limitations, and publication exclusions.</li>
+      <li>Use the <a href="{{ b.evidence.manifest }}">manifest</a> to map every
+        candidate/task cell to its files and verify each patch's byte size and
+        SHA-256 hash.</li>
+      <li>Inspect the <a href="{{ b.evidence.results }}">published score
+        results</a> for quality scores, judge provenance, same-family flags,
+        and gate status.</li>
+      <li>Download the <a href="{{ '/bench/results.json' | relative_url }}">site
+        data snapshot</a> containing the displayed time, normalized token values,
+        and API-equivalent cost estimates.</li>
+      <li>Read or compare all <a href="{{ b.evidence.cells }}">36 candidate
+        patches</a>&mdash;the final code artifacts the judges scored.</li>
+    </ul>
+    <p>
+      Together, these artifacts let you audit a score against the code, compare
+      how candidates solved the same task, and verify the current patch against
+      the manifest's recorded byte size and SHA-256. Raw provider streams, build
+      logs, target clones, and auth material are intentionally not published.
+      Displayed wall times can be checked in the score results. The normalized
+      token splits and recomputed costs can be inspected in the site snapshot,
+      but not independently recomputed from the public bundle; older token and
+      cost fields in the score results are not the source for this table.
     </p>
     <ul class="bench-foot">
       {% for note in b.notes %}<li>{{ note }}</li>{% endfor %}
