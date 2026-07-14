@@ -1,11 +1,11 @@
 ---
 layout: home
-title: hive-bench — coding-agent benchmark
+title: Which coding agents hold up end to end? — hive-bench
 nav_exclude: true
 description: >-
-  Preliminary hive-bench results from 36 real Hive pipeline runs, scored
-  independently by Fable 5 and GPT-5.6 Sol, plus instructions for running
-  and contributing benchmark tasks.
+  See coding agents tackle six real software tasks in 36 runs through Hive's
+  automated multi-agent workflow—compare end-to-end quality, speed, tokens,
+  cost, and every diff.
 permalink: /bench/
 ---
 

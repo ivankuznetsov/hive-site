@@ -2,7 +2,7 @@
 layout: home
 title: hive-bench methodology & limitations
 nav_exclude: true
-description: How the published 36-cell hive-bench campaign was run and scored, and the limits on its preliminary findings.
+description: How 36 hive-bench runs measured coding agents across planning, implementation, pull requests, review, and fixes—and how to read the limits.
 permalink: /bench/methodology/
 ---
 

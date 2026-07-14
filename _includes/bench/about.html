@@ -4,14 +4,14 @@
 {% assign glm_candidate = b.candidates | where: "id", "all-glm-5.2" | first %}
 <section class="bench-intro">
   <div class="wrap">
-    <p class="eyebrow">hive-bench <span class="badge-alpha">preliminary</span></p>
-    <h1 class="bench-title">Which model should drive an autonomous dev pipeline?</h1>
+    <p class="eyebrow">hive-bench</p>
+    <h1 class="bench-title">Which coding agents hold up end to end?</h1>
     <p class="section-lead">
-      <a href="https://github.com/ivankuznetsov/hive">Hive</a> carries a task
-      through planning, implementation, pull request, and code review. This
-      benchmark replays real, already-merged tasks through that full production
-      workflow under different model configurations, then judges the final
-      post-review diff against the merged reference.
+      <a href="https://github.com/ivankuznetsov/hive">Hive</a> is a multi-agent
+      orchestrator that carries software tasks through planning, implementation,
+      pull requests, review, and fixes. hive-bench measures how coding-agent
+      configurations perform across that entire automated workflow, scoring each
+      final diff against the merged reference.
     </p>
 
     <h2>What this benchmark measures</h2>
@@ -25,10 +25,10 @@
       review and fix loop.
     </p>
     <p>
-      The current board is complete at <strong>36 of 36 generation
-      cells</strong>: six candidates &times; six tasks. It is still labeled
-      preliminary because each judge-cell pair has only one independent score
-      sample and this corpus has no curated objective test gates.
+      The board covers all <strong>36 generation cells</strong>: six candidates
+      &times; six tasks. Each judge-cell pair has one independent score sample,
+      and this corpus has no curated objective test gates, so close rankings are
+      directional rather than definitive.
     </p>
 
     <h2>How the scores should be read</h2>
