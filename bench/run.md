@@ -102,13 +102,36 @@ registered Hive project with a GitHub origin, and point to a merged reference
 PR. Review the task for confidential material first: its specification, plan,
 provenance, and merged reference diff become public.
 
-The command extracts the corpus entry, runs a local secret-pattern preflight,
-and opens a proposal in
-[hive-bench](https://github.com/ivankuznetsov/hive-bench). Maintainer-gated CI
-then validates structure, provenance, candidate-visible answer leakage,
-secrets, and reference reproducibility before the task can join a public
-campaign. Submission currently requires a writable checkout of your hive-bench
-fork configured with `HIVE_BENCH_PATH`; the separate checkout is for creating
-the public corpus PR, not for running the built-in local benchmark workflow.
+### Prepare the submission checkout
+
+Running a local campaign uses Hive's packaged `.hive-state/bench-runtime` and
+does not require a hive-bench clone. Public submission does: use a separate,
+clean checkout whose `origin` is writable&mdash;normally your fork&mdash;and point
+`HIVE_BENCH_PATH` at its root.
+
+```sh
+git clone git@github.com:<your-user>/hive-bench.git /path/to/hive-bench
+export HIVE_BENCH_PATH=/path/to/hive-bench
+```
+
+The command creates its submission branch from the checkout's current `HEAD`,
+so start from an up-to-date default branch and keep the checkout free of
+unrelated changes.
+
+### Submit step by step
+
+When you run `hive bench submit <task-slug>`, Hive:
+
+1. Runs hive-bench's canonical extractor and secret scanner.
+2. Writes the generated entry to `corpus/<task-slug>`.
+3. Creates a `submit-<task-slug>` branch in the checkout.
+4. Commits the corpus entry and pushes the branch to the checkout's `origin`
+   (normally your fork).
+5. Opens a pull request against
+   [`ivankuznetsov/hive-bench`](https://github.com/ivankuznetsov/hive-bench).
+
+Maintainer-gated CI then validates structure, provenance, candidate-visible
+answer leakage, secrets, and reference reproducibility before the task can join
+a public campaign.
 
 </div></section>

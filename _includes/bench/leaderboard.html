@@ -118,7 +118,7 @@
                 {%- if forloop.last -%}
                   <span class="bench-info-cluster">{{- task_key_part -}}<button type="button" class="bench-info"
                     aria-label="{{ task.key | escape }}: {{ task.desc | escape }}"
-                    data-bench-tooltip="{{ task.desc | escape }}">i</button></span>
+                    data-bench-tooltip="{{ task.desc | escape }}"><span class="bench-info-glyph" aria-hidden="true">i</span></button></span>
                 {%- else -%}
                   {{- task_key_part -}}-
                 {%- endif -%}
@@ -144,7 +144,7 @@
                   {% assign cache_write_mtokens = stat.tokens.cache_write | times: 0.000001 | round: 3 %}
                   <small><strong>{{ stat.normalized_mtokens }}M </strong><span class="bench-info-cluster"><strong>tokens</strong><button type="button" class="bench-info"
                       aria-label="Token details: fresh input {{ input_mtokens }} million, output {{ output_mtokens }} million, cache read {{ cache_read_mtokens }} million, cache write {{ cache_write_mtokens }} million"
-                      data-bench-tooltip="Fresh input {{ input_mtokens }}M · output {{ output_mtokens }}M · cache read {{ cache_read_mtokens }}M · cache write {{ cache_write_mtokens }}M">i</button></span>
+                      data-bench-tooltip="Fresh input {{ input_mtokens }}M · output {{ output_mtokens }}M · cache read {{ cache_read_mtokens }}M · cache write {{ cache_write_mtokens }}M"><span class="bench-info-glyph" aria-hidden="true">i</span></button></span>
                   </small><br>
                 {% else %}<small>tokens unknown</small><br>{% endif %}
                 <small>{% if stat.wall_minutes %}{{ stat.wall_minutes }} min{% else %}time not recorded{% endif %}</small>
@@ -175,7 +175,7 @@
                 {%- if forloop.last -%}
                   <span class="bench-info-cluster">{{- task_key_part -}}<button type="button" class="bench-info"
                     aria-label="{{ task.key | escape }}: {{ task.desc | escape }}"
-                    data-bench-tooltip="{{ task.desc | escape }}">i</button></span>
+                    data-bench-tooltip="{{ task.desc | escape }}"><span class="bench-info-glyph" aria-hidden="true">i</span></button></span>
                 {%- else -%}
                   {{- task_key_part -}}-
                 {%- endif -%}
