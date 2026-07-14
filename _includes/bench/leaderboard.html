@@ -112,9 +112,18 @@
         <tr>
           <th scope="col">Model / candidate</th>
           {% for task in b.tasks %}
-            <th scope="col">{{ task.key }}&nbsp;<button type="button" class="bench-info"
-              aria-label="{{ task.key | escape }}: {{ task.desc | escape }}"
-              data-bench-tooltip="{{ task.desc | escape }}">i</button></th>
+            <th scope="col">
+              {%- assign task_key_parts = task.key | split: "-" -%}
+              {%- for task_key_part in task_key_parts -%}
+                {%- if forloop.last -%}
+                  <span class="bench-info-cluster">{{- task_key_part -}}<button type="button" class="bench-info"
+                    aria-label="{{ task.key | escape }}: {{ task.desc | escape }}"
+                    data-bench-tooltip="{{ task.desc | escape }}">i</button></span>
+                {%- else -%}
+                  {{- task_key_part -}}-
+                {%- endif -%}
+              {%- endfor -%}
+            </th>
           {% endfor %}
         </tr>
       </thead>
@@ -133,10 +142,9 @@
                   {% assign output_mtokens = stat.tokens.output | times: 0.000001 | round: 3 %}
                   {% assign cache_read_mtokens = stat.tokens.cache_read | times: 0.000001 | round: 3 %}
                   {% assign cache_write_mtokens = stat.tokens.cache_write | times: 0.000001 | round: 3 %}
-                  <small><strong>{{ stat.normalized_mtokens }}M tokens</strong>
-                    <button type="button" class="bench-info"
+                  <small><strong>{{ stat.normalized_mtokens }}M </strong><span class="bench-info-cluster"><strong>tokens</strong><button type="button" class="bench-info"
                       aria-label="Token details: fresh input {{ input_mtokens }} million, output {{ output_mtokens }} million, cache read {{ cache_read_mtokens }} million, cache write {{ cache_write_mtokens }} million"
-                      data-bench-tooltip="Fresh input {{ input_mtokens }}M · output {{ output_mtokens }}M · cache read {{ cache_read_mtokens }}M · cache write {{ cache_write_mtokens }}M">i</button>
+                      data-bench-tooltip="Fresh input {{ input_mtokens }}M · output {{ output_mtokens }}M · cache read {{ cache_read_mtokens }}M · cache write {{ cache_write_mtokens }}M">i</button></span>
                   </small><br>
                 {% else %}<small>tokens unknown</small><br>{% endif %}
                 <small>{% if stat.wall_minutes %}{{ stat.wall_minutes }} min{% else %}time not recorded{% endif %}</small>
@@ -161,9 +169,18 @@
         <tr>
           <th scope="col">Candidate</th>
           {% for task in b.tasks %}
-            <th scope="col">{{ task.key }}&nbsp;<button type="button" class="bench-info"
-              aria-label="{{ task.key | escape }}: {{ task.desc | escape }}"
-              data-bench-tooltip="{{ task.desc | escape }}">i</button></th>
+            <th scope="col">
+              {%- assign task_key_parts = task.key | split: "-" -%}
+              {%- for task_key_part in task_key_parts -%}
+                {%- if forloop.last -%}
+                  <span class="bench-info-cluster">{{- task_key_part -}}<button type="button" class="bench-info"
+                    aria-label="{{ task.key | escape }}: {{ task.desc | escape }}"
+                    data-bench-tooltip="{{ task.desc | escape }}">i</button></span>
+                {%- else -%}
+                  {{- task_key_part -}}-
+                {%- endif -%}
+              {%- endfor -%}
+            </th>
           {% endfor %}
         </tr>
       </thead>
