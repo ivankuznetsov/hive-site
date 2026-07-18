@@ -32,10 +32,12 @@ _includes/landing/    Landing section partials
 _layouts/             home (landing) + doc (docs, wraps content for Pagefind)
 docs/                 Curated docs — getting-started, concepts, configuration,
                       operating, and commands/* (user-facing subset of the wiki)
-_plugins/             AI-native generator: per-page .md, llms.txt, llms-full.txt
+_plugins/             AI-native outputs + local catalog build validation
 _sass/custom/         Brand overrides for the Just the Docs theme
 assets/               CSS (landing.scss), images, demo media
-schemas/              Public Honeycomb JSON schemas served at /schemas/*
+honeycombs/            Static catalog discovery page
+lib/                   Offline catalog validation and internal v2 contracts
+test/                  Focused sync, rendering, and build proof
 _headers, _redirects  Cloudflare Pages config (markdown content-type + CORS)
 script/               Bundler wrapper + explicit Honeycomb catalog sync
 ```
@@ -51,29 +53,46 @@ the published set.
 ## Honeycomb catalog
 
 `/honeycombs/` is generated only from the checked-in
-`_data/honeycombs.json` snapshot. There is no catalog fetch during sync, site
-build, or browser use. To update it from a merged Honeycomb checkout:
+`_data/honeycombs.json` snapshot. The snapshot is the byte-for-byte upstream
+`honeycomb-catalog/v2` payload: it has no site envelope, generated timestamp,
+or entries derived from package manifests. There is no catalog fetch during
+sync, site build, or browser use.
+
+To update it, first refresh and review a trusted local Honeycomb checkout. Use
+the full commit SHA already merged into its local `origin/main`:
 
 ```bash
 HONEYCOMB_ROOT=/path/to/honeycomb
+git -C "$HONEYCOMB_ROOT" fetch origin main
 HONEYCOMB_SHA=$(git -C "$HONEYCOMB_ROOT" rev-parse origin/main)
-npm run sync:honeycombs -- \
+git -C "$HONEYCOMB_ROOT" show --stat "$HONEYCOMB_SHA"
+
+ruby script/bundle exec ruby script/sync-honeycombs \
   --catalog "$HONEYCOMB_ROOT/catalog.json" \
   --source-sha "$HONEYCOMB_SHA"
 ```
 
-The command validates the complete `honeycomb-catalog/v2` document and its
-cross-field invariants against the checked-in public schemas. It also verifies
-that the SHA exists locally, is merged into local `origin/main`, and contains
-the exact input bytes. Only then does it atomically replace the snapshot;
-failure preserves the last-known-good file byte for byte.
-The production build reruns the test suite, including validation of the
-checked-in snapshot envelope and entries, before Jekyll renders it.
+The sync command itself performs no fetch. It verifies the repository-root
+path, canonical Honeycomb `origin` identity, full SHA, local `origin/main`
+ancestry, and exact committed `catalog.json` bytes. Those checks prove the
+operator's local checkout is internally consistent; they do not authenticate a
+compromised checkout or remote. Record the reviewed source SHA in the site
+change's commit or pull request.
 
-The five Honeycomb contracts under `schemas/` are also published at
-`https://hivecli.sh/schemas/`. Current contracts use canonical `hivecli.sh`
-identifiers; archived catalog v1 retains its historical `$id`. The sync command
-resolves schema references locally and never over HTTP.
+The command parses and validates the whole document in memory against the two
+internal upstream v2 contracts plus the site's consumer-visible coherence
+rules. Only after every check succeeds does it atomically replace the snapshot
+with the exact upstream bytes. Usage, source, validation, and write failures are
+reported separately; all failures preserve the last-known-good snapshot byte
+for byte. A Jekyll hook revalidates the raw checked-in snapshot before rendering,
+so a direct invalid edit also fails closed without Git or network access.
+
+Run the focused gate and a clean site build before committing the snapshot:
+
+```bash
+ruby script/bundle exec ruby -Itest test/run.rb
+ruby script/bundle exec jekyll build
+```
 
 ## Deploying
 

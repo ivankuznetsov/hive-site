@@ -7,6 +7,10 @@ require "tmpdir"
 
 ROOT = File.expand_path("..", __dir__)
 SOURCE_SHA = "a" * 40
+NETWORK_GUARD = File.join(__dir__, "network_guard.rb")
+guard_option = "-r#{NETWORK_GUARD}"
+ENV["RUBYOPT"] = [ENV["RUBYOPT"], guard_option].compact.reject(&:empty?).uniq.join(" ")
+require_relative "network_guard"
 
 module CatalogFixtures
   module_function

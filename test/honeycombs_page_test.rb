@@ -119,6 +119,59 @@ class HoneycombsPageTest < Minitest::Test
     refute_match(/fetch\s*\(|XMLHttpRequest|WebSocket|EventSource|import\s*\(|https?:\/\//, script)
   end
 
+  def test_catalog_is_discoverable_from_header_homepage_and_footer_at_mobile_widths
+    layout = File.read(File.join(ROOT, "_layouts", "home.html"))
+    cards = File.read(File.join(ROOT, "_includes", "landing", "cards.html"))
+    footer = File.read(File.join(ROOT, "_includes", "landing", "footer.html"))
+    styles = File.read(File.join(ROOT, "assets", "css", "landing.scss"))
+
+    [layout, cards, footer].each do |source|
+      assert_match(/href="\{\{ '\/honeycombs\/' \| relative_url \}\}"/, source)
+    end
+    assert_includes layout, "href=\"{{ '/' | relative_url }}#install\""
+    assert_match(/@media \(max-width: 600px\).*\.site-nav a:not\(\.btn\)\s*\{\s*display:\s*none/m, styles)
+    assert_match(/@media \(max-width: 600px\).*\.cards__grid\s*\{\s*grid-template-columns:\s*1fr/m, styles)
+    assert_match(/@media \(max-width: 860px\).*\.site-footer__inner\s*\{\s*grid-template-columns:\s*1fr/m, styles)
+    refute_match(/site-footer__links[^}]*display:\s*none/, styles)
+  end
+
+  def test_maintainer_documentation_describes_the_offline_exact_snapshot_workflow
+    readme = File.read(File.join(ROOT, "README.md"))
+
+    assert_match(/git -C .* fetch origin main/, readme)
+    assert_includes readme, "--catalog"
+    assert_includes readme, "--source-sha"
+    assert_match(/full.*SHA|SHA.*full/i, readme)
+    assert_match(/does not fetch|performs no fetch/i, readme)
+    assert_match(/byte-for-byte|exact upstream bytes/i, readme)
+    assert_match(/last-known-good/i, readme)
+    assert_includes readme, "ruby -Itest test/run.rb"
+    assert_includes readme, "jekyll build"
+    refute_match(/snapshot envelope|public schemas|five Honeycomb contracts/i, readme)
+  end
+
+  def test_repository_gate_is_deterministic_network_denied_and_excludes_internals
+    runner = File.read(File.join(ROOT, "test", "run.rb"))
+    config = File.read(File.join(ROOT, "_config.yml"))
+
+    assert_match(/Dir\[.*\]\.sort\.each/, runner)
+    %w[lib script test].each { |path| assert_match(/^\s*- #{path}$/m, config) }
+    assert_raises(NetworkAccessDenied) { TCPSocket.new("example.test", 443) }
+
+    with_built_site(site_snapshot([])) do |destination, html|
+      emitted = Dir.glob(File.join(destination, "**", "*"), File::FNM_DOTMATCH)
+                   .select { |path| File.file?(path) }
+                   .map { |path| path.delete_prefix("#{destination}/") }
+      refute emitted.any? { |path| path.start_with?("lib/", "script/", "test/") }, emitted.inspect
+      assert_includes emitted, "honeycombs/index.html"
+
+      refute_match(/<script\b[^>]*\bsrc=["']https?:\/\//i, html)
+      refute_match(/<(?:img|iframe|video|audio|source)\b[^>]*\bsrc=["']https?:\/\//i, html)
+      refute_match(/<link\b[^>]*\brel=["'](?:stylesheet|icon|preload|modulepreload)["'][^>]*\bhref=["']https?:\/\//i, html)
+      assert_match(/<a\b[^>]*href="https:\/\/github\.com\/ivankuznetsov\/honeycomb/, html)
+    end
+  end
+
   private
 
   def site_snapshot(entries)
@@ -126,6 +179,12 @@ class HoneycombsPageTest < Minitest::Test
   end
 
   def build_site(snapshot)
+    html = nil
+    with_built_site(snapshot) { |_destination, built_html| html = built_html }
+    html
+  end
+
+  def with_built_site(snapshot)
     Dir.mktmpdir do |directory|
       source = File.join(directory, "source")
       destination = File.join(directory, "site")
@@ -139,7 +198,7 @@ class HoneycombsPageTest < Minitest::Test
                  "--source", source, "--destination", destination, "--quiet"]
       stdout, stderr, status = Open3.capture3(env, *command)
       assert status.success?, "Jekyll build failed:\n#{stdout}\n#{stderr}"
-      File.binread(File.join(destination, "honeycombs", "index.html"))
+      yield destination, File.binread(File.join(destination, "honeycombs", "index.html"))
     end
   end
 
