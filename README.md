@@ -10,17 +10,19 @@ plus curated documentation, built with [Jekyll](https://jekyllrb.com) and
 Requires Ruby 3.4.
 
 ```bash
-bundle install
-bundle exec jekyll serve   # http://localhost:4000
+ruby script/bundle install
+npm ci
+ruby script/bundle exec jekyll serve   # http://localhost:4000
 ```
 
 To preview search locally, build the Pagefind index over the rendered site:
 
 ```bash
-bundle exec jekyll build
-npx -y pagefind@^1 --site _site
-bundle exec jekyll serve --skip-initial-build   # or serve _site/ directly
+npm run build
+ruby script/bundle exec jekyll serve --skip-initial-build   # or serve _site/ directly
 ```
+
+Run the complete catalog and rendering test suite with `npm test`.
 
 ## Structure
 
@@ -33,8 +35,9 @@ docs/                 Curated docs — getting-started, concepts, configuration,
 _plugins/             AI-native generator: per-page .md, llms.txt, llms-full.txt
 _sass/custom/         Brand overrides for the Just the Docs theme
 assets/               CSS (landing.scss), images, demo media
+schemas/              Public Honeycomb JSON schemas served at /schemas/*
 _headers, _redirects  Cloudflare Pages config (markdown content-type + CORS)
-.github/workflows/    Build (Jekyll + Pagefind) → deploy to Cloudflare Pages
+script/               Bundler wrapper + explicit Honeycomb catalog sync
 ```
 
 ## Content
@@ -45,16 +48,44 @@ are never published. The AI-native outputs — `/llms.txt`, `/llms-full.txt`, an
 per-page `.md` — are generated from the docs collection, so they track exactly
 the published set.
 
+## Honeycomb catalog
+
+`/honeycombs/` is generated only from the checked-in
+`_data/honeycombs.json` snapshot. There is no catalog fetch during sync, site
+build, or browser use. To update it from a merged Honeycomb checkout:
+
+```bash
+HONEYCOMB_ROOT=/path/to/honeycomb
+HONEYCOMB_SHA=$(git -C "$HONEYCOMB_ROOT" rev-parse origin/main)
+npm run sync:honeycombs -- \
+  --catalog "$HONEYCOMB_ROOT/catalog.json" \
+  --source-sha "$HONEYCOMB_SHA"
+```
+
+The command validates the complete `honeycomb-catalog/v2` document and its
+cross-field invariants against the checked-in public schemas. It also verifies
+that the SHA exists locally, is merged into local `origin/main`, and contains
+the exact input bytes. Only then does it atomically replace the snapshot;
+failure preserves the last-known-good file byte for byte.
+The production build reruns the test suite, including validation of the
+checked-in snapshot envelope and entries, before Jekyll renders it.
+
+The five Honeycomb contracts under `schemas/` are also published at
+`https://hivecli.sh/schemas/`. Current contracts use canonical `hivecli.sh`
+identifiers; archived catalog v1 retains its historical `$id`. The sync command
+resolves schema references locally and never over HTTP.
+
 ## Deploying
 
 Deployed to Cloudflare (Workers static assets — the unified Pages flow) via the
 repo's Git connection — no GitHub Actions, no secrets. On push, Cloudflare runs:
 
-- **Build command:** `bundle exec jekyll build && npx -y pagefind@^1 --site _site`
-- **Deploy command:** `npx wrangler deploy` (uploads `_site/` per `wrangler.jsonc`)
+- **Build command:** `ruby script/bundle install && npm run build`
+- **Deploy command:** `npm run deploy` (uploads `_site/` per `wrangler.jsonc`)
 
 `wrangler.jsonc` declares the assets directory (`./_site`); `_headers` and
 `_redirects` in `_site` are honored automatically. Non-production branches get
-preview deployments.
+preview versions through `npm run preview`. `package-lock.json` pins the
+Pagefind dependency graph and Wrangler itself is pinned exactly.
 
 MIT licensed.

@@ -1,0 +1,156 @@
+{% assign catalog = site.data.honeycombs %}
+{% assign discoverable_count = 0 %}
+{% for entry in catalog.entries %}
+  {% if entry.discoverable == true %}{% assign discoverable_count = discoverable_count | plus: 1 %}{% endif %}
+{% endfor %}
+
+<section class="honeycomb-intro">
+  <div class="wrap">
+    <p class="eyebrow">Honeycombs</p>
+    <h1 class="honeycomb-title">Reviewed workflows for Hive</h1>
+    <p class="section-lead">
+      Honeycombs are versioned Hive workflows published through a maintained
+      registry. Every listing below links to the exact reviewed package and
+      shows its complete requested permissions before you install it.
+    </p>
+    <aside class="honeycomb-trust-note" aria-labelledby="honeycomb-trust-title">
+      <h2 id="honeycomb-trust-title">Review evidence, not a guarantee</h2>
+      <p>
+        Community or Verified status records review evidence. It is not an
+        endorsement, not a safety guarantee, and not a substitute for reading
+        the permissions and linked evidence yourself. Tier, lifecycle, and
+        permission risk are independent signals.
+      </p>
+      <p class="honeycomb-trust-links">
+        <a href="https://github.com/ivankuznetsov/honeycomb/blob/main/docs/TRUST.md">Read the trust model</a>
+        <a href="https://github.com/ivankuznetsov/honeycomb/blob/main/SECURITY.md">Security policy</a>
+      </p>
+    </aside>
+  </div>
+</section>
+
+<section class="honeycomb-catalog" aria-labelledby="honeycomb-catalog-title">
+  <div class="wrap">
+    <div class="honeycomb-catalog-heading">
+      <div>
+        <h2 id="honeycomb-catalog-title">Catalog</h2>
+        <p class="honeycomb-meta">
+          Canonical order: name, then semantic version. Only listed releases appear.
+        </p>
+      </div>
+      <p class="honeycomb-source">
+        Snapshot from
+        <a href="{{ catalog.source.repository | append: '/tree/' | append: catalog.source.commit | escape }}">
+          Honeycomb <code>{{ catalog.source.commit | slice: 0, 12 | escape }}</code>
+        </a>
+      </p>
+    </div>
+
+    {% if discoverable_count == 0 %}
+      <div class="honeycomb-empty">
+        <h3>No honeycombs are listed yet</h3>
+        <p>
+          Packages appear here only after their review evidence is approved and
+          the canonical catalog marks them as listed. The registry snapshot is
+          valid; there is simply nothing approved for public discovery yet.
+        </p>
+      </div>
+    {% else %}
+      <div class="honeycomb-list">
+        {% for entry in catalog.entries %}
+          {% if entry.discoverable == true %}
+            {% capture install_id %}honeycomb-install-{{ forloop.index }}{% endcapture %}
+            <article class="honeycomb-card">
+              <header class="honeycomb-card__header">
+                <div>
+                  <p class="honeycomb-card__identity"><code>{{ entry.name | escape }}</code> <span>v{{ entry.version | escape }}</span></p>
+                  <h3>{{ entry.name | replace: '-', ' ' | capitalize | escape }}</h3>
+                </div>
+                <div class="honeycomb-labels" aria-label="Trust, lifecycle, risk, and version status">
+                  <span class="honeycomb-label honeycomb-label--tier">{{ entry.current_tier | capitalize | escape }}</span>
+                  <span class="honeycomb-label honeycomb-label--lifecycle">{{ entry.state | replace: '_', ' ' | capitalize | escape }}</span>
+                  <span class="honeycomb-label honeycomb-label--risk-{{ entry.permission_risk | escape }}">{{ entry.permission_risk | capitalize | escape }} risk</span>
+                  {% if entry.version == entry.latest_version %}
+                    <span class="honeycomb-label honeycomb-label--latest">Latest version</span>
+                  {% else %}
+                    <span class="honeycomb-label">Earlier version</span>
+                  {% endif %}
+                </div>
+              </header>
+
+              <p class="honeycomb-card__description">{{ entry.description | escape }}</p>
+
+              <div class="honeycomb-install">
+                <span class="honeycomb-install__label">Install this honeycomb</span>
+                <div class="honeycomb-install__command">
+                  <code id="{{ install_id | strip | escape }}">{{ entry.install_command | escape }}</code>
+                  <button type="button" hidden data-honeycomb-copy aria-controls="{{ install_id | strip | escape }}">Copy</button>
+                </div>
+              </div>
+
+              <div class="honeycomb-card__links" aria-label="Package and review evidence">
+                <a href="{{ entry.package_url | escape }}">Exact package</a>
+                <a href="{{ entry.reviews_url | escape }}">Designated review</a>
+                {% if entry.community_reviews_url %}<a href="{{ entry.community_reviews_url | escape }}">Community reviews</a>{% endif %}
+              </div>
+
+              <div class="honeycomb-detail-grid">
+                <section class="honeycomb-detail" aria-labelledby="permissions-{{ install_id | strip | escape }}">
+                  <h4 id="permissions-{{ install_id | strip | escape }}">Complete permissions</h4>
+                  <dl class="honeycomb-permissions">
+                    <div>
+                      <dt>Capabilities</dt>
+                      <dd>{% include honeycombs/permission-values.html values=entry.permissions.capabilities %}</dd>
+                    </div>
+                    <div>
+                      <dt>Network hosts</dt>
+                      <dd>{% include honeycombs/permission-values.html values=entry.permissions.network_hosts %}</dd>
+                    </div>
+                    <div>
+                      <dt>Filesystem read</dt>
+                      <dd>{% include honeycombs/permission-values.html values=entry.permissions.filesystem_read %}</dd>
+                    </div>
+                    <div>
+                      <dt>Filesystem write</dt>
+                      <dd>{% include honeycombs/permission-values.html values=entry.permissions.filesystem_write %}</dd>
+                    </div>
+                    <div>
+                      <dt>Secrets</dt>
+                      <dd>{% include honeycombs/permission-values.html values=entry.permissions.secrets %}</dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <section class="honeycomb-detail" aria-labelledby="evidence-{{ install_id | strip | escape }}">
+                  <h4 id="evidence-{{ install_id | strip | escape }}">Trust and release evidence</h4>
+                  <dl class="honeycomb-evidence">
+                    <div><dt>Current tier</dt><dd>{{ entry.current_tier | capitalize | escape }}</dd></div>
+                    <div><dt>Release tier</dt><dd>{{ entry.release_tier | capitalize | escape }}</dd></div>
+                    <div><dt>Lifecycle</dt><dd>{{ entry.state | replace: '_', ' ' | capitalize | escape }}</dd></div>
+                    <div><dt>Permission risk</dt><dd>{{ entry.permission_risk | capitalize | escape }}</dd></div>
+                    <div><dt>Approved by</dt><dd>{{ entry.listing_approval.approved_by | join: ', ' | escape }}</dd></div>
+                    <div><dt>Approved at</dt><dd>{{ entry.listing_approval.approved_at | escape }}</dd></div>
+                    <div><dt>Source revision</dt><dd><code>{{ entry.source_sha | slice: 0, 12 | escape }}</code></dd></div>
+                    <div><dt>Minimum Hive</dt><dd>v{{ entry.hive_min_version | escape }}</dd></div>
+                  </dl>
+                  {% if entry.verification %}
+                    <p class="honeycomb-verification-links">
+                      <a href="{{ entry.verification.signature.url | escape }}">Signature evidence</a>
+                      <a href="{{ entry.verification.attestation.url | escape }}">Build attestation</a>
+                    </p>
+                  {% endif %}
+                  <p class="honeycomb-author">
+                    By <a href="{{ entry.author.url | escape }}">{{ entry.author.name | escape }}</a>
+                    · {{ entry.license | escape }}
+                  </p>
+                </section>
+              </div>
+            </article>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<script src="{{ '/assets/js/honeycomb-copy.js' | relative_url }}" defer></script>

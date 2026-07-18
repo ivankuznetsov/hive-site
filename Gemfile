@@ -10,6 +10,8 @@ gem "csv", "~> 3.3"
 gem "base64", "~> 0.2"
 gem "logger", "~> 1.6"
 gem "bigdecimal", "~> 3.1"
+gem "json_schemer", "~> 2.5"
+gem "minitest", "~> 5.25"
 
 group :jekyll_plugins do
   gem "jekyll-seo-tag", "~> 2.8"

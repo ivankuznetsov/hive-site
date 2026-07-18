@@ -1,0 +1,10 @@
+{% assign values = include.values %}
+{% if values.size == 0 %}
+  <span class="honeycomb-permission-empty">None</span>
+{% elsif values.size == 1 and values.first == "*" %}
+  <strong class="honeycomb-permission-unbounded">Unbounded</strong>
+{% else %}
+  <ul class="honeycomb-permission-values">
+    {% for value in values %}<li><code>{{ value | escape }}</code></li>{% endfor %}
+  </ul>
+{% endif %}
