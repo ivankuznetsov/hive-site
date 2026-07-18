@@ -10,16 +10,16 @@
     <h1 class="honeycomb-title">Reviewed workflows for Hive</h1>
     <p class="section-lead">
       Honeycombs are versioned Hive workflows published through a maintained
-      registry. Every listing below links to the exact reviewed package and
-      shows its complete requested permissions before you install it.
+      registry. Every listing links to its exact-version package page and
+      designated review, and shows all requested permissions before installation.
     </p>
     <aside class="honeycomb-trust-note" aria-labelledby="honeycomb-trust-title">
       <h2 id="honeycomb-trust-title">Review evidence, not a guarantee</h2>
       <p>
         Community or Verified status records review evidence. It is not an
-        endorsement, not a safety guarantee, and not a substitute for reading
-        the permissions and linked evidence yourself. Tier, lifecycle, and
-        permission risk are independent signals.
+        endorsement, not a safety guarantee, and not a substitute for inspecting
+        the requested permissions and linked evidence yourself. Tier, lifecycle,
+        and permission risk are independent signals.
       </p>
       <p class="honeycomb-trust-links">
         <a href="https://github.com/ivankuznetsov/honeycomb/blob/main/docs/TRUST.md">Read the trust model</a>
@@ -38,21 +38,18 @@
           Canonical order: name, then semantic version. Only listed releases appear.
         </p>
       </div>
-      <p class="honeycomb-source">
-        Snapshot from
-        <a href="{{ catalog.source.repository | append: '/tree/' | append: catalog.source.commit | escape }}">
-          Honeycomb <code>{{ catalog.source.commit | slice: 0, 12 | escape }}</code>
-        </a>
-      </p>
     </div>
 
     {% if discoverable_count == 0 %}
       <div class="honeycomb-empty">
         <h3>No honeycombs are listed yet</h3>
         <p>
-          Packages appear here only after their review evidence is approved and
-          the canonical catalog marks them as listed. The registry snapshot is
-          valid; there is simply nothing approved for public discovery yet.
+          No releases have completed listing review and been marked for public
+          discovery yet. The checked-in catalog is valid and intentionally empty.
+        </p>
+        <p class="honeycomb-empty__links">
+          <a href="https://github.com/ivankuznetsov/honeycomb">Browse the Honeycomb repository</a>
+          <a href="https://github.com/ivankuznetsov/honeycomb/blob/main/docs/TRUST.md">Read the trust model</a>
         </p>
       </div>
     {% else %}
@@ -60,13 +57,14 @@
         {% for entry in catalog.entries %}
           {% if entry.discoverable == true %}
             {% capture install_id %}honeycomb-install-{{ forloop.index }}{% endcapture %}
-            <article class="honeycomb-card">
+            {% capture status_id %}honeycomb-copy-status-{{ forloop.index }}{% endcapture %}
+            <article class="honeycomb-card" data-honeycomb-entry="{{ entry.name | escape }}@{{ entry.version | escape }}">
               <header class="honeycomb-card__header">
                 <div>
                   <p class="honeycomb-card__identity"><code>{{ entry.name | escape }}</code> <span>v{{ entry.version | escape }}</span></p>
                   <h3>{{ entry.name | replace: '-', ' ' | capitalize | escape }}</h3>
                 </div>
-                <div class="honeycomb-labels" aria-label="Trust, lifecycle, risk, and version status">
+                <div class="honeycomb-labels" aria-label="Tier, lifecycle, risk, and version status">
                   <span class="honeycomb-label honeycomb-label--tier">{{ entry.current_tier | capitalize | escape }}</span>
                   <span class="honeycomb-label honeycomb-label--lifecycle">{{ entry.state | replace: '_', ' ' | capitalize | escape }}</span>
                   <span class="honeycomb-label honeycomb-label--risk-{{ entry.permission_risk | escape }}">{{ entry.permission_risk | capitalize | escape }} risk</span>
@@ -81,15 +79,26 @@
               <p class="honeycomb-card__description">{{ entry.description | escape }}</p>
 
               <div class="honeycomb-install">
-                <span class="honeycomb-install__label">Install this honeycomb</span>
+                <span class="honeycomb-install__label">Name-based install command</span>
                 <div class="honeycomb-install__command">
-                  <code id="{{ install_id | strip | escape }}">{{ entry.install_command | escape }}</code>
-                  <button type="button" hidden data-honeycomb-copy aria-controls="{{ install_id | strip | escape }}">Copy</button>
+                  <code id="{{ install_id | strip | escape }}" tabindex="0">{{ entry.install_command | escape }}</code>
+                  <button type="button" hidden data-honeycomb-copy
+                    aria-controls="{{ install_id | strip | escape }}"
+                    aria-describedby="{{ status_id | strip | escape }}">Copy</button>
                 </div>
+                <p class="honeycomb-install__help">
+                  This command installs by honeycomb name and is not version-pinned.
+                  {% if entry.version != entry.latest_version %}
+                    It does not target this earlier {{ entry.version | escape }} release;
+                    use the exact-version package and review links below to inspect it.
+                  {% endif %}
+                </p>
+                <span id="{{ status_id | strip | escape }}" class="honeycomb-copy-status"
+                  data-honeycomb-copy-status aria-live="polite"></span>
               </div>
 
               <div class="honeycomb-card__links" aria-label="Package and review evidence">
-                <a href="{{ entry.package_url | escape }}">Exact package</a>
+                <a href="{{ entry.package_url | escape }}">Exact-version package</a>
                 <a href="{{ entry.reviews_url | escape }}">Designated review</a>
                 {% if entry.community_reviews_url %}<a href="{{ entry.community_reviews_url | escape }}">Community reviews</a>{% endif %}
               </div>

@@ -571,14 +571,14 @@ section:nth-of-type(even) { background: var(--bg-alt); }
   align-items: end; display: flex; gap: 1.5rem; justify-content: space-between; margin-bottom: 1.25rem;
 }
 .honeycomb-catalog-heading h2 { margin: 0; }
-.honeycomb-meta, .honeycomb-source { color: var(--muted); font-size: 0.88rem; margin: 0.25rem 0 0; }
-.honeycomb-source { flex: 0 1 auto; text-align: right; }
+.honeycomb-meta { color: var(--muted); font-size: 0.88rem; margin: 0.25rem 0 0; }
 .honeycomb-empty {
   background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius);
   padding: clamp(1.5rem, 4vw, 2.5rem); text-align: center;
 }
 .honeycomb-empty h3 { margin: 0 0 0.45rem; }
 .honeycomb-empty p { color: var(--muted); margin: 0 auto; max-width: 62ch; }
+.honeycomb-empty .honeycomb-empty__links { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; justify-content: center; margin-top: 0.8rem; }
 .honeycomb-list { display: grid; gap: 1.25rem; }
 .honeycomb-card {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
@@ -607,6 +607,7 @@ section:nth-of-type(even) { background: var(--bg-alt); }
 }
 .honeycomb-install__command { align-items: center; display: flex; gap: 0.75rem; justify-content: space-between; }
 .honeycomb-install__command code { background: none; border: 0; overflow-wrap: anywhere; padding: 0; }
+.honeycomb-install__command code:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .honeycomb-install__command button {
   background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px; color: var(--text);
   cursor: pointer; flex: 0 0 auto; font: 600 0.78rem/1 var(--font); padding: 0.45rem 0.65rem;
@@ -614,6 +615,11 @@ section:nth-of-type(even) { background: var(--bg-alt); }
 .honeycomb-install__command button:hover,
 .honeycomb-install__command button:focus-visible { border-color: var(--accent); color: var(--accent); }
 .honeycomb-install__command button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.honeycomb-install__help { color: var(--muted); font-size: 0.78rem; margin: 0.65rem 0 0; }
+.honeycomb-copy-status {
+  border: 0; clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px;
+  margin: -1px; overflow: hidden; padding: 0; position: absolute; white-space: nowrap; width: 1px;
+}
 .honeycomb-card__links, .honeycomb-verification-links {
   display: flex; flex-wrap: wrap; gap: 0.45rem 1rem; margin-top: 0.85rem;
 }
@@ -636,7 +642,6 @@ section:nth-of-type(even) { background: var(--bg-alt); }
 
 @media (max-width: 720px) {
   .honeycomb-catalog-heading, .honeycomb-card__header { align-items: stretch; flex-direction: column; }
-  .honeycomb-source { text-align: left; }
   .honeycomb-labels { justify-content: flex-start; }
   .honeycomb-detail-grid { grid-template-columns: 1fr; }
   .honeycomb-install__command { align-items: stretch; flex-direction: column; }
