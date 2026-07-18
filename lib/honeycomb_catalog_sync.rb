@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require "digest"
 require "json"
 require "json_schemer"
 require "open3"
@@ -15,7 +14,6 @@ module HoneycombCatalogSync
   DEFAULT_OUTPUT_PATH = File.join(ROOT, "_data", "honeycombs.json")
   SOURCE_REPOSITORY = "https://github.com/ivankuznetsov/honeycomb"
   SOURCE_SCHEMA = "honeycomb-catalog/v2"
-  SNAPSHOT_SCHEMA = "hive-site-honeycombs/v1"
   SHA_PATTERN = /\A(?:[0-9a-f]{40}|[0-9a-f]{64})\z/
   CAPABILITIES = %w[filesystem-read filesystem-write network shell].freeze
   PERMISSION_KEYS = %w[
@@ -101,30 +99,13 @@ module HoneycombCatalogSync
 
   extend self
 
-  # The sync writer is narrowed to exact upstream bytes in U2. Until then it
-  # preserves the existing snapshot shape while using the new validation seam.
   def sync!(catalog_path:, source_sha:, output_path: DEFAULT_OUTPUT_PATH)
     validate_invocation!(catalog_path: catalog_path, source_sha: source_sha, output_path: output_path)
     catalog_bytes = read_catalog(catalog_path)
     validate_source!(catalog_path: catalog_path, source_sha: source_sha, catalog_bytes: catalog_bytes)
     document = validate_payload!(catalog_bytes)
-    snapshot = {
-      "schema" => SNAPSHOT_SCHEMA,
-      "source" => {
-        "repository" => SOURCE_REPOSITORY,
-        "commit" => source_sha,
-        "path" => "catalog.json",
-        "schema" => SOURCE_SCHEMA,
-        "sha256" => Digest::SHA256.hexdigest(catalog_bytes)
-      },
-      "entries" => document.fetch("entries")
-    }
-    atomic_replace(output_path, JSON.pretty_generate(snapshot, allow_nan: false) + "\n")
-    snapshot
-  rescue Error
-    raise
-  rescue SystemCallError, IOError => e
-    raise WriteError, "I/O failure: #{e.message}"
+    atomic_replace(output_path, catalog_bytes)
+    document
   end
 
   def validate_payload!(bytes)
@@ -442,12 +423,18 @@ module HoneycombCatalogSync
     File.chmod(output_mode(path), tempfile.path)
     tempfile.close
     File.rename(tempfile.path, path)
+  rescue SystemCallError, IOError => e
+    raise WriteError, "snapshot write failed: #{e.message}"
   ensure
-    tempfile&.close!
+    begin
+      tempfile&.close!
+    rescue SystemCallError, IOError
+      nil
+    end
   end
 
   def output_mode(path)
-    File.stat(path).mode
+    File.stat(path).mode & 0o7777
   rescue Errno::ENOENT
     0o644
   end

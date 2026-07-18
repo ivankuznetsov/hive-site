@@ -250,6 +250,138 @@ class HoneycombCatalogSyncTest < Minitest::Test
     refute_match(/\bgit[^\n]*\bfetch\b|Net::HTTP|URI\.open|open-uri/, source)
   end
 
+  def test_committed_snapshot_is_the_exact_valid_catalog_v2_shape
+    bytes = File.binread(HoneycombCatalogSync::DEFAULT_OUTPUT_PATH)
+    document = HoneycombCatalogSync.validate_payload!(bytes)
+
+    assert_equal %w[entries schema], document.keys.sort
+    assert_equal "honeycomb-catalog/v2", document.fetch("schema")
+    assert_empty document.fetch("entries")
+    refute_includes bytes, "hive-site-honeycombs"
+    refute_includes bytes, "generated_at"
+  end
+
+  def test_sync_copies_exact_upstream_bytes_deterministically
+    in_source_repo do |_root, catalog_path, source_sha|
+      Dir.mktmpdir do |output_root|
+        output_path = File.join(output_root, "honeycombs.json")
+        expected = File.binread(catalog_path)
+
+        first = HoneycombCatalogSync.sync!(
+          catalog_path: catalog_path, source_sha: source_sha, output_path: output_path
+        )
+        first_bytes = File.binread(output_path)
+        second = HoneycombCatalogSync.sync!(
+          catalog_path: catalog_path, source_sha: source_sha, output_path: output_path
+        )
+
+        assert_equal expected, first_bytes
+        assert_equal expected, File.binread(output_path)
+        assert_equal CatalogFixtures.catalog, first
+        assert_equal first, second
+      end
+    end
+  end
+
+  def test_source_and_validation_failures_preserve_snapshot_bytes_mode_and_tempfiles
+    failures = [
+      ["source", CatalogFixtures.catalog, ->(root, _path) {
+        run_git(root, "remote", "set-url", "origin", "https://github.com/example/honeycomb.git")
+      }, HoneycombCatalogSync::SourceError],
+      ["malformed", nil, ->(_root, _path) {}, HoneycombCatalogSync::ValidationError, "{"],
+      ["unsafe", mutate_entry { |entry| entry["author"]["url"] = "javascript:alert(1)" },
+       ->(_root, _path) {}, HoneycombCatalogSync::ValidationError]
+    ]
+
+    failures.each do |label, document, setup, error_class, raw|
+      in_source_repo(document: document, raw: raw) do |root, catalog_path, source_sha|
+        setup.call(root, catalog_path)
+        output_path = File.join(root, "last-known-good.json")
+        previous = "{\n  \"known\": \"good\"\n}\n"
+        File.binwrite(output_path, previous)
+        File.chmod(0o600, output_path)
+
+        assert_raises(error_class, label) do
+          HoneycombCatalogSync.sync!(
+            catalog_path: catalog_path, source_sha: source_sha, output_path: output_path
+          )
+        end
+        assert_equal previous, File.binread(output_path), label
+        assert_equal 0o600, File.stat(output_path).mode & 0o777, label
+        assert_empty Dir.glob(File.join(root, ".honeycombs*.json")), label
+      end
+    end
+  end
+
+  def test_rename_failure_preserves_snapshot_and_cleans_temporary_file
+    in_source_repo do |root, catalog_path, source_sha|
+      output_path = File.join(root, "last-known-good.json")
+      previous = "last known good\n"
+      File.binwrite(output_path, previous)
+      File.chmod(0o640, output_path)
+
+      error = assert_raises(HoneycombCatalogSync::WriteError) do
+        File.stub(:rename, ->(*) { raise Errno::EACCES, "simulated rename failure" }) do
+          HoneycombCatalogSync.sync!(
+            catalog_path: catalog_path, source_sha: source_sha, output_path: output_path
+          )
+        end
+      end
+
+      assert_match(/rename failure|Permission denied/i, error.message)
+      assert_equal previous, File.binread(output_path)
+      assert_equal 0o640, File.stat(output_path).mode & 0o777
+      assert_empty Dir.glob(File.join(root, ".honeycombs*.json"))
+    end
+  end
+
+  def test_command_reports_distinct_usage_source_and_validation_failures
+    _stdout, stderr, status = run_sync_command
+    assert_equal 2, status.exitstatus
+    assert_match(/Usage: script\/sync-honeycombs/, stderr)
+
+    in_source_repo do |root, catalog_path, source_sha|
+      run_git(root, "remote", "set-url", "origin", "https://github.com/example/honeycomb.git")
+      _stdout, stderr, status = run_sync_command("--catalog", catalog_path, "--source-sha", source_sha)
+      assert_equal 3, status.exitstatus
+      assert_match(/source:/, stderr)
+    end
+
+    unsafe = mutate_entry { |entry| entry["author"]["url"] = "javascript:alert(1)" }
+    in_source_repo(document: unsafe) do |_root, catalog_path, source_sha|
+      _stdout, stderr, status = run_sync_command("--catalog", catalog_path, "--source-sha", source_sha)
+      assert_equal 4, status.exitstatus
+      assert_match(/validation:/, stderr)
+    end
+  end
+
+  def test_jekyll_hook_rejects_directly_corrupted_snapshots_before_catalog_output
+    unsafe = CatalogFixtures.entry
+    unsafe["author"]["url"] = "javascript:alert(1)"
+    status, destination, output = build_with_snapshot(CatalogFixtures.catalog([unsafe]))
+    refute status.success?, output
+    refute File.exist?(File.join(destination, "honeycombs", "index.html"))
+    assert_match(/Honeycomb catalog snapshot is invalid|safe absolute HTTPS/, output)
+
+    incoherent = CatalogFixtures.entry
+    incoherent["discoverable"] = false
+    status, destination, output = build_with_snapshot(CatalogFixtures.catalog([incoherent]))
+    refute status.success?, output
+    refute File.exist?(File.join(destination, "honeycombs", "index.html"))
+    assert_match(/discoverable/, output)
+
+    status, destination, output = build_with_snapshot(CatalogFixtures.catalog)
+    assert status.success?, output
+    assert File.file?(File.join(destination, "honeycombs", "index.html"))
+  end
+
+  def test_jekyll_hook_performs_payload_validation_without_git_or_network
+    hook = File.read(File.join(ROOT, "_plugins", "honeycomb_catalog_validator.rb"))
+
+    assert_includes hook, "validate_payload!"
+    refute_match(/validate_source|Open3|Net::HTTP|fetch\s*\(/, hook)
+  end
+
   private
 
   def validate(document)
@@ -274,13 +406,14 @@ class HoneycombCatalogSyncTest < Minitest::Test
     key.match?(/\A\d+\z/) ? parent[key.to_i] = value : parent[key] = value
   end
 
-  def in_source_repo(origin: "https://github.com/ivankuznetsov/honeycomb.git")
+  def in_source_repo(origin: "https://github.com/ivankuznetsov/honeycomb.git",
+                     document: CatalogFixtures.catalog, raw: nil)
     Dir.mktmpdir do |root|
       run_git(root, "init", "-q")
       run_git(root, "config", "user.email", "tests@example.test")
       run_git(root, "config", "user.name", "Honeycomb Tests")
       run_git(root, "remote", "add", "origin", origin)
-      catalog_path = CatalogFixtures.write_catalog(root, CatalogFixtures.catalog)
+      catalog_path = CatalogFixtures.write_catalog(root, document, raw: raw)
       run_git(root, "add", "catalog.json")
       run_git(root, "commit", "-qm", "catalog")
       source_sha = run_git(root, "rev-parse", "HEAD").strip
@@ -299,5 +432,27 @@ class HoneycombCatalogSyncTest < Minitest::Test
     stdout, stderr, status = Open3.capture3("git", "-C", directory, *arguments)
     assert status.success?, "git #{arguments.join(' ')} failed: #{stderr}"
     stdout
+  end
+
+  def run_sync_command(*arguments)
+    env = {"BUNDLE_GEMFILE" => File.join(ROOT, "Gemfile"), "BUNDLE_PATH" => File.join(ROOT, "vendor", "bundle")}
+    Open3.capture3(env, RbConfig.ruby, File.join(ROOT, "script", "sync-honeycombs"), *arguments)
+  end
+
+  def build_with_snapshot(snapshot)
+    directory = Dir.mktmpdir
+    source = File.join(directory, "source")
+    destination = File.join(directory, "site")
+    FileUtils.mkdir_p(source)
+    entries = Dir.children(ROOT) - %w[.git .jekyll-cache .sass-cache _site node_modules test vendor]
+    entries.each { |entry| FileUtils.cp_r(File.join(ROOT, entry), source) }
+    File.binwrite(File.join(source, "_data", "honeycombs.json"), JSON.pretty_generate(snapshot) + "\n")
+
+    env = {"BUNDLE_GEMFILE" => File.join(ROOT, "Gemfile"), "BUNDLE_PATH" => File.join(ROOT, "vendor", "bundle"),
+           "JEKYLL_ENV" => "test"}
+    command = [RbConfig.ruby, Gem.bin_path("bundler", "bundle"), "exec", "jekyll", "build",
+               "--source", source, "--destination", destination, "--quiet"]
+    stdout, stderr, status = Open3.capture3(env, *command)
+    [status, destination, "#{stdout}\n#{stderr}"]
   end
 end

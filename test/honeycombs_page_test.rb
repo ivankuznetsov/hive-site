@@ -14,7 +14,7 @@ class HoneycombsPageTest < Minitest::Test
     hidden = CatalogFixtures.entry(name: "hidden-tool", state: "soft_hidden")
     yanked = CatalogFixtures.entry(name: "yanked-tool", state: "yanked")
     revoked = CatalogFixtures.entry(name: "revoked-tool", state: "revoked")
-    html = build_site(site_snapshot([community, verified, hidden, yanked, revoked]))
+    html = build_site(site_snapshot([community, hidden, revoked, verified, yanked]))
 
     assert_includes html, "alpha-tool"
     assert_includes html, "verified-tool"
@@ -50,8 +50,9 @@ class HoneycombsPageTest < Minitest::Test
 
   def test_distinct_semver_versions_render_unique_dom_ids
     prerelease = CatalogFixtures.entry(name: "versioned-tool", version: "1.0.0-1")
-    build = CatalogFixtures.entry(name: "versioned-tool", version: "1.0.0+1")
-    html = build_site(site_snapshot([prerelease, build]))
+    release = CatalogFixtures.entry(name: "versioned-tool", version: "1.0.0")
+    prerelease["latest_version"] = "1.0.0"
+    html = build_site(site_snapshot([prerelease, release]))
 
     ids = html.scan(/\bid="([^"]+)"/).flatten
     assert_equal ids.uniq, ids
@@ -79,17 +80,7 @@ class HoneycombsPageTest < Minitest::Test
   private
 
   def site_snapshot(entries)
-    {
-      "schema" => "hive-site-honeycombs/v1",
-      "source" => {
-        "repository" => "https://github.com/ivankuznetsov/honeycomb",
-        "commit" => SOURCE_SHA,
-        "path" => "catalog.json",
-        "schema" => "honeycomb-catalog/v2",
-        "sha256" => "f" * 64
-      },
-      "entries" => entries
-    }
+    {"schema" => "honeycomb-catalog/v2", "entries" => entries}
   end
 
   def build_site(snapshot)

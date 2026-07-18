@@ -27,7 +27,17 @@ rescue OptionParser::ParseError => e
   warn "sync-honeycombs: #{e.message}"
   warn parser
   exit 2
-rescue HoneycombCatalogSync::Invalid => e
-  e.errors.each { |error| warn "sync-honeycombs: #{error}" }
-  exit 1
+rescue HoneycombCatalogSync::UsageError => e
+  e.errors.each { |error| warn "sync-honeycombs: usage: #{error}" }
+  warn parser
+  exit 2
+rescue HoneycombCatalogSync::SourceError => e
+  e.errors.each { |error| warn "sync-honeycombs: source: #{error}" }
+  exit 3
+rescue HoneycombCatalogSync::ValidationError => e
+  e.errors.each { |error| warn "sync-honeycombs: validation: #{error}" }
+  exit 4
+rescue HoneycombCatalogSync::WriteError => e
+  e.errors.each { |error| warn "sync-honeycombs: write: #{error}" }
+  exit 5
 end
