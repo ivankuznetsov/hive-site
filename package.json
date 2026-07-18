@@ -1,8 +1,16 @@
 {
   "name": "hive-site",
   "private": true,
-  "description": "Build-time tooling for the Hive website (Pagefind search index).",
+  "description": "Reproducible build and deployment tooling for the Hive website.",
+  "scripts": {
+    "test": "ruby script/bundle exec ruby -Itest test/run.rb",
+    "build": "npm test && ruby script/bundle exec jekyll build && pagefind --site _site",
+    "deploy": "wrangler deploy",
+    "preview": "wrangler versions upload",
+    "sync:honeycombs": "ruby script/bundle exec ruby script/sync-honeycombs"
+  },
   "devDependencies": {
-    "pagefind": "^1.3.0"
+    "pagefind": "^1.3.0",
+    "wrangler": "4.112.0"
   }
 }
