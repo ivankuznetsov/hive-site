@@ -63,10 +63,12 @@ npm run sync:honeycombs -- \
 ```
 
 The command validates the complete `honeycomb-catalog/v2` document and its
-cross-field invariants against the checked-in public schemas. It also verifies
-that the SHA exists locally, is merged into local `origin/main`, and contains
-the exact input bytes. Only then does it atomically replace the snapshot;
-failure preserves the last-known-good file byte for byte.
+cross-field invariants against the checked-in public schemas. It accepts
+designated HTTPS review anchors while keeping fragments forbidden on package,
+author, verification, lifecycle, advisory, and community-review URLs. It then
+verifies that the SHA exists locally, is merged into local `origin/main`, and
+contains the exact input bytes. Only then does it atomically replace the
+snapshot; failure preserves the last-known-good file byte for byte.
 The production build reruns the test suite, including validation of the
 checked-in snapshot envelope and entries, before Jekyll renders it.
 

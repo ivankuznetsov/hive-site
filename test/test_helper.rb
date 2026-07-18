@@ -25,7 +25,7 @@ module CatalogFixtures
       {
         "reviewer" => reviewer,
         "reviewed_at" => "2026-07-17T12:0#{index}:00Z",
-        "review_url" => "https://github.com/ivankuznetsov/honeycomb/pull/#{index + 10}",
+        "review_url" => "https://github.com/ivankuznetsov/honeycomb/pull/#{index + 10}#pullrequestreview-#{index + 100}",
         "evidence_digest" => ((index + 1).to_s * 64)[0, 64]
       }
     end

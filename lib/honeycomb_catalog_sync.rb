@@ -301,9 +301,9 @@ module HoneycombCatalogSync
   def validate_urls(entry, path, errors)
     urls = {
       "#{path}.author.url" => entry.dig("author", "url"),
-      "#{path}.package_url" => entry.fetch("package_url"),
-      "#{path}.reviews_url" => entry.fetch("reviews_url")
+      "#{path}.package_url" => entry.fetch("package_url")
     }
+    review_urls = {"#{path}.reviews_url" => entry.fetch("reviews_url")}
     community = entry.fetch("community_reviews_url")
     urls["#{path}.community_reviews_url"] = community if community
     verification = entry.fetch("verification")
@@ -316,15 +316,18 @@ module HoneycombCatalogSync
     entry.fetch("history").each_with_index { |item, index| urls["#{path}.history[#{index}].url"] = item.fetch("url") }
     entry.fetch("advisories").each_with_index { |item, index| urls["#{path}.advisories[#{index}].url"] = item.fetch("url") }
     entry.dig("listing_approval", "reviews").each_with_index do |review, index|
-      urls["#{path}.listing_approval.reviews[#{index}].review_url"] = review.fetch("review_url")
+      review_urls["#{path}.listing_approval.reviews[#{index}].review_url"] = review.fetch("review_url")
     end
     urls.each { |url_path, value| errors << "#{url_path}: URL must be safe absolute HTTPS without credentials or fragments" unless safe_https?(value) }
+    review_urls.each do |url_path, value|
+      errors << "#{url_path}: review URL must be safe absolute HTTPS without credentials" unless safe_https?(value, allow_fragment: true)
+    end
   end
 
-  def safe_https?(value)
+  def safe_https?(value, allow_fragment: false)
     uri = URI.parse(value)
     value.is_a?(String) && uri.is_a?(URI::HTTPS) && uri.host && !uri.host.empty? &&
-      uri.userinfo.nil? && uri.fragment.nil?
+      uri.userinfo.nil? && (allow_fragment || uri.fragment.nil?)
   rescue URI::InvalidURIError, TypeError
     false
   end

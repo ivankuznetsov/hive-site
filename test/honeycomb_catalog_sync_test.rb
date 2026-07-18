@@ -112,6 +112,15 @@ class HoneycombCatalogSyncTest < Minitest::Test
     assert_match(/install_command/i, error.message)
   end
 
+  def test_allows_review_anchors_without_allowing_fragments_on_other_urls
+    entry = CatalogFixtures.entry
+    assert_empty HoneycombCatalogSync.send(:validate, CatalogFixtures.catalog([entry]))
+
+    entry["package_url"] = "#{entry.fetch("package_url")}#unexpected"
+    error = sync_error(document: CatalogFixtures.catalog([entry]))
+    assert_match(/package_url.*fragments/i, error.message)
+  end
+
   def test_rejects_empty_designated_reviews_without_crashing
     entry = CatalogFixtures.entry
     entry["listing_approval"]["reviews"] = []
