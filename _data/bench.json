@@ -583,6 +583,152 @@
     "results": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/results.json",
     "cells": "https://github.com/ivankuznetsov/hive-bench/tree/main/runs/v2-ce/cells"
   },
+  "experimental_campaigns": [
+    {
+      "id": "v3-mixed-workflows-three-seed-20260713",
+      "label": "Mixed-workflow follow-up",
+      "status": "incomplete",
+      "published_at": "2026-07-19T10:03:27Z",
+      "classification": "experimental_comparison",
+      "corpus": {
+        "requested_version": "v3-mixed-workflows-followup-20260713",
+        "serialized_version": "v3-mixed-workflows-followup-20260713"
+      },
+      "coverage": {
+        "expected_cells": 18,
+        "generated_cells": 15,
+        "dual_judged_cells": 5,
+        "single_judge_cells": 10,
+        "empty_diff_cells": 1,
+        "provider_pending_cells": 2
+      },
+      "judge_contract": {
+        "fable-5": { "reasoning_effort": "unspecified", "samples_per_cell": 3 },
+        "gpt-5.6-sol": { "reasoning_effort": "ultra", "samples_per_cell": 3 }
+      },
+      "raw_evidence_published": false,
+      "cells": [
+        {
+          "candidate_id": "fable-plan->grok-exec-sol-review",
+          "candidate_label": "Fable plan → Grok execute → Sol review",
+          "model_version": "fable-5-high-plan/grok-4.5-xhigh-exec/sol-xhigh-review",
+          "task_key": "web-install",
+          "task_id": "add-local-hive-web-install-260629-f4ca",
+          "generated_at": "2026-07-16T22:07:55Z",
+          "run_status": "generated",
+          "judges": {
+            "fable-5": { "mean": 5.167, "stddev": 0.85, "scores": [4.0, 6.0, 5.5], "interval": [4.317, 6.017], "same_family": true },
+            "gpt-5.6-sol": { "mean": 3.167, "stddev": 0.236, "scores": [3.0, 3.5, 3.0], "interval": [2.931, 3.402], "same_family": false }
+          },
+          "efficiency": { "wall_minutes": 150.7, "cost_usd_reported": 4.68213 }
+        },
+        {
+          "candidate_id": "fable-plan->grok-exec-sol-review",
+          "candidate_label": "Fable plan → Grok execute → Sol review",
+          "model_version": "fable-5-high-plan/grok-4.5-xhigh-exec/sol-xhigh-review",
+          "task_key": "install",
+          "task_id": "figure-out-way-to-install-260513-4a0a",
+          "generated_at": "2026-07-17T03:59:54Z",
+          "run_status": "generated",
+          "judges": {
+            "fable-5": { "mean": 5.5, "stddev": 0.408, "scores": [5.0, 6.0, 5.5], "interval": [5.092, 5.908], "same_family": true },
+            "gpt-5.6-sol": { "mean": 2.833, "stddev": 0.236, "scores": [3.0, 3.0, 2.5], "interval": [2.598, 3.069], "same_family": false }
+          },
+          "efficiency": { "wall_minutes": null, "cost_usd_reported": 4.25164 }
+        },
+        {
+          "candidate_id": "fable-plan->grok-exec-sol-review",
+          "candidate_label": "Fable plan → Grok execute → Sol review",
+          "model_version": "fable-5-high-plan/grok-4.5-xhigh-exec/sol-xhigh-review",
+          "task_key": "fix-review",
+          "task_id": "fix-review-stage-claude-stop-260629-26ed",
+          "generated_at": "2026-07-17T06:46:42Z",
+          "run_status": "generated",
+          "judges": {
+            "fable-5": { "mean": 5.833, "stddev": 0.236, "scores": [5.5, 6.0, 6.0], "interval": [5.598, 6.069], "same_family": true },
+            "gpt-5.6-sol": { "mean": 4.0, "stddev": 0.408, "scores": [4.5, 4.0, 3.5], "interval": [3.592, 4.408], "same_family": false }
+          },
+          "efficiency": { "wall_minutes": 87.2, "cost_usd_reported": 5.560221 }
+        },
+        {
+          "candidate_id": "fable-plan->grok-exec-sol-review",
+          "candidate_label": "Fable plan → Grok execute → Sol review",
+          "model_version": "fable-5-high-plan/grok-4.5-xhigh-exec/sol-xhigh-review",
+          "task_key": "daemon",
+          "task_id": "make-the-hive-daemon-automatically-260629-223d",
+          "generated_at": "2026-07-18T23:57:47Z",
+          "run_status": "generated",
+          "judges": {
+            "fable-5": { "mean": 6.333, "stddev": 0.236, "scores": [6.5, 6.5, 6.0], "interval": [6.098, 6.569], "same_family": true },
+            "gpt-5.6-sol": { "mean": 4.167, "stddev": 0.236, "scores": [4.0, 4.0, 4.5], "interval": [3.931, 4.402], "same_family": false }
+          },
+          "efficiency": { "wall_minutes": 136.2, "cost_usd_reported": 3.034775 }
+        },
+        {
+          "candidate_id": "sol-plan->terra-exec-sol-review",
+          "candidate_label": "Sol plan → Terra execute → Sol review",
+          "model_version": "sol-xhigh-plan/terra-xhigh-exec/sol-xhigh-review",
+          "task_key": "web-install",
+          "task_id": "add-local-hive-web-install-260629-f4ca",
+          "generated_at": "2026-07-18T15:33:30Z",
+          "run_status": "generated",
+          "judges": {
+            "fable-5": { "mean": 3.667, "stddev": 0.471, "scores": [4.0, 3.0, 4.0], "interval": [3.195, 4.138], "same_family": false },
+            "gpt-5.6-sol": { "mean": 2.833, "stddev": 0.236, "scores": [2.5, 3.0, 3.0], "interval": [2.598, 3.069], "same_family": false }
+          },
+          "efficiency": { "wall_minutes": 197.7, "cost_usd_reported": null }
+        }
+      ],
+      "notes": [
+        "Only cells with all three samples from both registered judges are published here.",
+        "This campaign remains incomplete and does not alter the complete v2-ce leaderboard.",
+        "The public site snapshot contains score arrays and intervals; raw patches and runner artifacts are not yet part of the public evidence bundle."
+      ]
+    },
+    {
+      "id": "v3-all-kimi-add-i-key-three-seed-20260716",
+      "label": "Kimi recovery probe",
+      "status": "complete_probe",
+      "published_at": "2026-07-19T10:03:27Z",
+      "classification": "failure_probe",
+      "corpus": {
+        "requested_version": "v3-all-kimi-add-i-key-20260716",
+        "serialized_version": "v2"
+      },
+      "coverage": {
+        "expected_cells": 1,
+        "generated_cells": 1,
+        "dual_judged_cells": 1
+      },
+      "judge_contract": {
+        "fable-5": { "reasoning_effort": "unspecified", "samples_per_cell": 3 },
+        "gpt-5.6-sol": { "reasoning_effort": "xhigh", "samples_per_cell": 3 }
+      },
+      "raw_evidence_published": false,
+      "integrity_caveat": "The recovery path serialized corpus_version as v2 and did not traverse the complete native v3 campaign, so this is failure evidence rather than a ranked result.",
+      "cells": [
+        {
+          "candidate_id": "all-kimi-k2.7-code",
+          "candidate_label": "Kimi K2.7 Code",
+          "model_version": "kimi-k2.7-code",
+          "task_key": "add-i-key",
+          "task_id": "add-i-key-with-legend-260522-ca28",
+          "generated_at": "2026-07-16T16:50:52Z",
+          "run_status": "generated",
+          "workflow_outcome": { "open_pr_ok": false, "review_ok": false },
+          "judges": {
+            "fable-5": { "mean": 1.333, "stddev": 0.236, "scores": [1.5, 1.0, 1.5], "interval": [1.098, 1.569], "same_family": false },
+            "gpt-5.6-sol": { "mean": 1.0, "stddev": 0.0, "scores": [1.0, 1.0, 1.0], "interval": [1.0, 1.0], "same_family": false }
+          },
+          "efficiency": { "wall_minutes": 34.1, "cost_usd_reported": 8.5161 }
+        }
+      ],
+      "notes": [
+        "The candidate did not complete open-PR or review successfully.",
+        "This probe is excluded from every leaderboard and is published only as recovery and failure evidence."
+      ]
+    }
+  ],
   "notes": [
     "All 36 generation cells completed. Every objective gate is no_gate in this campaign, so scores are judge evidence, not test-pass rates.",
     "Efficiency is recomputed uniformly from per-event generation stage logs. Each total includes fresh input, output, cache reads, and cache creation/writes; the site publishes that split per task and candidate average.",

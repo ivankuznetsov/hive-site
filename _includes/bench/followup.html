@@ -1,0 +1,87 @@
+{% assign experimental_campaigns = site.data.bench.experimental_campaigns %}
+<section class="bench-followup bench-doc bench-doc--detail">
+  <div class="wrap">
+    <p class="eyebrow">New evidence</p>
+    <h2>Experimental follow-up</h2>
+    <p>
+      Six new cells have complete three-sample coverage from both Fable 5 and
+      GPT-5.6 Sol. They are published separately from the complete 36-cell
+      leaderboard: five come from an unfinished mixed-workflow campaign and
+      one is a Kimi recovery failure probe.
+    </p>
+
+    {% for campaign in experimental_campaigns %}
+      <div class="bench-followup-campaign">
+        <h3>{{ campaign.label }}</h3>
+        <p class="bench-meta">
+          {{ campaign.coverage.dual_judged_cells }} dual-judged cell{% if campaign.coverage.dual_judged_cells != 1 %}s{% endif %}
+          {% if campaign.coverage.expected_cells %}of {{ campaign.coverage.expected_cells }} planned{% endif %}
+          · three samples per judge
+          · <span class="bench-prelim">not ranked</span>
+        </p>
+        {% if campaign.classification == "experimental_comparison" %}
+          <p>
+            Only the five cells with complete judge coverage are shown. Ten
+            generated cells still have one judge, one produced an empty diff,
+            and two remain provider-pending. Those thirteen cells stay out of
+            this publication until their evidence is complete.
+          </p>
+        {% else %}
+          <p>
+            This candidate did not complete the pull-request or review stages.
+            The recovery path also recorded the wrong corpus version, so this
+            cell is failure evidence, not a comparable leaderboard result.
+          </p>
+        {% endif %}
+
+        <div class="bench-table-scroll bench-table-scroll--responsive" role="region" aria-label="{{ campaign.label | escape }} scores" tabindex="0">
+          <table class="bench-table bench-responsive-matrix bench-followup-table">
+            <thead>
+              <tr>
+                <th scope="col">Configuration</th>
+                <th scope="col">Task</th>
+                <th scope="col">Fable 5</th>
+                <th scope="col">Sol</th>
+                <th scope="col">Time</th>
+                <th scope="col">Reported cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for cell in campaign.cells %}
+                {% assign fable = cell.judges["fable-5"] %}
+                {% assign sol = cell.judges["gpt-5.6-sol"] %}
+                <tr>
+                  <th scope="row">
+                    <code>{{ cell.candidate_label }}</code>
+                    <small>{{ cell.model_version }}</small>
+                  </th>
+                  <td data-task="Task"><span class="bench-cell-value"><code>{{ cell.task_key }}</code></span></td>
+                  <td data-task="Fable 5">
+                    <span class="bench-cell-value"><strong>{{ fable.mean }}</strong>
+                    {% if fable.same_family %}<span class="bench-prelim">same-family</span>{% endif %}
+                    <small>{{ fable.scores | join: " / " }}</small></span>
+                  </td>
+                  <td data-task="Sol">
+                    <span class="bench-cell-value"><strong>{{ sol.mean }}</strong>
+                    {% if sol.same_family %}<span class="bench-prelim">same-family</span>{% endif %}
+                    <small>{{ sol.scores | join: " / " }}</small></span>
+                  </td>
+                  <td data-task="Time"><span class="bench-cell-value">{% if cell.efficiency.wall_minutes %}{{ cell.efficiency.wall_minutes }} min{% else %}not recorded{% endif %}</span></td>
+                  <td data-task="Reported cost"><span class="bench-cell-value">{% if cell.efficiency.cost_usd_reported %}${{ cell.efficiency.cost_usd_reported | round: 2 }}{% else %}unknown{% endif %}</span></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% endfor %}
+
+    <p class="bench-meta">
+      Means, all six underlying judge samples, intervals, family-overlap flags,
+      and efficiency fields are included in the
+      <a href="{{ '/bench/results.json' | relative_url }}">machine-readable site snapshot</a>.
+      Raw patches and runner artifacts for these follow-ups are not yet in the
+      public evidence bundle.
+    </p>
+  </div>
+</section>

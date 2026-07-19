@@ -129,6 +129,27 @@ candidate patch. The campaign manifest, complete merged `results.json`, and
 all evidence directories are public in
 [hive-bench](https://github.com/ivankuznetsov/hive-bench/tree/main/runs/v2-ce).
 
+## Experimental follow-up cells
+
+The site also publishes six newer cells outside the leaderboard. Five are the
+fully dual-judged portion of an unfinished 18-cell mixed-workflow follow-up;
+the other is a Kimi K2.7 Code recovery probe. Every published follow-up cell
+has three independent Fable 5 samples and three GPT-5.6 Sol samples. The site
+snapshot preserves the sample arrays, means, intervals, family-overlap flags,
+and available efficiency fields.
+
+The mixed-workflow campaign is not leaderboard-ready: ten generated cells have
+only one judge, one cell produced an empty diff, and two remain provider-pending.
+Those thirteen cells are intentionally omitted from the site until they have
+the same evidence contract. The Kimi probe is also not comparable: it failed
+the pull-request and review stages, did not traverse the complete native v3
+campaign, and its recovery envelope serialized the wrong corpus version.
+
+These cells therefore provide early comparison and failure evidence without
+changing the complete 36-cell v2-ce ranking. Their score summaries are public
+in the [site data snapshot]({{ '/bench/results.json' | relative_url }}), while
+raw patches and runner artifacts are not yet in the public evidence bundle.
+
 ## Time, tokens, and cost
 
 Wall time is recorded per task where recoverable. Four Sol cells, five Grok

@@ -454,7 +454,9 @@ section:nth-of-type(even) { background: var(--bg-alt); }
   pointer-events: none; position: fixed; text-align: left; text-transform: none; white-space: normal; width: max-content; z-index: 1000;
 }
 .bench-summary-table tbody th small,
-.bench-summary-table td small { display: block; margin-top: 0.2rem; color: var(--muted, #9aa5b1); font-weight: 400; line-height: 1.35; }
+.bench-summary-table td small,
+.bench-followup-table th small,
+.bench-followup-table td small { display: block; margin-top: 0.2rem; color: var(--muted, #9aa5b1); font-weight: 400; line-height: 1.35; }
 .bench-prelim {
   display: inline-block; font-size: 0.62em; font-weight: 700; letter-spacing: 0.06em;
   text-transform: uppercase; padding: 0.12em 0.45em; border-radius: 999px; margin-left: 0.35em;
@@ -464,6 +466,8 @@ section:nth-of-type(even) { background: var(--bg-alt); }
 .bench-doc { padding-block: 1rem 3rem; background: var(--bg-alt); }
 .bench-doc .wrap { max-width: var(--wrap); }
 .bench-doc--detail { padding-block: 3rem; }
+.bench-followup-campaign { margin-top: 2rem; }
+.bench-followup-table th:first-child { width: 31%; }
 
 @media (max-width: 800px) {
   .bench-config-table { font-size: 0.85rem; }
