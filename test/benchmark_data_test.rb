@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "test_helper"
+require "open3"
 
 class BenchmarkDataTest < Minitest::Test
   CAMPAIGNS = JSON.parse(File.read(File.join(ROOT, "_data", "bench.json"))).fetch("experimental_campaigns")
@@ -49,6 +50,32 @@ class BenchmarkDataTest < Minitest::Test
   def test_experimental_data_never_claims_public_raw_evidence
     CAMPAIGNS.each do |campaign|
       assert_equal false, campaign.fetch("raw_evidence_published")
+    end
+  end
+
+  def test_experimental_followup_renders_and_reaches_results_snapshot
+    Dir.mktmpdir do |destination|
+      env = {"BUNDLE_GEMFILE" => File.join(ROOT, "Gemfile"), "JEKYLL_ENV" => "test"}
+      command = [
+        RbConfig.ruby, Gem.bin_path("bundler", "bundle"), "exec", "jekyll", "build",
+        "--source", ROOT, "--destination", destination, "--quiet", "--disable-disk-cache"
+      ]
+      stdout, stderr, status = Open3.capture3(env, *command)
+      assert status.success?, "Jekyll build failed:\n#{stdout}\n#{stderr}"
+
+      html = File.binread(File.join(destination, "bench", "index.html"))
+      section = html[/<section class="bench-followup.*?<\/section>/m]
+      refute_nil section
+      assert_includes section, "Experimental follow-up"
+      assert_includes section, "Mixed-workflow follow-up"
+      assert_includes section, "Kimi recovery probe"
+      assert_equal 6, section.scan(/<tbody>.*?<\/tbody>/m).sum { |body| body.scan("<tr>").length }
+
+      snapshot = JSON.parse(File.binread(File.join(destination, "bench", "results.json")))
+      campaigns = snapshot.fetch("experimental_campaigns")
+      assert_equal CAMPAIGNS.map { |campaign| campaign.fetch("id") },
+                   campaigns.map { |campaign| campaign.fetch("id") }
+      assert_equal 6, campaigns.sum { |campaign| campaign.fetch("cells").length }
     end
   end
 end
