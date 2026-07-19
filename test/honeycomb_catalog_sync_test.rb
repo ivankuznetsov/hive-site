@@ -62,6 +62,22 @@ class HoneycombCatalogSyncTest < Minitest::Test
     end
   end
 
+  def test_accepts_repository_owner_authority_for_a_high_risk_community_listing
+    owner = CatalogFixtures.entry(name: "owner-tool", risk: "high", authority: "repository_owner")
+
+    assert_empty HoneycombCatalogSync.send(:validate, CatalogFixtures.catalog([owner]))
+  end
+
+  def test_high_risk_independent_authority_still_requires_two_approvals
+    independent = CatalogFixtures.entry(name: "independent-tool", risk: "high")
+    independent["listing_approval"]["reviews"] = independent.dig("listing_approval", "reviews").first(1)
+    independent["listing_approval"]["approved_by"] = independent.dig("listing_approval", "approved_by").first(1)
+    independent["listing_approval"]["approved_at"] = independent.dig("listing_approval", "reviews", 0, "reviewed_at")
+
+    error = sync_error(document: CatalogFixtures.catalog([independent]))
+    assert_match(/at least 2 independent approvals/, error.message)
+  end
+
   def test_rejects_malformed_json_duplicate_keys_wrong_schema_and_unknown_or_missing_fields
     variants = {
       "malformed JSON" => "{",

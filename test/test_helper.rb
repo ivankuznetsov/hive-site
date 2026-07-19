@@ -16,14 +16,16 @@ module CatalogFixtures
   end
 
   def entry(name: "example", version: "1.0.0", tier: "community", risk: "moderate",
-            state: "listed", community_reviews: nil, description: "A useful honeycomb")
+            state: "listed", community_reviews: nil, description: "A useful honeycomb",
+            authority: "independent")
     head_sha = "b" * 40
     release_sha = "c" * 64
-    reviewer_count = risk == "high" ? 2 : 1
+    reviewer_count = risk == "high" && authority == "independent" ? 2 : 1
     reviewers = Array.new(reviewer_count) { |index| "maintainer-#{index + 1}" }
     reviews = reviewers.each_with_index.map do |reviewer, index|
       {
         "reviewer" => reviewer,
+        "authority" => authority,
         "reviewed_at" => "2026-07-17T12:0#{index}:00Z",
         "review_url" => "https://github.com/ivankuznetsov/honeycomb/pull/#{index + 10}#pullrequestreview-#{index + 100}",
         "evidence_digest" => ((index + 1).to_s * 64)[0, 64]

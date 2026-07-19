@@ -350,8 +350,11 @@ module HoneycombCatalogSync
     errors << "#{path}.listing_approval.reviews: must be sorted by reviewer" unless reviewers == reviewers.map(&:downcase).sort
     errors << "#{path}.listing_approval.approved_by: must match designated reviews" unless approved_by == reviewers
     minimum = entry.fetch("permission_risk") == "high" ? 2 : 1
-    if approved_by.length < minimum
-      errors << "#{path}.listing_approval.approved_by: #{entry.fetch("permission_risk")} risk requires at least #{minimum} approvals"
+    owner_eligible = reviews.any? { |review| review.fetch("authority") == "repository_owner" } &&
+                     entry.values_at("release_tier", "current_tier") == %w[community community]
+    independent_count = reviews.count { |review| review.fetch("authority") == "independent" }
+    unless owner_eligible || independent_count >= minimum
+      errors << "#{path}.listing_approval.approved_by: #{entry.fetch("permission_risk")} risk requires repository-owner authority or at least #{minimum} independent approvals"
     end
     if reviews.empty?
       errors << "#{path}.listing_approval.reviews: at least one designated review is required"
