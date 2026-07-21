@@ -17,11 +17,22 @@ state branch. This is how every task starts.
 
 ```bash
 hive new <project> <text...>
+hive new <project> --workflow <id> <text...>
 ```
 
 `<project>` must already be registered with
 [`hive init`]({{ '/docs/commands/init/' | relative_url }}). Everything after it
-is the idea text, joined into a single description.
+is the idea text, joined into a single description. Hive uses the project's
+`default_workflow` unless `--workflow <id>` selects a built-in or
+project-authored workflow for this task.
+
+## Options
+
+| Flag | What it does |
+|------|--------------|
+| `--workflow <id>` | Run this task through the named built-in or project-authored workflow. |
+| `--depends-on <id-or-slug>` | Hold daemon advancement until a prerequisite task reaches the configured dependency gate. |
+| `--json` | Emit a typed `hive-new` result instead of the human summary. |
 
 ## What happens
 
@@ -50,6 +61,9 @@ hive new hive "Add a filter to the inbox view so I can hide done tasks"
 
 # Capture a quick bug report
 hive new myapp "OAuth login redirects to a blank page on Safari"
+
+# Use an owner-authored editorial workflow for this task
+hive new myapp --workflow editorial "Explain the new import flow"
 ```
 
 To capture an idea with images attached, use the new-idea composer inside

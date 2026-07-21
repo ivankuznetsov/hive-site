@@ -189,7 +189,7 @@ building. More often you want a real, multi-stage pipeline to shape, not a bare
 stub. Pass `--template`:
 
 ```bash
-hive workflow new writing --template writing
+hive workflow new evidence --template research
 ```
 
 This renders a curated sample descriptor with **your** id and copies its real
@@ -198,15 +198,14 @@ template name and Hive lists what's available:
 
 ```
 $ hive workflow new x --template bogus
-hive workflow: unknown workflow template "bogus" (available: blank, research, writing)
+hive workflow: unknown workflow template "bogus" (available: blank, research)
 ```
 
-The three that ship:
+The two that ship in Hive 0.6.5:
 
 | Template | Stages |
 |---|---|
 | `blank` (default) | `inbox → work → done` (one placeholder instruction) |
-| `writing` | `inbox → research → draft → edit → done` |
 | `research` | `inbox → gather → synthesize → report → done` |
 
 A multi-stage template prints `edit: <id>/ (N stage instructions to fill in)` —
@@ -325,13 +324,14 @@ Here's everything above in one sequence — a fresh project to a finished essay,
 with the daemon doing the work in between:
 
 ```bash
-# 1. A fresh project bound to a new "writing" workflow, seeded from the sample.
+# 1. A fresh project bound to a blank "writing" workflow.
 hive init --new-workflow writing ~/Dev/essays
 cd ~/Dev/essays
 
-# 2. Customize the stage instructions to your voice (they were copied in real,
-#    not as stubs, because we seeded from the `writing` template).
-$EDITOR .hive-state/workflows/writing/{research,draft,edit}.md
+# 2. Replace the generated descriptor and placeholder instruction with the
+#    workflow and instructions from this guide.
+$EDITOR .hive-state/workflows/writing.yml
+$EDITOR .hive-state/workflows/writing/work.md
 
 # 3. Create a task — no --workflow needed, the default is already "writing".
 hive new essays "what folder-as-agent pipelines teach us about durable automation"
