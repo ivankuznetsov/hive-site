@@ -1,151 +1,162 @@
 ---
-title: Concepts
+title: How workflows work
 layout: doc
 nav_order: 2
 permalink: /docs/concepts/
-description: The load-bearing ideas behind Hive — folder-as-agent, the stage state machine, and the marker protocol — and how workflows (coding, content, or your own) ride on top of them.
+description: Understand Hive's reusable workflow definitions, durable task runs, stages, artifacts, checkpoints, and terminal outcomes.
 ---
 
-# Concepts
+# How Hive workflows work
 {: .no_toc }
 
-Hive has three load-bearing ideas: a task is a folder, stage folders form a
-state machine, and every stage writes an artefact that lets the next stage run
-with less ambiguity.
+A Hive workflow is a reusable definition of how work should move from an input
+to a known outcome. A task run is one brief going through that process. Instead
+of asking one agent to hold the whole job in one conversation, Hive gives each
+stage durable context, records its result, and advances only when the stage's
+status allows it.
 
-Those three are the **engine**. *Which* stages exist, and what each one does, is
-defined by a **workflow** — and Hive runs more than one. It ships two built-in
-workflows: `coding`, the nine-stage idea → PR pipeline described below (its
-flagship, and the default `hive init` selects), and `content`, a research
-pipeline. You can also author your own per project — see
-[Custom workflows]({{ '/docs/custom-workflows/' | relative_url }}). Everything in
-this page applies to any workflow; `coding` is just the most involved, so it's
-the one worth walking through in full.
+This page is the model. When you are ready to write YAML, continue to
+[Custom workflows]({{ '/docs/custom-workflows/' | relative_url }}).
 
 1. TOC
 {:toc}
 
-## Folder as agent
+## Vocabulary
 
-A Hive task is not a ticket row or a single markdown blob. It is a directory
-that accumulates the artefacts needed to keep work inspectable: the original
-idea, brainstorm rounds, the plan, execution notes, review files, PR metadata,
-logs, and a feature-worktree pointer.
+| Term | Meaning in Hive |
+|---|---|
+| **Project** | The repository or working directory Hive is attached to. Its `.hive-state/` worktree contains workflow definitions and task runs. |
+| **Workflow definition** | A reusable, ordered process: the stage names, instructions or skills, agent settings, artifacts, and outcome. It is not a particular run. |
+| **Task run** | One brief moving through one workflow definition. Its task folder accumulates the run's durable context. |
+| **Stage** | One bounded step in the ordered process. A stage can run an agent, coordinate people, or remain inert as an entry or terminal point. |
+| **Agent and model** | The runner assigned to an active stage and, optionally, the model used there. Different stages can make different choices. |
+| **Artifact** | A file produced for people and later stages: research, a draft, a plan, review findings, or another named deliverable. |
+| **Marker** | The trailing status in a stage's state file, such as `WAITING`, `COMPLETE`, or `ERROR`. The last marker is the current status. |
+| **Checkpoint** | A place where progress depends on recorded status or human judgment. It can advance, pause, retry, or return work for revision. |
+| **Outcome** | The workflow's defined end state and deliverable. “The agent stopped” is not an outcome; “approved copy is ready for a human to publish” is. |
+| **Honeycomb** | A reviewed, versioned workflow package distributed through the maintained registry. It is different from a built-in workflow and from YAML owned only by one project. |
 
-The folder's location **is** the task state. Moving a task from `2-brainstorm/`
-to `3-plan/` is the approval gesture; running `hive plan <slug>` does the same
-move with marker checks, locking, JSON support, and a state-branch commit.
+The important distinction is between the **workflow definition** and a
+**task run**. Editing `editorial.yml` changes the reusable process; creating a
+task sends one brief through that process and gives it its own folder.
+
+## How a task run moves
+
+1. **An idea enters the workflow.** `hive new` creates a task folder in the
+   first stage and writes the brief to that stage's state file.
+2. **The current stage reads durable context.** Hive supplies the accumulated
+   task artifacts to the assigned agent. A person can inspect the same files
+   without reconstructing a chat transcript.
+3. **An agent or human produces an artifact.** The stage writes its named
+   output and records status in its state file.
+4. **A checkpoint decides what happens next.** A complete marker allows Hive
+   to advance. A waiting marker pauses for a human. An error can be corrected
+   and retried. Revision feedback can send the task back to an earlier stage.
+5. **The daemon handles ready work.** It runs active stages and commits safe
+   transitions in the background. An operator can still use `hive run` and
+   [`hive approve --to`]({{ '/docs/commands/approve/' | relative_url }}) to
+   intervene explicitly.
+6. **The run reaches its terminal outcome.** The final stage defines what done
+   means. It may be inert, or it may be an active stage whose non-empty
+   deliverable and complete marker prove the outcome exists.
 
 ```text
-<project>/.hive-state/stages/6-review/<slug>/
-├── idea.md
-├── brainstorm.md
-├── plan.md
-├── task.md
-├── pr.md
-├── worktree.yml
-└── reviews/
-    ├── claude-ce-code-review-01.md
-    ├── codex-ce-code-review-01.md
-    ├── pr-review-toolkit-01.md
-    └── escalations-01.md
+workflow definition
+        │
+        ▼
+brief → stage reads context → artifact + marker → checkpoint
+          ▲                                      │
+          ├──────── retry or revision ───────────┤
+          │                                      ▼
+          └──────────── next stage ←──── advance or human approval
+                                                 │
+                                                 ▼
+                                        defined terminal outcome
 ```
 
-## The nine stages: the `coding` workflow
+The folder's location is also state. Moving a task from `2-research/` to
+`3-draft/` records the transition in a form a shell, editor, agent, or person
+can all understand. Use the CLI for normal movement because it adds marker
+checks, locking, idempotency, and a state-branch commit.
 
-The stages below are Hive's built-in **`coding`** workflow. A different workflow
-(`content`, or one you author) defines its own stages — but the mechanics are
-identical: each stage is a folder, the agent reads the prior artefacts and writes
-this stage's, and a marker negotiates the handoff. `coding` is the deepest of the
-built-ins, so it's the clearest illustration of the whole protocol.
+## Why durable stages help
+
+| Benefit | The mechanism that provides it |
+|---|---|
+| **Repeatability** | One versioned workflow definition gives every task the same ordered process and artifact contracts. |
+| **Auditability** | Recorded transitions make the run auditable; named artifacts preserve its inputs, decisions, and outputs. |
+| **Interruption-safe resumption** | Durable files make resumption safe after a closed terminal, provider reset, or restarted daemon; the next run reads the folder again. |
+| **Bounded autonomy** | Markers and human checkpoints let automation continue where the rule is clear and pause where judgment is required. |
+| **Stage-specific execution** | Each stage can select an appropriate agent, model, budget, timeout, and enforceable permission scope. |
+| **Reusable team process** | Review rules and handoffs live in the definition instead of being remembered or rebuilt in each prompt. |
+
+This is why staged work is safer than a single prompt. A long prompt may be
+fast for a small disposable task, but its intermediate reasoning and decisions
+are easy to lose. Hive makes the important handoffs explicit without claiming
+that people never need to intervene.
+
+## Three ways to get a workflow
+
+Hive resolves workflows from three product surfaces:
+
+- **Built-in workflows** ship with Hive. `coding` is the flagship engineering
+  workflow; `content` handles research, outlining, drafting, and critique; and
+  `bench` runs the benchmark contribution process.
+- **Project-local workflows** are owner-authored YAML and instruction files in
+  `.hive-state/workflows/`. They are the right choice for a process that belongs
+  to one project or is still evolving. The editorial example in
+  [Custom workflows]({{ '/docs/custom-workflows/' | relative_url }}) uses this
+  route.
+- **Honeycombs** are reviewed, versioned packages installed from the maintained
+  registry. Browse the [Honeycomb catalog]({{ '/honeycombs/' | relative_url }})
+  when a shared process already exists and you want its permission and review
+  evidence before installation.
+
+All three use the same task folders, stages, artifacts, markers, daemon, and
+operator controls. Their difference is who owns and distributes the definition.
+
+## Non-coding workflows are first-class
+
+The general model is not tied to source code or nine stages.
+
+- The built-in **content** workflow moves an idea through research, outline,
+  draft, critique, and a finished article.
+- A project-local **editorial** workflow can move a brief through research,
+  drafting, an explicit human decision, and a publish-ready local artifact.
+- A **research or triage** workflow can gather evidence, compare options, pause
+  for a decision, and end with a recorded recommendation.
+
+Each process should use the fewest stages that create useful boundaries. A
+four-stage editorial workflow does not become safer by copying a nine-stage
+engineering shape.
+
+## The flagship coding workflow
+
+Coding remains Hive's deepest built-in proof of the model:
 
 ```text
-1-inbox → 2-brainstorm → 3-plan → 4-execute → 5-open-pr → 6-review → 7-artifacts → 8-finalize → 9-done
-capture     refine        design    build       draft PR    harden     collect       publish      archive
+inbox → brainstorm → plan → execute → open-pr → review → artifacts → finalize → done
 ```
 
-| Stage | What happens |
-|-------|--------------|
-| **1-inbox** | The capture stage. `hive new` writes `idea.md`; nothing runs automatically yet. |
-| **2-brainstorm** | The brainstorm agent reads `idea.md` and writes `brainstorm.md`, usually pausing to ask you questions, then marking the requirements clear. |
-| **3-plan** | The plan agent reads `brainstorm.md` and writes `plan.md`, fixing scope, implementation units, verification, and risks before any code work. |
-| **4-execute** | Creates an isolated feature worktree, writes `worktree.yml`, spawns the implementation agent, and finishes only when there's a clean new commit. |
-| **5-open-pr** | Pushes the task branch and opens a **draft** GitHub PR — a normal entry point for humans and reviewers before autonomous review starts. |
-| **6-review** | Runs the autonomous loop: CI fix, reviewers, triage, fix, guardrail, and an optional browser test. It pauses at human-input or recovery gates. |
-| **7-artifacts** | The collection handoff after review — the artifact agent writes `artifact.md` for release-packaging and handoff work. |
-| **8-finalize** | Verifies the branch is clean and pushed, refreshes the PR body, writes `summary.md`, and marks the draft PR ready. |
-| **9-done** | Archives the task and prints manual cleanup commands for the feature worktree and branch. |
+The original idea becomes requirements, an implementation plan, a committed
+feature branch, a draft pull request, review evidence, and finally a merge-ready
+pull request with its trail attached. The mechanics are the same as every other
+workflow; the engineering process simply needs more stages and specialized
+runners.
 
-## Markers as the protocol
+## People remain part of the protocol
 
-Markers are HTML comments at the bottom of a stage's state file. **The last
-marker wins.** They are how a stage agent and the runner negotiate handoff.
+Human intervention is ordinary, not a failure mode. A person can edit a
+decision file, answer a waiting question, reject an artifact with revision
+feedback, move a task back, or rerun a corrected stage. The daemon continues
+only after the durable status reflects that decision.
 
-| Marker | Meaning |
-|--------|---------|
-| `<!-- AGENT_WORKING pid=N started=ISO -->` | A stage agent is running. |
-| `<!-- WAITING -->` | The agent needs human input in the file. |
-| `<!-- COMPLETE -->` | The stage is ready for promotion. |
-| `<!-- ERROR reason=... -->` | The runner or agent failed and needs investigation. |
-| `<!-- EXECUTE_WAITING reason=... -->` | Execute paused without a clean implementation commit. |
-| `<!-- EXECUTE_COMPLETE -->` | Execute produced a clean task-branch commit. |
-| `<!-- REVIEW_WAITING ... -->` | Review needs human triage or guardrail approval. |
-| `<!-- REVIEW_COMPLETE ... -->` | Review is done and the task can collect artifacts. |
-
-Human edits are part of the protocol. You can open `brainstorm.md`, `plan.md`,
-a `reviews/escalations-NN.md` file, or a recovery file in a normal editor, make
-your changes, and re-run the same stage command. The agent picks up where you
-left off.
-
-## Compound engineering in practice
-
-Compound engineering means structuring software work so each stage leaves
-behind a durable result the next stage can trust. The term comes from
-[Kieran Klaassen's work at Every](https://every.to/source-code/compound-engineering-the-definitive-guide) —
-the idea that each unit of engineering work should make the next one easier, not
-harder. Hive applies that to agent work by making every transition explicit and
-every intermediate artefact reviewable.
-
-Brainstorm pins requirements so the planner has fewer product unknowns. Plan
-fixes implementation scope so the execute agent can focus on code. Execute
-commits in a feature worktree so review can inspect a real diff. Review turns
-findings into accepted fixes or escalations, and finalize ships the PR with the
-trail still attached.
-
-The trade-off is more intermediate files than a chat-only workflow. The benefit
-is that a human can intervene at any stage with a normal editor instead of
-trying to steer a long-running conversation.
-
-## Knowledge sharing: the LLM wiki
-
-Compounding doesn't stop at a single task. Each Hive project keeps an
-**LLM-maintained wiki** — a `wiki/` directory of markdown pages, cataloged in
-`wiki/index.md` and cross-linked with `[[backlinks]]`, capturing the project's
-architecture, modules, conventions, and decisions. It's written for agents to
-read and kept current as work lands.
-
-The point is that knowledge accumulates instead of evaporating when a
-conversation ends. The convention is simple: an agent reads the relevant wiki
-pages before it starts — inheriting established patterns, past gotchas, and the
-*why* behind decisions — and files what it learns back, either as new pages or
-as an append-only changelog fragment under `wiki/log.d/`. Over time the project
-gets *cheaper and safer* to work in, because every task starts with more context
-than the last.
-
-It's searchable: Hive ships a managed indexer (QMD), so you or an agent can run
-`qmd search "<topic>"` and get the answer straight from the wiki instead of
-re-deriving it. The changelog is rebuilt from those fragments with
-[`hive wiki compile-log`]({{ '/docs/commands/wiki/' | relative_url }}), which
-keeps concurrent edits from colliding on a single file.
-
-## What Hive is not
-
-- It is not a Kanban board.
-- It is not a CI replacement.
-- It is not a central tracker.
+That separation keeps autonomy bounded: agents do the work they were assigned,
+while checkpoints reserve product, editorial, security, or release judgment for
+the people responsible for it.
 
 ---
 
-Next: see [Configuration]({{ '/docs/configuration/' | relative_url }}) for the
-knobs that shape each stage, or the [Command reference]({{ '/docs/commands/' | relative_url }})
-for the verbs that drive them.
+Next: [author a project-local workflow]({{ '/docs/custom-workflows/' | relative_url }})
+or see [Configuration]({{ '/docs/configuration/' | relative_url }}) for agent,
+model, budget, permission, and daemon settings.

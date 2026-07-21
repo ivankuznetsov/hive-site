@@ -28,6 +28,31 @@ class WorkflowDocumentationTest < Minitest::Test
     refute_includes guide, "--template writing"
   end
 
+  def test_concepts_defines_the_general_model_before_the_flagship_example
+    concepts = read("docs/concepts.md")
+
+    assert_includes concepts, "title: How workflows work"
+    assert_includes concepts, "permalink: /docs/concepts/"
+    %w[Project Workflow Task Stage Agent Artifact Marker Checkpoint Outcome Honeycomb].each do |term|
+      assert_match(/\*\*#{term}[^*]*\*\*/i, concepts, "missing vocabulary definition for #{term}")
+    end
+
+    vocabulary = concepts.index("## Vocabulary")
+    runtime = concepts.index("## How a task run moves")
+    flagship = concepts.index("## The flagship coding workflow")
+    assert vocabulary && runtime && flagship
+    assert_operator vocabulary, :<, runtime
+    assert_operator runtime, :<, flagship
+
+    %w[advance pause retry revision].each { |outcome| assert_match(/#{outcome}/i, concepts) }
+    assert_match(/durable files.*resum/i, concepts)
+    assert_match(/recorded transitions.*audit/i, concepts)
+    assert_match(/agent.*model.*stage/i, concepts)
+    assert_match(/built-in.*project-local.*Honeycomb/im, concepts)
+    assert_includes concepts, "{{ '/docs/custom-workflows/' | relative_url }}"
+    assert_includes concepts, "{{ '/honeycombs/' | relative_url }}"
+  end
+
   private
 
   def read(path)
