@@ -9,9 +9,11 @@ description: Capture a new idea into a Hive project's inbox so you can move it t
 
 # hive new
 
-Captures an idea into a project's inbox. It turns your text into a task folder
-under the `1-inbox` stage, assigns it a stable id, and commits it to Hive's
-state branch. This is how every task starts.
+Captures an idea into the selected workflow's entry stage. Hive turns your text
+into a task folder, assigns it a stable id, and commits it to the state branch.
+The entry stage and filename come from the workflow: the built-in coding
+workflow starts at `1-inbox` with `idea.md`, while the editorial workflow below
+starts at `1-brief` with `brief.md`.
 
 ## Usage
 
@@ -32,26 +34,30 @@ project-authored workflow for this task.
 |------|--------------|
 | `--workflow <id>` | Run this task through the named built-in or project-authored workflow. |
 | `--depends-on <id-or-slug>` | Hold daemon advancement until a prerequisite task reaches the configured dependency gate. |
-| `--json` | Emit a typed `hive-new` result instead of the human summary. |
+| `--json` | Accepted as a global flag, but Hive 0.6.5 still prints the human capture summary for `new`; do not expect a typed result. |
 
 ## What happens
 
 - A readable slug is derived from your text (e.g. `add-inbox-filter-260603-abcd`).
-- A task folder is created at `1-inbox/<slug>/` with an `idea.md` holding your text.
+- A task folder is created in the selected workflow's entry stage, using that
+  stage's `state_file` to hold your text.
 - The task gets a numeric id you'll see throughout `hive status` and the TUI.
 - The capture is committed, and Hive starts generating a friendly display name
   in the background.
 
-After capture, Hive prints the next step — move the task into the brainstorm
-stage and run it:
+After capture, Hive prints the workflow-specific next step. For the built-in
+coding workflow, the task starts at `1-inbox` in `idea.md` and advances to
+brainstorm. For the editorial example, it starts at `1-brief` in `brief.md` and
+advances to research. Follow the `next:` command Hive prints rather than
+hard-coding a stage path.
 
 ```text
-hive: captured <task>/idea.md
-next: mv <task> <hive-state>/stages/2-brainstorm/ && hive run <id-or-task>
+hive: captured <task>/<entry-state-file>
+next: <workflow-specific transition/run command>
 ```
 
-A task sitting in `1-inbox` is intentionally inert; nothing runs until you move
-it forward.
+An entry-stage task is intentionally inert; nothing runs until you follow
+Hive's printed transition and run its first active stage.
 
 ## Examples
 

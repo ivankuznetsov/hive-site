@@ -1,0 +1,27 @@
+$ hive --version
+0.6.5
+$ hive init --new-workflow editorial <new-project>
+hive: using defaults — planning=claude, claude_mode=tmux, claude_permission_mode=bypassPermissions, claude_model=default, claude_effort=default, dev=codex, reviewers=all3, patrol_reviewers=codex-native-review, patrol_mode=medium, triage=courageous, adhoc_auto_fix=disabled, refactor_patrol=enabled, limits=defaults, daemon=enabled, babysitter=enabled, daemon_autostart=disabled
+hive: daemon service already exists at /home/asterio/.config/systemd/user/hive-daemon.service; leaving user-customized file untouched. Re-run with `hive daemon install --force` to overwrite (the previous file will be backed up to /home/asterio/.config/systemd/user/hive-daemon.service.bak-<timestamp>).
+✔ hive: initialized project
+  project              /tmp/hive-editorial-scaffold.X6s1V9/project
+  default branch       master
+  hive state           /tmp/hive-editorial-scaffold.X6s1V9/project/.hive-state
+  worktree root        /home/asterio/Dev/project.worktrees
+  ad-hoc auto-fix      disabled
+  architecture patrol  enabled
+  daemon               enabled
+  babysitter           enabled
+  workflow             editorial
+  descriptor           /tmp/hive-editorial-scaffold.X6s1V9/project/.hive-state/workflows/editorial.yml
+  edit                 /tmp/hive-editorial-scaffold.X6s1V9/project/.hive-state/workflows/editorial/work.md
+
+→ next: edit the descriptor above, then hive new project '<idea>'
+$ hive workflow list --json
+{"schema":"hive-workflow-list","schema_version":2,"ok":true,"workflows":[{"name":"bench","origin":"built_in","selection":null,"integrity":null,"catalog_visibility":null,"version":null,"source_commit":null,"manifest_digest":null},{"name":"coding","origin":"built_in","selection":null,"integrity":null,"catalog_visibility":null,"version":null,"source_commit":null,"manifest_digest":null},{"name":"content","origin":"built_in","selection":null,"integrity":null,"catalog_visibility":null,"version":null,"source_commit":null,"manifest_digest":null},{"name":"editorial","origin":"authored","selection":null,"integrity":null,"catalog_visibility":null,"version":null,"source_commit":null,"manifest_digest":null}]}
+$ find .hive-state/workflows/editorial* -maxdepth 2 -type f -print
+.hive-state/workflows/editorial.yml
+.hive-state/workflows/editorial/README.md
+.hive-state/workflows/editorial/honeycomb.yml
+.hive-state/workflows/editorial/work.md
+evidence_project=/tmp/hive-editorial-scaffold.X6s1V9/project

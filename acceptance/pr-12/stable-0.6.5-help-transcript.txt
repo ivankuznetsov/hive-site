@@ -1,0 +1,65 @@
+$ hive --version
+0.6.5
+$ hive new --help
+Usage:
+  hive new PROJECT TEXT
+
+Options:
+  [--depends-on=DEPENDS_ON]             # depend on a same-project id/slug or explicit project:slug; hold daemon auto-advance until it reaches the dependency gate stage (8-finalize by default)
+  [--workflow=WORKFLOW]                 # coding, content, bench, or any project-authored workflow (author one with `hive workflow new ID`)
+  [--json], [--no-json], [--skip-json]  # emit a single JSON document on stdout (commands that support it)
+                                        # Default: false
+
+Description:
+  Create a new task in PROJECT from the free-text TEXT. By default, the task
+  uses the project's default workflow; pass --workflow to pin a registered
+  workflow for this task. (Options may also follow the text.)
+
+  --depends-on stacks this task on a prerequisite: the daemon holds
+  auto-advance until the prerequisite reaches the project's dependency gate
+  stage (8-finalize by default, configurable via `dependency_gate_stage`). Use
+  a prerequisite task id or slug for the same project, or project:slug for an
+  explicit cross-project dependency.
+
+  Examples:
+
+  hive new myproj --workflow content "write the launch post"
+
+  hive new myproj --depends-on 42 "add export button"
+
+  hive new myproj --depends-on add-export-endpoint-260618-ab12 "wire up export
+  API"
+
+  hive new myproj --depends-on api:add-export-endpoint-260618-ab12 "wire up
+  export UI"
+$ hive workflow new --help
+Usage:
+  hive workflow SUBCOMMAND [ID]
+
+Options:
+  [--template=TEMPLATE]                                                     # for `new`: seed from a named sample workflow (e.g. research) instead of the blank stub
+  [--yes], [--no-yes], [--skip-yes]                                         # confirm install/update/remove in JSON or non-interactive mode
+                                                                            # Default: false
+  [--dry-run], [--no-dry-run], [--skip-dry-run]                             # for `install`, `update`, or `remove`: validate and report without changing project state
+                                                                            # Default: false
+  [--allow-escalation], [--no-allow-escalation], [--skip-allow-escalation]  # for `install`/`update`: separately allow unbounded or increased capabilities
+                                                                            # Default: false
+  [--mapping=one two three]                                                 # for `install`/`update`: SLOT=AGENT[,model=MODEL][,effort=EFFORT] overrides
+  [--input-binding=one two three]                                           # for `install`/`update`: optional input NAME=ENV_NAME bindings
+  [--version=VERSION]                                                       # for `publish`: semantic package version
+  [--json], [--no-json], [--skip-json]                                      # emit a single JSON document on stdout (commands that support it)
+                                                                            # Default: false
+
+Description:
+  Subcommands: new ID Scaffold a per-project workflow descriptor under
+  <hive_state_path>/workflows/ID.yml plus its stage instruction(s) under
+  <hive_state_path>/workflows/ID/. install honeycomb/NAME[@VERSION] Verify and
+  install a reviewed package. list Inspect built-in, authored, and managed
+  workflows. update NAME Diff and advance a managed package. remove NAME
+  Disable a managed package for new tasks. publish ID Package an authored
+  workflow and open a registry PR.
+
+  By default `new` scaffolds the blank `inbox -> work -> done` stub. Pass
+  `--template NAME` to seed from a richer sample workflow instead (e.g.
+  research). Either way: edit the scaffolded stage instruction(s), then run
+  `hive new PROJECT --workflow ID "<your idea>"`.

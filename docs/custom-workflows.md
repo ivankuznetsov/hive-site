@@ -26,6 +26,17 @@ workflow definitions, task runs, stages, artifacts, or markers are new terms.
 Commands and descriptor fields below were verified with Hive 0.6.5, the current
 stable release when this page was updated.
 
+Hive 0.6.5 also needs the `base64` gem when it runs under Ruby 3.4, where
+`base64` is no longer a default gem. Check the Ruby environment that launches
+Hive before the first `hive run`; if the check fails, install the dependency
+into that same gem environment:
+
+```bash
+ruby -rbase64 -e 'puts "base64 available"'
+# If that command fails:
+gem install base64 --no-document
+```
+
 1. TOC
 {:toc}
 
@@ -61,9 +72,10 @@ cd my-project
 hive workflow new editorial
 ```
 
-The command creates a blank `brief → work → done`-shaped scaffold. Replace its
-descriptor, remove the placeholder instruction, and add the three instructions
-from this page:
+The command creates a blank `inbox → work → done` descriptor whose entry-stage
+state file is `idea.md`, plus a placeholder `editorial/work.md` instruction.
+Replace the descriptor, remove that placeholder instruction, and add the three
+instructions from this page:
 
 ```bash
 rm .hive-state/workflows/editorial/work.md
@@ -143,6 +155,8 @@ stages:
       preset: scoped
       tools:
         - Read
+        - WebSearch
+        - WebFetch
         - "Edit(./**)"
 
   - name: draft
@@ -181,8 +195,9 @@ The descriptor uses five supported ideas:
   be used instead, but not alongside it.
 - `agent: claude` is intentional. In Hive 0.6.5, non-`yolo` tool scoping is
   enforceable by the Claude runner. `Edit(./**)` is resolved to the current task
-  folder, so these stages can read and edit task artifacts without network or
-  shell access.
+  folder. Research alone receives `WebSearch` and `WebFetch` so its source links
+  can be checked against live pages; draft and approval remain limited to
+  reading and editing task artifacts. No stage receives shell access.
 
 You may add a stable agent's `model` and `effort` fields per stage when the
 project needs them. Choose by job: research may justify a stronger model, while
@@ -206,6 +221,10 @@ Read `brief.md`. Write `research.md` with:
 - source links and a one-line note on what each source supports;
 - risks, unknowns, and assumptions the draft must not hide;
 - a recommended structure for the draft.
+
+Use `WebSearch` to find relevant sources and `WebFetch` to open each source you
+cite. Do not mark research complete when a factual claim or link has not been
+checked against the fetched source; record it under unknowns instead.
 
 Do not write the article and do not publish anything.
 

@@ -14,11 +14,20 @@ class WorkflowDocumentationTest < Minitest::Test
     init = read("docs/commands/init.md")
     new_command = read("docs/commands/new.md")
     approve = read("docs/commands/approve.md")
+    command_index = read("docs/commands/index.md")
+    operating = read("docs/operating.md")
 
     assert_equal STABLE_HIVE_VERSION, config.fetch("hive_version")
     assert_includes init, "--workflow <id>"
     assert_includes init, "--new-workflow <id>"
     assert_includes new_command, "--workflow <id>"
+    assert_match(/coding\s+workflow starts at `1-inbox`.*`idea\.md`/m, new_command)
+    assert_match(/editorial workflow.*`1-brief`.*`brief\.md`/m, new_command)
+    assert_match(/0\.6\.5.*human capture summary.*do not expect a typed result/i, new_command)
+    [command_index, operating].each do |page|
+      assert_match(/command-specific/i, page)
+      refute_match(/every (?:workflow )?(?:verb|command).*supports `--json`/i, page)
+    end
     assert_includes approve, "--to <stage>"
     assert_match(/forward or back/i, approve)
   end
@@ -73,6 +82,10 @@ class WorkflowDocumentationTest < Minitest::Test
     active.each do |stage|
       assert_equal "claude", stage.fetch("agent")
       assert_equal "scoped", stage.dig("permissions", "preset")
+    end
+    assert_equal ["Read", "WebSearch", "WebFetch", "Edit(./**)"],
+                 active.first.dig("permissions", "tools")
+    active.drop(1).each do |stage|
       assert_equal ["Read", "Edit(./**)"], stage.dig("permissions", "tools")
     end
 
@@ -91,6 +104,9 @@ class WorkflowDocumentationTest < Minitest::Test
     assert_includes research, "brief.md"
     assert_includes research, "research.md"
     assert_includes research, "research-status.md"
+    assert_includes research, "WebSearch"
+    assert_includes research, "WebFetch"
+    assert_match(/not been\s+checked.*unknowns/im, research)
     assert_includes research, "<!-- COMPLETE -->"
 
     assert_includes draft, "research.md"
@@ -122,6 +138,9 @@ class WorkflowDocumentationTest < Minitest::Test
     assert_includes guide, "hive workflow list --json"
     refute_includes guide, "--to research --force"
     assert_match(/placeholder instruction/i, guide)
+    assert_match(/`inbox → work → done`.*`idea\.md`/m, guide)
+    assert_includes guide, "ruby -rbase64"
+    assert_includes guide, "gem install base64 --no-document"
     assert_match(/vague outcome/i, guide)
     assert_match(/missing.*COMPLETE/i, guide)
     assert_match(/too many.*checkpoint/i, guide)
@@ -183,6 +202,12 @@ class WorkflowDocumentationTest < Minitest::Test
       ]
       assert_internal_links_resolve(site, affected_pages)
     end
+  end
+
+  def test_docs_navigation_keeps_a_visible_keyboard_focus_indicator
+    styles = read("_sass/custom/custom.scss")
+
+    assert_match(/\.nav-list-link:focus-visible\s*\{[^}]*outline:\s*2px solid/m, styles)
   end
 
   private

@@ -10,8 +10,10 @@ description: Every user-facing hive command, grouped by what it's for.
 # Command reference
 
 Every Hive workflow verb runs on `bin/hive` (or the `hv` shim when Apache Hive
-shadows the name). Each verb supports `--json` and returns a typed envelope, so
-an agent can drive Hive with structured output instead of scraping text.
+shadows the name). Commands whose pages document a typed `--json` result can be
+driven without scraping text. Support is command-specific: in Hive 0.6.5,
+`hive new` accepts the global flag but still prints human prose, and `hive tui`
+is human-only.
 
 The TUI is the recommended human interface and an agent-driven CLI is the
 recommended automation surface — but every command below is available directly
