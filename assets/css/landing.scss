@@ -380,6 +380,7 @@ section:nth-of-type(even) { background: var(--bg-alt); }
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
+.install__channel { min-width: 0; }
 .install .section-lead { max-width: 80ch; }
 .install__channel h3 { margin: 0 0 0.5rem; font-size: 1rem; }
 .install__channel--wide { grid-column: 1 / -1; }
@@ -407,7 +408,7 @@ section:nth-of-type(even) { background: var(--bg-alt); }
 .site-footer__brand p { color: var(--muted); margin: 0.75rem 0 0; max-width: 32ch; }
 .site-footer__links { display: flex; gap: 3rem; justify-content: flex-end; flex-wrap: wrap; }
 .footer-col { display: flex; flex-direction: column; gap: 0.5rem; }
-.footer-col h4 { margin: 0 0 0.25rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.footer-col h3 { margin: 0 0 0.25rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
 .footer-col a { color: var(--text); font-size: 0.95rem; }
 .footer-col a:hover { color: var(--accent-hover); }
 .site-footer__legal { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
@@ -419,6 +420,16 @@ section:nth-of-type(even) { background: var(--bg-alt); }
 
 // --- Responsive -----------------------------------------------------------
 @media (max-width: 860px) {
+  .site-header__inner {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 64px;
+    padding-block: 0.75rem;
+  }
+  .site-nav {
+    justify-content: space-between;
+    width: 100%;
+  }
   .pipeline__stages,
   .cards__grid { grid-template-columns: repeat(2, 1fr); }
   .workflow-explainer__steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -429,7 +440,12 @@ section:nth-of-type(even) { background: var(--bg-alt); }
   .site-footer__links { justify-content: flex-start; gap: 2rem; }
 }
 @media (max-width: 600px) {
-  .site-nav { gap: 0.9rem; }
+  .site-header__inner {
+    flex-wrap: nowrap;
+    height: 64px;
+    padding-block: 0;
+  }
+  .site-nav { gap: 0.9rem; width: auto; }
   .site-nav a:not(.btn) { display: none; }
   .pipeline__stages,
   .cards__grid { grid-template-columns: 1fr; }

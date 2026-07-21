@@ -29,6 +29,8 @@ class HomepageExperienceTest < Minitest::Test
     assert_includes styles, ".workflow-explainer__steps"
     assert_match(/\.workflow-explainer__cta:focus-visible/, styles)
     assert_match(/@media \(max-width: 600px\).*workflow-explainer__steps/m, styles)
+    assert_match(/\.install__channel \{ min-width: 0; \}/, styles)
+    assert_match(/@media \(max-width: 860px\).*\.site-header__inner.*flex-wrap: wrap/m, styles)
     refute File.exist?(File.join(ROOT, "assets/img/pipeline-1-to-9.svg"))
   end
 
@@ -39,6 +41,11 @@ class HomepageExperienceTest < Minitest::Test
 
       assert section
       assert_equal 1, html.scan(/<h1\b/).length
+      heading_levels = html.scan(/<h([1-6])\b/).flatten.map(&:to_i)
+      heading_levels.each_cons(2) do |previous, current|
+        assert_operator current, :<=, previous + 1,
+          "heading hierarchy jumps from h#{previous} to h#{current}"
+      end
       assert_equal 1, section.scan(/<h2\b/).length
       steps = section[/<ol class="workflow-explainer__steps">.*?<\/ol>/m]
       assert steps
