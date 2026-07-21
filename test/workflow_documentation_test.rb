@@ -53,9 +53,90 @@ class WorkflowDocumentationTest < Minitest::Test
     assert_includes concepts, "{{ '/honeycombs/' | relative_url }}"
   end
 
+  def test_editorial_descriptor_has_distinct_status_and_deliverable_files
+    guide = read("docs/custom-workflows.md")
+    descriptor = YAML.safe_load(fenced_block(guide, "editorial.yml", "yaml"))
+
+    assert_equal "editorial", descriptor.fetch("id")
+    stages = descriptor.fetch("stages")
+    assert_equal %w[brief research draft approval done], stages.map { |stage| stage.fetch("name") }
+    assert_equal %w[brief.md research-status.md draft-status.md approval-status.md done.md],
+                 stages.map { |stage| stage.fetch("state_file") }
+    assert_equal %w[terminal agent agent agent terminal], stages.map { |stage| stage.fetch("kind") }
+
+    active = stages.select { |stage| stage.fetch("kind") == "agent" }
+    assert_equal %w[./editorial/research.md ./editorial/draft.md ./editorial/approval.md],
+                 active.map { |stage| stage.fetch("instruction") }
+    active.each do |stage|
+      assert_equal "claude", stage.fetch("agent")
+      assert_equal "scoped", stage.dig("permissions", "preset")
+      assert_equal ["Read", "Edit(./**)"], stage.dig("permissions", "tools")
+    end
+
+    %w[brief.md research.md draft.md decision.md publish-ready.md].each do |deliverable|
+      assert_includes guide, deliverable
+      refute_includes active.map { |stage| stage.fetch("state_file") }, deliverable
+    end
+  end
+
+  def test_editorial_instructions_cover_wait_reject_revise_and_approve
+    guide = read("docs/custom-workflows.md")
+    research = fenced_block(guide, "editorial/research.md", "markdown")
+    draft = fenced_block(guide, "editorial/draft.md", "markdown")
+    approval = fenced_block(guide, "editorial/approval.md", "markdown")
+
+    assert_includes research, "brief.md"
+    assert_includes research, "research.md"
+    assert_includes research, "research-status.md"
+    assert_includes research, "<!-- COMPLETE -->"
+
+    assert_includes draft, "research.md"
+    assert_includes draft, "draft.md"
+    assert_includes draft, "decision.md"
+    assert_includes draft, "draft-status.md"
+    assert_match(/rejected.*feedback/im, draft)
+
+    assert_includes approval, "decision: pending"
+    assert_includes approval, "decision: rejected"
+    assert_includes approval, "decision: approved"
+    assert_includes approval, "draft-status.md"
+    assert_includes approval, "<!-- WAITING -->"
+    assert_includes approval, "publish-ready.md"
+    assert_includes approval, "selected_artifact"
+    assert_includes approval, "approved_at"
+    assert_includes approval, "sha256"
+    assert_match(/Do not.*publish|no external/i, approval)
+  end
+
+  def test_editorial_guide_uses_stable_operator_paths_and_warns_about_mistakes
+    guide = read("docs/custom-workflows.md")
+
+    assert_includes guide, "hive workflow new editorial"
+    assert_includes guide, "hive init --new-workflow editorial"
+    assert_includes guide, "hive new my-project --workflow editorial"
+    assert_includes guide, "hive approve <slug> --to draft"
+    assert_includes guide, "sha256sum draft.md"
+    assert_includes guide, "hive workflow list --json"
+    refute_includes guide, "--to research --force"
+    assert_match(/placeholder instruction/i, guide)
+    assert_match(/vague outcome/i, guide)
+    assert_match(/missing.*COMPLETE/i, guide)
+    assert_match(/too many.*checkpoint/i, guide)
+    assert_match(/nine-stage/i, guide)
+    assert_match(/excessive permissions/i, guide)
+    refute_match(/natural-language workflow creator|upcoming/i, guide)
+    refute_match(/automatically publish|publishes? to (a )?(CMS|website|social)/i, guide)
+  end
+
   private
 
   def read(path)
     File.read(File.join(ROOT, path), encoding: "UTF-8")
+  end
+
+  def fenced_block(source, label, language)
+    match = source.match(/^###\s+[^\n]*#{Regexp.escape(label)}[^\n]*\n.*?```#{language}\n(.*?)\n```/m)
+    assert match, "missing #{language} block after #{label}"
+    match[1]
   end
 end
