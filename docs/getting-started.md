@@ -145,6 +145,7 @@ advancing the same task toward code, a pull request, review, and archive.
 
 ## Where to go next
 
+- **[First run — Build or Content]({{ '/docs/first-run/' | relative_url }})** — launch one memorable sample, inspect every native state, and recover safely.
 - **[Concepts]({{ '/docs/concepts/' | relative_url }})** — why it's shaped this way: folder-as-agent, the nine stages, the marker protocol.
 - **[Configuration]({{ '/docs/configuration/' | relative_url }})** — patrol, reviewers, agent profiles, budgets, and the daemon.
 - **[Command reference]({{ '/docs/commands/' | relative_url }})** — drive any stage by hand, or script Hive from an agent.
