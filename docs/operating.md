@@ -10,8 +10,8 @@ description: Run the daemon, Telegram bot, and babysitter as services, and drive
 {: .no_toc }
 
 Day-2 guide for running Hive's background services — the daemon, the
-experimental PR babysitter, and the Telegram bot — plus driving Hive from a
-coding agent.
+experimental PR babysitter, and the Telegram bot — plus driving Hive from an
+AI agent or OpenClaw.
 
 1. TOC
 {:toc}
@@ -97,9 +97,9 @@ Project state stays at `<project>/.hive-state/`; install and uninstall never
 move completed pipeline work. See [`update`]({{ '/docs/commands/update/' | relative_url }})
 and [`uninstall`]({{ '/docs/commands/uninstall/' | relative_url }}).
 
-## Drive Hive from a coding agent
+## Drive Hive from an AI agent
 
-Hive's other primary surface is a coding agent — Claude Code, Codex, Pi, or
+Hive's agent surface includes Claude Code, Codex, Pi, Grok, or
 anything that can run shell commands and read output. Every workflow verb
 supports `--json` and emits a typed envelope, so an agent parses structured
 output instead of scraping text:
@@ -118,17 +118,17 @@ and `hive status --json` for programmatic use.
 Hive publishes one OpenClaw skill through ClawHub:
 
 ```bash
-openclaw skills install hive-cli
+openclaw skills install @ivankuznetsov/hive-cli
 ```
 
-Public listing: <https://clawhub.ai/ivankuznetsov/hive-cli>. That installs the
+Public listing: <https://clawhub.ai/ivankuznetsov/skills/hive-cli>. That installs the
 `/hive` slash command. Run the guided setup:
 
 ```text
 /hive setup
 ```
 
-It installs the Hive CLI through the documented channel, verifies `hive`/`hv`,
-runs `hive daemon install`, and optionally initializes the current project.
-After setup, pass Hive commands through `/hive …`, e.g. `/hive status --json`,
+It guides the approved Hive install, verifies `hive`/`hv`, and runs core setup
+without silently enrolling a project. Review `hive init .` in your real terminal
+before enabling project automation. After setup, pass Hive commands through `/hive …`, e.g. `/hive status --json`,
 `/hive new . "build this feature"`, `/hive review <slug>`.

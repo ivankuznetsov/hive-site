@@ -44,8 +44,8 @@ claude:
 
 ## Agent profiles
 
-Each stage runs on a named agent profile. The three built-in profiles are
-`claude` (default), `codex`, and `pi`. You can point a stage at a different
+Each stage runs on a named agent profile. The four built-in profiles are
+`claude`, `codex`, `pi`, and `grok`. You can point a stage at a different
 agent, and override a profile's binary, env var, or minimum version:
 
 ```yaml
@@ -57,6 +57,10 @@ agents:
     bin: codex
     env_override: HIVE_CODEX_BIN
     min_version: "0.125.0"
+  grok:
+    bin: grok
+    env_override: HIVE_GROK_BIN
+    min_version: "0.2.90"
 ```
 
 ## Token-cost knobs: budgets & timeouts

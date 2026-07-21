@@ -11,7 +11,7 @@ description: Install Hive, attach it to a project with hive init, and run your f
 
 This walks you from nothing to watching Hive carry your first idea toward a
 pull request, using Hive's default **`coding`** workflow. (It's one of several —
-Hive also ships `content` and lets you author your own
+Hive also ships `content` and `bench`, installs reviewed Honeycombs, and lets you author your own
 [custom workflows]({{ '/docs/custom-workflows/' | relative_url }}) — but `coding`
 is the best first run.) The happy path is **daemon-first**: the daemon advances
 ready tasks, and the TUI is where you watch the queue and answer only when Hive
@@ -28,7 +28,7 @@ haven't yet. You'll need:
 - **Ruby 3.4** — the gem and its runtime deps install against this.
 - **git ≥ 2.40** and an authenticated **`gh`** (GitHub CLI).
 - An authenticated **`claude`** (≥ 2.1.118), and **`codex`** (≥ 0.125.0) for the
-  default execute agent.
+  default execute agent. **`pi`** and **`grok`** (≥ 0.2.90) are supported when selected.
 - **`tmux` ≥ 3.0** when the project uses the default `claude.mode: tmux`.
 - **Node.js / npm** for the managed QMD wiki indexer (optional; `hive doctor`
   reports the gap non-fatally if it's missing).
@@ -102,6 +102,17 @@ If the daemon isn't running yet, run `hive daemon install` to repair autostart,
 or start it once with `hive daemon start --detach` while you troubleshoot. In
 the TUI, the left pane is your registered projects; the right pane is the live
 queue.
+
+Prefer a browser? Hive also ships a native local web UI over the same project
+registry and workflow state:
+
+```bash
+hive setup
+hive web       # http://127.0.0.1:4567
+```
+
+See the [source-backed web reference](https://github.com/ivankuznetsov/hive/blob/main/wiki/commands/web.md)
+for loopback, login, service, and Hivebox boundaries.
 
 ## 4. Capture one rough idea
 

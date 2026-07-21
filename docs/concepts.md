@@ -3,7 +3,7 @@ title: Concepts
 layout: doc
 nav_order: 2
 permalink: /docs/concepts/
-description: The load-bearing ideas behind Hive — folder-as-agent, the stage state machine, and the marker protocol — and how workflows (coding, content, or your own) ride on top of them.
+description: The load-bearing ideas behind Hive — folder-as-agent, the stage state machine, and the marker protocol — and how built-in, installable, and owner-authored workflows ride on top of them.
 ---
 
 # Concepts
@@ -14,11 +14,12 @@ state machine, and every stage writes an artefact that lets the next stage run
 with less ambiguity.
 
 Those three are the **engine**. *Which* stages exist, and what each one does, is
-defined by a **workflow** — and Hive runs more than one. It ships two built-in
+defined by a **workflow** — and Hive runs more than one. It ships three built-in
 workflows: `coding`, the nine-stage idea → PR pipeline described below (its
-flagship, and the default `hive init` selects), and `content`, a research
-pipeline. You can also author your own per project — see
-[Custom workflows]({{ '/docs/custom-workflows/' | relative_url }}). Everything in
+flagship, and the default `hive init` selects); `content`, a research and
+writing pipeline; and `bench`, a reproducible agent-benchmark workflow. You can
+also install reviewed [Honeycombs]({{ '/honeycombs/' | relative_url }}) or author
+your own per project — see [Custom workflows]({{ '/docs/custom-workflows/' | relative_url }}). Everything in
 this page applies to any workflow; `coding` is just the most involved, so it's
 the one worth walking through in full.
 
@@ -54,7 +55,7 @@ move with marker checks, locking, JSON support, and a state-branch commit.
 ## The nine stages: the `coding` workflow
 
 The stages below are Hive's built-in **`coding`** workflow. A different workflow
-(`content`, or one you author) defines its own stages — but the mechanics are
+(`content`, `bench`, an installed Honeycomb, or one you author) defines its own stages — but the mechanics are
 identical: each stage is a folder, the agent reads the prior artefacts and writes
 this stage's, and a marker negotiates the handoff. `coding` is the deepest of the
 built-ins, so it's the clearest illustration of the whole protocol.
