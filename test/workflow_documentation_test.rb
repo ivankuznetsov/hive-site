@@ -1,9 +1,12 @@
 # frozen_string_literal: true
 
 require "yaml"
+require "cgi"
+require "uri"
 require_relative "test_helper"
 
 class WorkflowDocumentationTest < Minitest::Test
+  include SiteTestHelpers
   STABLE_HIVE_VERSION = "0.6.5"
 
   def test_site_and_command_pages_match_the_stable_workflow_surface
@@ -128,10 +131,94 @@ class WorkflowDocumentationTest < Minitest::Test
     refute_match(/automatically publish|publishes? to (a )?(CMS|website|social)/i, guide)
   end
 
+  def test_rendered_journey_raw_markdown_and_internal_links_stay_in_sync
+    with_built_site do |site|
+      docs_index = html(site, "docs/index.html")
+      getting_started = html(site, "docs/getting-started/index.html")
+      concepts = html(site, "docs/concepts/index.html")
+      custom = html(site, "docs/custom-workflows/index.html")
+
+      assert_includes docs_index, "Start with the workflow model"
+      assert_includes docs_index, 'href="/docs/concepts/"'
+      assert_includes docs_index, 'href="/docs/custom-workflows/"'
+      assert_includes getting_started, "workflow definition"
+      assert_includes getting_started, 'href="/docs/concepts/"'
+      assert_includes getting_started, 'href="/docs/custom-workflows/"'
+
+      assert_equal 1, concepts.scan(/<h1\b/).length
+      assert_includes concepts, "Workflow definition"
+      assert_includes concepts, 'href="/docs/custom-workflows/"'
+      assert_includes concepts, 'href="/honeycombs/"'
+
+      assert_equal 1, custom.scan(/<h1\b/).length
+      assert_match(/class="language-yaml\b/, custom)
+      assert_includes custom, "research-status.md"
+      assert_includes custom, "publish-ready.md"
+      assert_includes custom, 'href="/docs/concepts/"'
+      refute_match(/workflow creator|upcoming/i, custom)
+
+      concepts_raw = File.binread(File.join(site, "docs", "concepts.md"))
+      custom_raw = File.binread(File.join(site, "docs", "custom-workflows.md"))
+      llms_full = File.binread(File.join(site, "llms-full.txt"))
+      [concepts_raw, custom_raw].each do |markdown|
+        refute_match(/\A---/, markdown)
+        refute_match(/\{\{|\{%|include\s+/, markdown)
+      end
+      assert_includes concepts_raw, "# How Hive workflows work"
+      assert_includes custom_raw, "id: editorial"
+      assert_includes custom_raw, "editorial/approval.md"
+      assert_includes llms_full, "# How Hive workflows work"
+      assert_includes llms_full, "# Creating custom workflows"
+
+      affected_pages = %w[
+        index.html
+        docs/index.html
+        docs/getting-started/index.html
+        docs/concepts/index.html
+        docs/custom-workflows/index.html
+        docs/commands/index.html
+        docs/commands/init/index.html
+        docs/commands/new/index.html
+        docs/commands/approve/index.html
+      ]
+      assert_internal_links_resolve(site, affected_pages)
+    end
+  end
+
   private
 
   def read(path)
     File.read(File.join(ROOT, path), encoding: "UTF-8")
+  end
+
+  def html(site, relative_path)
+    File.binread(File.join(site, relative_path))
+  end
+
+  def assert_internal_links_resolve(site, page_paths)
+    page_paths.each do |page_path|
+      document = html(site, page_path)
+      document.scan(/\bhref=(['"])(.*?)\1/).each do |_quote, raw_href|
+        href = CGI.unescapeHTML(raw_href)
+        next if href.empty? || href.match?(/\A(?:https?:|mailto:|tel:|javascript:|data:|\/\/)/)
+
+        resolved = URI.join("https://hive.test/#{page_path}", href)
+        # Pagefind assets are generated after Jekyll by `npm run build`.
+        next if resolved.path.start_with?("/pagefind/")
+
+        target_path = resolved.path.sub(%r{\A/}, "")
+        target_path = "index.html" if target_path.empty?
+        target_path = File.join(target_path, "index.html") if target_path.end_with?("/")
+        target = File.join(site, target_path)
+        assert File.file?(target), "#{page_path} links to missing #{href} (#{target_path})"
+
+        next if resolved.fragment.to_s.empty? || File.extname(target_path) != ".html"
+
+        fragment = URI.decode_www_form_component(resolved.fragment)
+        ids = File.binread(target).scan(/\bid=(['"])(.*?)\1/).map(&:last)
+        assert_includes ids, fragment, "#{page_path} links to missing fragment #{href}"
+      end
+    end
   end
 
   def fenced_block(source, label, language)

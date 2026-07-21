@@ -8,22 +8,25 @@ description: Hive documentation — getting started, concepts, configuration, co
 
 # Hive documentation
 
-Hive runs multi-step work as a **folder-as-agent pipeline**: each task moves
-through stage folders, an AI agent does the work at each stage, and a daemon
-advances it in the background, asking for answers only when it needs them. Its
-flagship **`coding`** workflow turns a rough idea into a merge-ready pull
-request — but `coding` is one of several workflows. Hive also ships `content`
-(research) and lets you author your own. These docs cover installing it, the
-ideas behind it, configuring it, the command surface, and running it as a
-service.
+Hive runs reusable workflows as durable task folders. A workflow definition
+names the stages and handoffs; a task run carries one brief through that
+process. Agents and people leave artifacts behind, status markers control
+movement, and the daemon advances work that is ready.
 
-## Start here
+## Start with the workflow model
 
 - **[Getting started]({{ '/docs/getting-started/' | relative_url }})** — install, `hive init`, and your first task in the TUI.
-- **[Concepts]({{ '/docs/concepts/' | relative_url }})** — folder-as-agent, the stage state machine, and the marker protocol.
+- **[How workflows work]({{ '/docs/concepts/' | relative_url }})** — distinguish a reusable definition from a task run, then follow artifacts, markers, checkpoints, and terminal outcomes.
+- **[Custom workflows]({{ '/docs/custom-workflows/' | relative_url }})** — turn that model into project-local YAML with a complete editorial example.
+
+Hive's flagship **`coding`** workflow turns a rough idea into a merge-ready pull
+request. The same engine also runs built-in content and benchmark workflows,
+project-local definitions, and reviewed versioned Honeycombs.
+
+## Operate and configure Hive
+
 - **[Configuration]({{ '/docs/configuration/' | relative_url }})** — project config, patrol mode, reviewers, agent profiles, and the daemon.
 - **[Command reference]({{ '/docs/commands/' | relative_url }})** — every user-facing `hive` command.
-- **[Custom workflows]({{ '/docs/custom-workflows/' | relative_url }})** — the engine is generic: author your own per-project pipeline in YAML.
 - **[Operating]({{ '/docs/operating/' | relative_url }})** — daemon, bot, and babysitter as services.
 
 ## Looking for the source?
