@@ -9,10 +9,11 @@ description: >-
 ---
 
 {% include landing/hero.html %}
+{% include landing/proof.html %}
+{% include landing/cards.html %}
+{% include landing/paths.html %}
+{% include landing/cta.html %}
+{% include landing/install.html %}
 {% include landing/demo.html %}
 {% include landing/pipeline.html %}
-{% include landing/cards.html %}
-{% include landing/proof.html %}
 {% include landing/fit.html %}
-{% include landing/install.html %}
-{% include landing/cta.html %}

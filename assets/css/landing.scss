@@ -39,6 +39,17 @@ body.landing {
 
 a { color: var(--accent); text-decoration: none; }
 a:hover { color: var(--accent-hover); text-decoration: underline; }
+p a,
+li a,
+figcaption a { text-decoration: underline; text-decoration-thickness: 0.08em; text-underline-offset: 0.18em; }
+
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible {
+  outline: 3px solid var(--accent-hover);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
 
 code {
   font-family: var(--mono);
@@ -86,7 +97,9 @@ pre code { background: none; border: 0; padding: 0; font-size: inherit; }
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
+  min-height: 44px;
   font-weight: 600;
   font-size: 0.95rem;
   padding: 0.7rem 1.25rem;
@@ -120,7 +133,7 @@ pre code { background: none; border: 0; padding: 0; font-size: inherit; }
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  height: 64px;
+  min-height: 64px;
 }
 .brand {
   display: inline-flex;
@@ -139,9 +152,22 @@ pre code { background: none; border: 0; padding: 0; font-size: inherit; }
   align-items: center;
   gap: 1.4rem;
 }
-.site-nav a { color: var(--muted); font-weight: 500; font-size: 0.95rem; }
+.site-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 0.95rem;
+}
 .site-nav a:hover { color: var(--text); text-decoration: none; }
-.site-nav .btn { color: var(--accent-ink); }
+.site-nav__action {
+  border: 1px solid var(--accent);
+  border-radius: 9px;
+  color: var(--accent) !important;
+  padding-inline: 0.9rem;
+}
+.site-nav__action:hover { background: var(--accent); color: var(--accent-ink) !important; }
 .nav-icon-link { display: inline-flex; align-items: center; gap: 0.4rem; }
 
 // --- Section primitives ---------------------------------------------------
@@ -192,7 +218,6 @@ section:nth-of-type(even) { background: var(--bg-alt); }
   max-width: 60ch;
   margin: 0 0 2rem;
 }
-.hero__cta { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; }
 .hero__note { margin-top: 1.5rem; color: var(--muted); font-size: 0.9rem; }
 
 // --- Demo -----------------------------------------------------------------
@@ -211,6 +236,23 @@ section:nth-of-type(even) { background: var(--bg-alt); }
   color: var(--muted);
   font-size: 0.9rem;
 }
+.demo__transcript {
+  margin-top: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+}
+.demo__transcript summary {
+  min-height: 44px;
+  display: list-item;
+  padding-block: 0.6rem;
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 700;
+}
+.demo__transcript ol { margin-bottom: 0.75rem; }
+.demo__transcript p { color: var(--muted); margin-bottom: 0.25rem; }
 
 // --- Pipeline -------------------------------------------------------------
 .pipeline__diagram {
@@ -277,23 +319,69 @@ section:nth-of-type(even) { background: var(--bg-alt); }
 .card:hover { border-color: var(--accent); transform: translateY(-2px); }
 .card h3 { margin: 0 0 0.6rem; font-size: 1.15rem; }
 .card p { margin: 0; color: var(--muted); }
+.card p + p { margin-top: 1rem; }
+.card a { display: inline-flex; align-items: center; min-height: 44px; }
 
 // --- Proof ----------------------------------------------------------------
-.proof__inner {
+.proof__header { margin-bottom: 1.75rem; }
+.proof__grid {
   display: grid;
-  grid-template-columns: 1.6fr 1fr;
-  gap: 2rem;
-  align-items: start;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
 }
-.proof__community {
+.proof-card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.5rem;
 }
-.proof__community h3 { margin: 0 0 0.5rem; }
-.proof__community p { color: var(--muted); margin: 0 0 1rem; }
-.proof__community .btn { display: block; text-align: center; margin-bottom: 0.6rem; }
+.proof-card__metric {
+  color: var(--accent) !important;
+  font: 800 1.6rem/1 var(--mono);
+  letter-spacing: -0.04em;
+  margin: 0 0 0.8rem !important;
+}
+.proof-card h3 { margin: 0 0 0.55rem; font-size: 1.2rem; }
+.proof-card > p { color: var(--muted); margin: 0; }
+.proof-card__links { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; margin-top: 0.9rem !important; }
+.proof-card__links a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; }
+.proof__note {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 1.25rem 0 0;
+  max-width: 76ch;
+}
+
+// --- Workflow paths -------------------------------------------------------
+.paths__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+.path-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: clamp(1.4rem, 3vw, 2rem);
+}
+.path-card--general { border-top-color: #79c0ff; }
+.path-card__label {
+  color: var(--accent) !important;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  margin: 0 0 0.45rem !important;
+  text-transform: uppercase;
+}
+.path-card--general .path-card__label { color: #79c0ff !important; }
+.path-card h3 { font-size: 1.45rem; margin: 0 0 0.6rem; }
+.path-card > p,
+.path-card li { color: var(--muted); }
+.path-card ul { padding-left: 1.2rem; }
+.path-card li + li { margin-top: 0.45rem; }
+.path-card__links { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; margin: 1rem 0 0; }
+.path-card__links a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; }
 
 // --- Fit ------------------------------------------------------------------
 .fit__cols {
@@ -325,10 +413,11 @@ section:nth-of-type(even) { background: var(--bg-alt); }
 // --- Install --------------------------------------------------------------
 .install__channels {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
+.install__channel { min-width: 0; }
 .install .section-lead { max-width: 80ch; }
 .install__channel h3 { margin: 0 0 0.5rem; font-size: 1rem; }
 .install__channel--wide { grid-column: 1 / -1; }
@@ -356,7 +445,7 @@ section:nth-of-type(even) { background: var(--bg-alt); }
 .site-footer__brand p { color: var(--muted); margin: 0.75rem 0 0; max-width: 32ch; }
 .site-footer__links { display: flex; gap: 3rem; justify-content: flex-end; flex-wrap: wrap; }
 .footer-col { display: flex; flex-direction: column; gap: 0.5rem; }
-.footer-col h4 { margin: 0 0 0.25rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.footer-col h2 { margin: 0 0 0.25rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
 .footer-col a { color: var(--text); font-size: 0.95rem; }
 .footer-col a:hover { color: var(--accent-hover); }
 .site-footer__legal { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
@@ -370,21 +459,39 @@ section:nth-of-type(even) { background: var(--bg-alt); }
 @media (max-width: 860px) {
   .pipeline__stages,
   .cards__grid { grid-template-columns: repeat(2, 1fr); }
-  .proof__inner,
+  .proof__grid,
+  .paths__grid,
   .fit__cols,
   .install__channels,
-  .site-footer__inner { grid-template-columns: 1fr; }
+  .site-footer__inner { grid-template-columns: minmax(0, 1fr); }
   .site-footer__links { justify-content: flex-start; gap: 2rem; }
 }
 @media (max-width: 600px) {
-  .site-nav { gap: 0.9rem; }
-  .site-nav a:not(.btn) { display: none; }
+  .site-header { position: static; }
+  .site-header__inner { align-items: flex-start; flex-direction: column; padding-block: 0.65rem; }
+  .site-nav { gap: 0.25rem 0.9rem; flex-wrap: wrap; width: 100%; }
+  .site-nav a { font-size: 0.9rem; }
+  .site-nav__action { margin-left: auto; }
   .pipeline__stages,
-  .cards__grid { grid-template-columns: 1fr; }
+  .cards__grid,
+  .proof__grid,
+  .paths__grid { grid-template-columns: 1fr; }
   section { padding-block: 3.5rem; }
   // The wide pipeline SVG can't shrink legibly on phones; the numbered
   // stage cards below carry the same sequence, so drop the diagram here.
   .pipeline__diagram { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  .btn:hover,
+  .card:hover { transform: none; }
 }
 
 /* Alpha badge for the Box nav/eyebrow. */

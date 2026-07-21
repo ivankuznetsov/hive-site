@@ -1,32 +1,33 @@
-<section class="fit" id="fit">
+<section class="fit" id="fit" aria-labelledby="fit-title">
   <div class="wrap fit__inner">
-    <h2 class="section-title">Is Hive for you?</h2>
+    <h2 class="section-title" id="fit-title">Know the operating model</h2>
     <p class="section-lead">
-      Hive is a <strong>terminal-first, token-heavy</strong> tool. Setup is light —
-      <code>hive init</code> is a couple of prompts — so the one thing to weigh before you
-      start is <strong>token cost</strong>, not configuration.
+      Hive is local-first workflow infrastructure, not a hosted control plane.
+      Read the <a href="https://github.com/ivankuznetsov/hive/blob/main/wiki/operating.md">operator contract</a>
+      before enrolling a project or enabling its daemon.
     </p>
     <div class="fit__cols">
       <div class="fit__col fit__col--yes">
         <h3>A good fit if you…</h3>
         <ul>
-          <li>Live in a terminal and want autonomous, <em>inspectable</em> agent workflows.</li>
-          <li>Have heavy agent subscriptions — <strong>Claude Max</strong> plus <strong>ChatGPT Pro</strong> for Codex give the best results.</li>
-          <li>Want to work async — answer questions in your own editor instead of steering a chat thread.</li>
+          <li>Want long-running agent work to survive outside a chat session.</li>
+          <li>Prefer local, inspectable files for artifacts, decisions, and approvals.</li>
+          <li>Are comfortable running a local daemon and authenticated agent CLIs.</li>
         </ul>
       </div>
       <div class="fit__col fit__col--no">
         <h3>Probably not if you…</h3>
         <ul>
-          <li><strong>Are cost-sensitive.</strong> By default Hive runs many agent processes per task and burns a <em>lot</em> of tokens.</li>
           <li>Need a hosted managed service. Hive is local-first, with a TUI, native web UI, CLI, and daemon on your machine.</li>
-          <li>Don't want a background daemon running on your own machine.</li>
+          <li>Need every task to finish inside one synchronous chat session.</li>
+          <li>Cannot grant a configured agent access to the files and commands its stage requires.</li>
         </ul>
       </div>
     </div>
     <p class="fit__note">
-      On a tight budget you can try the <strong>Pi</strong> agent with a recent <strong>Kimi</strong>
-      model for parts of the workflow — though that integration isn't performance-tuned yet.
+      Stage-level provider choice is explicit. Inspect the current
+      <a href="https://github.com/ivankuznetsov/hive/blob/main/wiki/modules/agent_profile.md">Claude, Codex, Pi, and Grok profile contracts</a>
+      before selecting credentials and permissions.
     </p>
   </div>
 </section>

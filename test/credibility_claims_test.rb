@@ -23,15 +23,17 @@ class CredibilityClaimsTest < Minitest::Test
 
   def test_homepage_names_the_three_pillars_both_paths_and_sourced_capabilities
     cards = read("_includes/landing/cards.html")
+    paths = read("_includes/landing/paths.html")
     install = read("_includes/landing/install.html")
+    homepage_claims = cards + paths
 
     %w[Durable\ execution Inspectable\ state Installable\ workflows Software\ workflows General\ workflows].each do |claim|
-      assert_includes cards, claim.tr("\\", "")
+      assert_includes homepage_claims, claim.tr("\\", "")
     end
-    assert_includes cards, "https://github.com/ivankuznetsov/hive/blob/main/docs/workflows.md"
-    assert_includes cards, "https://github.com/ivankuznetsov/hive/blob/main/wiki/commands/web.md"
-    assert_includes cards, "https://github.com/ivankuznetsov/hive-bench"
-    assert_includes cards, "https://github.com/ivankuznetsov/honeycomb"
+    assert_includes homepage_claims, "https://github.com/ivankuznetsov/hive/blob/main/docs/workflows.md"
+    assert_includes homepage_claims, "https://github.com/ivankuznetsov/hive/blob/main/wiki/commands/web.md"
+    assert_includes homepage_claims, "https://github.com/ivankuznetsov/hive-bench"
+    assert_includes homepage_claims, "https://github.com/ivankuznetsov/honeycomb"
     assert_includes install, "openclaw skills install @ivankuznetsov/hive-cli"
   end
 
