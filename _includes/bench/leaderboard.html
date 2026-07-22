@@ -14,7 +14,11 @@
       Ranked by the presentation-only mean of Fable and Sol. The two judge
       columns remain the primary evidence because their calibrations differ.
       <span class="bench-prelim">same-family</span> means that judge shares a
-      model family with the candidate. Efficiency averages use only recorded cells.
+      model family with the candidate. Bold scores are the independent means
+      used for ranking. On the three follow-up rows, <em>discussion final</em>
+      is a separate one-shot diagnostic: each judge sees the other anonymous
+      referee's rationale, challenges its own fresh verdict, then holds or
+      revises. It never changes sorting. Efficiency averages use only recorded cells.
     </p>
     <div class="bench-sort-controls" data-bench-sort-controls>
       <label for="bench-summary-sort">Sort by</label>
@@ -47,6 +51,7 @@
           {% assign candidate = b.candidates | where: "id", candidate_id | first %}
           {% assign fable_row = fable_judge.rows | where: "id", candidate_id | first %}
           {% assign sol_row = sol_judge.rows | where: "id", candidate_id | first %}
+          {% assign discussion_candidate = b.discussion_adjusted.candidates | where: "id", candidate_id | first %}
           {% assign combined_total = fable_row.mean | plus: sol_row.mean %}
           {% assign combined_mean = combined_total | divided_by: 2.0 | round: 3 %}
           <tr
@@ -66,13 +71,16 @@
             </th>
             <td data-label="Fable">
               <span class="bench-cell-value"><strong>{{ fable_row.mean }}</strong>
-              {% if fable_row.same_family %}<span class="bench-prelim">same-family</span>{% endif %}</span>
+              {% if fable_row.same_family %}<span class="bench-prelim">same-family</span>{% endif %}
+              {% if discussion_candidate %}<small>discussion final {{ discussion_candidate.fable.mean }} · {{ discussion_candidate.fable.sample }}/{{ discussion_candidate.fable.total }}</small>{% endif %}</span>
             </td>
             <td data-label="Sol">
               <span class="bench-cell-value"><strong>{{ sol_row.mean }}</strong>
-              {% if sol_row.same_family %}<span class="bench-prelim">same-family</span>{% endif %}</span>
+              {% if sol_row.same_family %}<span class="bench-prelim">same-family</span>{% endif %}
+              {% if discussion_candidate %}<small>discussion final {{ discussion_candidate.sol.mean }} · {{ discussion_candidate.sol.sample }}/{{ discussion_candidate.sol.total }}</small>{% endif %}</span>
             </td>
-            <td data-label="Combined"><span class="bench-cell-value"><strong>{{ combined_mean }}</strong></span></td>
+            <td data-label="Combined"><span class="bench-cell-value"><strong>{{ combined_mean }}</strong>
+              {% if discussion_candidate %}<small>discussion final {{ discussion_candidate.combined.mean }} · {{ discussion_candidate.combined.sample }}/{{ discussion_candidate.combined.total }} paired</small>{% endif %}</span></td>
             <td data-label="Mean time">
               <span class="bench-cell-value">{% if candidate.mean_minutes %}{{ candidate.mean_minutes }} min
                 <small>{{ candidate.time_sample }}/{{ candidate.total }} timed</small>
@@ -96,7 +104,9 @@
     </div>
     <p class="bench-meta">
       Combined is <code>(Fable + Sol) / 2</code> and is used only to provide one
-      compact ordering. Token totals include fresh input, output, cache reads,
+      compact ordering. Discussion-final combined values likewise use only cells
+      with both final decisions; 35/36 judge decisions and 17/18 fully paired
+      cells are available. Token totals include fresh input, output, cache reads,
       and cache writes. Rows labeled as Sol-only are partial provider subtotals,
       not complete workflow totals; Grok usage is unavailable. See the
       <a href="{{ '/bench/methodology/#time-tokens-and-cost' | relative_url }}">token
@@ -167,7 +177,9 @@
     <p class="bench-meta">
       Every cell shows <code>Fable 5 / GPT-5.6 Sol</code>. The original rows use
       one score per judge; the mixed-workflow rows use three and display their
-      means. Click a score for its machine-readable record. Exact diffs are
+      means. Mixed-workflow cells also show the separate discussion-final pair;
+      an unavailable value means that judge's second-round call failed and is
+      never imputed. Click a score for its machine-readable record. Exact diffs are
       linked where the public raw-evidence bundle contains them. No task in
       either campaign has an objective gate.
     </p>
@@ -195,13 +207,19 @@
       <tbody>
         {% for candidate_id in ranked_candidate_ids %}
           {% assign candidate = b.candidates | where: "id", candidate_id | first %}
+          {% assign discussion_candidate = b.discussion_adjusted.candidates | where: "id", candidate_id | first %}
           <tr>
             <th scope="row"><code>{{ candidate.label }}</code></th>
             {% for task in b.tasks %}
               {% assign cell = candidate.cells[task.key] %}
+              {% if discussion_candidate %}{% assign discussion_cell = discussion_candidate.cells[task.key] %}{% else %}{% assign discussion_cell = nil %}{% endif %}
               <td data-task="{{ task.key }}">
                 <span class="bench-cell-value">
                 {% if cell.result_url %}<a href="{{ cell.result_url }}">{{ cell.scores }}</a>{% else %}{{ cell.scores }}{% endif %}<br>
+                {% if discussion_cell %}<small>discussion final
+                  {% if discussion_cell.fable.final != nil %}{{ discussion_cell.fable.final }}{% else %}unavailable{% endif %} /
+                  {% if discussion_cell.sol.final != nil %}{{ discussion_cell.sol.final }}{% else %}unavailable{% endif %}
+                </small><br>{% endif %}
                 <small>{% if cell.patch_url %}<a href="{{ cell.patch_url }}">diff</a>{% else %}diff not public{% endif %}{% if cell.judge_samples %} · {{ candidate.samples_per_cell }} samples/judge{% endif %}</small>
                 </span>
               </td>
@@ -246,8 +264,9 @@
         and gate status.</li>
       <li>Download the <a href="{{ '/bench/results.json' | relative_url }}">site
         data snapshot</a> containing every displayed score, all three-sample
-        follow-up distributions and intervals, recorded time, normalized token
-        values, and API-equivalent cost estimates.</li>
+        follow-up distributions and intervals, the discussion-final diagnostic
+        layer, recorded time, normalized token values, and API-equivalent cost
+        estimates.</li>
       <li>Read or compare the <a href="{{ b.evidence.cells }}">36 original
         candidate patches</a>&mdash;the public final code artifacts available
         for direct audit today.</li>

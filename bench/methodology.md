@@ -120,9 +120,20 @@ merged reference:
 The merged PR tells a judge what the task ultimately required; candidates are
 not rewarded for textual or structural similarity. The original 36 cells have
 one score sample per judge. The 18 mixed-workflow cells have three samples per
-judge plus a completed adversarial deliberation pass; only the independent
-three-sample means enter the leaderboard. The per-task board displays
-`Fable / Sol` in that order.
+judge plus an adversarial deliberation pass. The bold independent three-sample
+means enter the leaderboard and control sorting. The secondary **discussion
+final** is a separate one-shot diagnostic run: each judge first re-grades the
+cell, then sees the other judge only as an anonymous referee with a score and
+rationale, must argue the strongest evidence-based case that its own fresh
+verdict is wrong, and finally holds or revises. It is not an adjustment applied
+to the three-sample mean.
+
+The site publishes 35 of 36 discussion-final judge decisions across all 18
+follow-up cells. The missing Sol decision for the Fable-plan/Grok-execute
+`daemon` cell is shown as unavailable and is not imputed. Discussion finals do
+not replace the independent leaderboard because exposing verdicts can add
+anchoring or convergence pressure even when it also surfaces genuine misses.
+The per-task board displays `Fable / Sol` in that order for both layers.
 
 Judge calibrations are not interchangeable. The site keeps separate Fable and
 Sol columns as the primary evidence and uses their arithmetic mean only as a
