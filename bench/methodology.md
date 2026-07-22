@@ -121,8 +121,8 @@ The merged PR tells a judge what the task ultimately required; candidates are
 not rewarded for textual or structural similarity. The original 36 cells have
 one score sample per judge. The 18 mixed-workflow cells have three samples per
 judge plus an adversarial deliberation pass. The bold independent three-sample
-means enter the leaderboard and control sorting. The secondary **discussion
-final** is a separate one-shot diagnostic run: each judge first re-grades the
+means enter the leaderboard and define its default order. The secondary
+**discussion final** is a separate one-shot diagnostic run: each judge first re-grades the
 cell, then sees the other judge only as an anonymous referee with a score and
 rationale, must argue the strongest evidence-based case that its own fresh
 verdict is wrong, and finally holds or revises. It is not an adjustment applied
@@ -134,8 +134,10 @@ Fable-plan/Grok-execute `daemon` cell was recovered by replaying only round two
 from the preserved pair of round-one verdicts, plan, diff, and reference.
 Discussion finals do not replace the independent leaderboard because exposing
 verdicts can add anchoring or convergence pressure even when it also surfaces
-genuine misses. The per-task board displays `Fable / Sol` in that order for
-both layers.
+genuine misses. The optional **After discussion** sort orders the three covered
+rows by their paired final mean and places the six uncovered original-campaign
+rows last; it does not rewrite the independent scores. The per-task board
+displays Fable before Sol for both layers.
 
 Judge calibrations are not interchangeable. The site keeps separate Fable and
 Sol columns as the primary evidence and uses their arithmetic mean only as a
@@ -152,9 +154,9 @@ published score data but are not used in the compact leaderboard ranking.
 ## Coverage and objective evidence
 
 All 54 candidate runs produced scoreable patches, with no pending or failed
-generation cells. The original 36 exact patches are public. The 18
-mixed-workflow rows currently publish their complete score samples and
-intervals in the site snapshot, but not their raw patches. Every objective-gate
+generation cells. All 54 exact final patches are public. The 18
+mixed-workflow rows also publish their complete score samples and intervals in
+the site snapshot. Every objective-gate
 record is `no_gate`: the corpus does not yet have curated held-out tests
 suitable for a fair candidate-independent pass/fail claim. The current numbers
 are judge evidence, not test-pass rates.
@@ -164,8 +166,9 @@ campaign, the manifest, complete merged `results.json`, exact candidate patches,
 and evidence directories are public in
 [hive-bench](https://github.com/ivankuznetsov/hive-bench/tree/main/runs/v2-ce).
 The follow-up's three-sample distributions are included in the site's
-[data snapshot]({{ '/bench/results.json' | relative_url }}); its raw-evidence
-bundle remains unpublished.
+[data snapshot]({{ '/bench/results.json' | relative_url }}), and every follow-up
+cell links directly to its candidate patch. Raw provider streams, build logs,
+target clones, and auth material remain unpublished.
 
 ## Time, tokens, and cost
 
@@ -188,12 +191,11 @@ the site publishes their normalized token splits and API-equivalent costs. The
 recovered `fix-review` artifact retains only aggregate inclusive-input usage;
 its missing cached-input split makes its comparable tokens and price unknown.
 Grok emits no usable token events through this runner. The two Grok-execution
-rows therefore publish explicitly labeled **Sol-only subtotals**, never complete
-workflow totals: Sol-plan/Grok-execute/Sol-review has retained Sol plan/review
-usage for all six tasks, while Fable-plan/Grok-execute/Sol-review has retained
-Sol review usage for two. The latter also excludes Fable planning so its label
-describes one consistent provider scope. Missing Sol completions are not
-estimated, and no Grok usage is imputed.
+rows therefore publish explicitly labeled **known-provider subtotals**, never
+complete workflow totals. Sol-plan/Grok-execute/Sol-review includes retained Sol
+plan/review usage for all six tasks. Fable-plan/Grok-execute/Sol-review includes
+Fable planning for all six tasks plus retained Sol review events where present.
+No Grok usage is imputed.
 
 All displayed wall times come from the corresponding serialized
 `wall_clock_sec` values. The per-event source logs used to reconstruct normalized
@@ -220,9 +222,9 @@ Costs use the versioned `2026-06-usual` price table and are descriptive
 API-equivalent estimates, not a billing claim. Judge usage is excluded. Grok's
 runner emits no usable token events, so workflows that execute with Grok keep
 their complete-workflow token totals and cost fields **unknown**, not zero. The
-displayed Sol-only subtotals are provider-scoped usage evidence and are not used
-to claim a full-workflow price. No missing value is imputed from another
-provider or model.
+displayed known-provider token and cost subtotals are explicitly marked
+**partial** and are not used to claim a full-workflow price or cost-sort value.
+No missing value is imputed from another provider or model.
 
 ## Known limitations
 
@@ -236,9 +238,6 @@ provider or model.
 - **Judge-family overlap.** Every follow-up candidate uses Sol for at least one
   production stage and is judged by Sol; the Fable-planned candidate is also
   judged by Fable. Flags disclose this but cannot remove the bias.
-- **Follow-up raw patches are not public yet.** Their independent samples and
-  intervals are in the site snapshot, but direct code-level audit remains
-  available only for the original 36 cells.
 - **Corpus provenance can frame the task.** All original task plans were
   Claude-authored, even though candidates re-ran the workflow themselves.
 - **Recovered telemetry is incomplete.** Some finished cells predate complete

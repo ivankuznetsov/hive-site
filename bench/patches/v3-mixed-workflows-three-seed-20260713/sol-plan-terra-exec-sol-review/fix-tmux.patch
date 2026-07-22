@@ -1,0 +1,897 @@
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+index 39fa61fb..453f8c53 100644
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -45,6 +45,12 @@ jobs:
+             --bindir "$sandbox/bin" \
+             --no-document \
+             --source https://rubygems.org
++          GEM_HOME="$sandbox" GEM_PATH="$sandbox" ruby -e '
++            require "hive"
++            require "hive/claude_launcher"
++            missing = Hive::ClaudeLauncher::LAUNCHER_SCRIPTS.each_value.reject { |path| File.file?(path) }
++            abort "installed hive-cli gem is missing launcher scripts: #{missing.join(", ")}" unless missing.empty?
++          '
+           GEM_HOME="$sandbox" GEM_PATH="$sandbox" "$sandbox/bin/hive" --version
+       - uses: actions/upload-artifact@v7
+         with:
+@@ -87,6 +93,12 @@ jobs:
+             --bindir "$sandbox/bin" \
+             --no-document \
+             --source https://rubygems.org
++          GEM_HOME="$sandbox" GEM_PATH="$sandbox" ruby -e '
++            require "hive"
++            require "hive/claude_launcher"
++            missing = Hive::ClaudeLauncher::LAUNCHER_SCRIPTS.each_value.reject { |path| File.file?(path) }
++            abort "installed hive-cli gem is missing launcher scripts: #{missing.join(", ")}" unless missing.empty?
++          '
+           GEM_HOME="$sandbox" GEM_PATH="$sandbox" "$sandbox/bin/hive" --version
+ 
+   release-finalize:
+diff --git a/docs/notes/claude-tmux-launch-mode.md b/docs/notes/claude-tmux-launch-mode.md
+index 7fd1d5fd..39d8203a 100644
+--- a/docs/notes/claude-tmux-launch-mode.md
++++ b/docs/notes/claude-tmux-launch-mode.md
+@@ -17,11 +17,25 @@ until Claude's TUI is ready before pasting the stage prompt; if Claude
+ shows its first-run folder-trust prompt, Hive confirms it for the task
+ folder and then waits for the normal prompt.
+ 
+-The trust and ready predicates are pinned in `Hive::ClaudeLauncher` against the
+-Claude Code 2.1.133 TUI observed during the 2026-05-25 dogfood, and
+-ready detection requires the prompt marker on the last non-blank pane line,
+-classifies trust and permission prompts from the current prompt block instead of
+-stale scrollback, and rejects numbered menu options as non-ready.
++`Hive::ClaudeLauncher` treats the idle `❯` as the positive readiness signal,
++not a version-pinned footer layout. It captures pane history without byte
++slicing for trust and permission guards, then searches only the last 10 nonblank current
++prompt lines for the caret. It accepts a bare line-start caret, including ASCII or
++Unicode separator whitespace such as U+00A0 NBSP, the legacy quoted
++`❯ Try "…"` prompt,
++and the context-prefixed line-end caret form. Other textual line-start forms,
++such as streamed `❯ npm test` output, are not prompts. The detector requires
++the usual Claude banner/current-footer evidence, rejects numbered menu options
++under the same Unicode whitespace policy, and only allows recognized input-box
++separator/footer chrome after a candidate. A bare caret with trailing chrome
++also requires an opening separator immediately above it; the legacy
++`Claude Code` / `❯ Try …` / footer layout remains valid without that opening
++separator. A context-prefixed line-end caret with trailing chrome requires the
++recognized `for agents` footer. A later banner starts a new safety block only
++after a numbered safety menu in the preceding block, so internal blank lines,
++long previews, or banner-shaped preview text cannot hide an active dialog.
++This accepts the hand-authored Claude Code 2.1.179
++separator/caret/separator/footer fixture without assuming a fixed footer depth.
+ 
+ ## Scope
+ 
+@@ -60,6 +74,17 @@ and the watchdog keeps waiting. This preserves the manual-intervention
+ model: a human may type in the attached pane, but completion still requires
+ Claude to write the expected terminal marker.
+ 
++## Packaged Runtime Scripts
++
++The interactive wrapper and Stop hook are runtime files, not source-checkout
++helpers. `hive.gemspec` packages every `lib/hive/scripts/**/*.sh` file; the
++launcher resolves its direct scripts through `LAUNCHER_SCRIPTS`; and tests
++inspect a genuinely built gem archive. The release workflow installs the built
++gem into an isolated gem home and checks every launcher-manifest script is a
++regular installed file before it uploads or publishes the artifact. This keeps
++the wrapper and hook available to a clean `gem install hive-cli` without a
++manual copy from the source tree.
++
+ The wrapper resolves `claude.permission_mode` (default `bypassPermissions`)
+ to the same CLI flags the headless `-p` path uses: `bypassPermissions` becomes
+ `--dangerously-skip-permissions`, and any other mode becomes
+@@ -137,3 +162,46 @@ the runtime can override them in the calling shell:
+ 
+ Legacy `HIVE_BRAINSTORM_TMUX_*` names are still honored as fallbacks for
+ one release while projects migrate from the old brainstorm-only runtime.
++
++## Clean-install validation
++
++The live Claude smoke remains opt-in because it requires the operator's Claude
++login, tmux, and Compound Engineering plugin. Build and install the gem into a
++temporary gem home, record the selected executable and version, then run the
++same installed binary for `hive doctor` and the reproduced stage:
++
++```sh
++repo_root=$(pwd)
++sandbox=$(mktemp -d)/gem-sandbox
++mkdir -p "$sandbox"
++gem build hive.gemspec --output "$sandbox/hive-cli-test.gem"
++GEM_HOME="$sandbox" GEM_PATH="$sandbox" gem install "$sandbox/hive-cli-test.gem" \
++  --install-dir "$sandbox" --bindir "$sandbox/bin" --no-document
++GEM_HOME="$sandbox" GEM_PATH="$sandbox" "$sandbox/bin/hive" --version
++GEM_HOME="$sandbox" GEM_PATH="$sandbox" "$sandbox/bin/hive" doctor
++GEM_HOME="$sandbox" GEM_PATH="$sandbox" "$sandbox/bin/hive" run \
++  "$repo_root/.hive-state/stages/2-brainstorm/add-local-hive-web-install-260629-f4ca"
++```
++
++The expected live result is prompt submission followed by `WAITING` or another
++terminal marker, with `hive doctor` green for Claude/tmux and the installed
++Compound Engineering plugin. If `command -v hive` resolves to `/usr/bin/hive`
++instead of the temporary binary (or reports another version), record that
++binary drift; daemon/service executable selection is a separate fix and is not
++changed by this launch-mode work.
++
++### Latest validation record (2026-07-15, incomplete)
++
++- A clean temporary install selected
++  `/tmp/hive-clean-install-pass02.cTFt21/bin/hive`, reported version `0.3.2`,
++  and resolved `interactive_claude_wrapper.sh` from that install's gem tree.
++- The same installed binary's `hive doctor --json` exited `65`: this runner has
++  no `tmux`, Compound Engineering Claude plugin, or `/plan` skill.
++- `claude --version` reported `2.1.191`, but `claude auth status` reported
++  `loggedIn: false`; no API or OAuth credential was available to the wrapper.
++
++This is packaging evidence, not the required live acceptance. No stage prompt
++was submitted and no terminal marker or no-manual-copy result was observed.
++Repeat the commands above on a logged-in host with tmux and the configured
++skills installed, then replace this incomplete record with the selected binary,
++version, green doctor output, submitted prompt, and resulting terminal marker.
+diff --git a/hive.gemspec b/hive.gemspec
+index d1e8c7cf..e54a3dec 100644
+--- a/hive.gemspec
++++ b/hive.gemspec
+@@ -35,6 +35,7 @@ Gem::Specification.new do |spec|
+     "bin/hive-babysitter-stub-git",
+     "bin/hv",
+     "lib/**/*.rb",
++    "lib/hive/scripts/**/*.sh",
+     "templates/**/*",
+     "schemas/**/*.json",
+     "examples/systemd/*",
+diff --git a/lib/hive/claude_launcher.rb b/lib/hive/claude_launcher.rb
+index 742bbdc5..d1b0acd4 100644
+--- a/lib/hive/claude_launcher.rb
++++ b/lib/hive/claude_launcher.rb
+@@ -38,14 +38,14 @@ module Hive
+     # Robustness note: readiness detection keys on the `❯` input caret, the
+     # most stable signal across the Claude Code TUI revisions seen so far.
+     # What churns between releases is the caret's POSITION on its line
+-    # (older builds: `❯ Try …` at line start; newer: `<cwd> <git-status>  ❯`
+-    # at line end) and what renders BELOW it (e.g. a `⏵⏵ bypass permissions …`
+-    # hint footer, so the caret is no longer the last line). To tolerate that
+-    # without treating a `❯` Claude prints in its OWN output (shell snippets,
+-    # prose, bullets) as ready, we (a) require the caret to be the first or
+-    # last glyph of its line — never mid-prose — and (b) only look at the
+-    # bottom of the input box: the last non-blank line, or the line above it
+-    # when a one-line hint footer renders beneath the caret.
++    # (older builds: `❯ Try …`; newer: `<cwd> <git-status>  ❯`) and the input
++    # chrome below it. Scan a bounded current-prompt window instead of fixing
++    # the caret to a footer offset, but only accept separator/footer chrome
++    # after a candidate so Claude's own busy output stays non-ready. Bare
++    # carets with trailing chrome require the opening input separator, while
++    # the legacy quoted `❯ Try "…"` suggestion remains valid with or
++    # without a footer. Other textual line-start carets are output, not idle
++    # prompts.
+     #
+     # Copy strings still gate readiness in two places, both version-coupled
+     # and both to update when Claude Code changes them: the positive
+@@ -57,17 +57,23 @@ module Hive
+     ].freeze
+     CLAUDE_PERMISSION_PROMPT_MARKER = "Do you want to".freeze
+     CLAUDE_READY_BANNER_MARKER = "Claude Code".freeze
++    CLAUDE_READY_PLAIN_BANNER_LINE = /\AClaude Code(?:[[:space:]\p{Zs}]+v?\d+(?:\.\d+)*)?\z/.freeze
++    CLAUDE_READY_LOGO_BANNER_LINE = /\A▐▛███▜▌[[:space:]\p{Zs}]+Claude Code(?:[[:space:]\p{Zs}]+v?\d+(?:\.\d+)*)?\z/.freeze
+     CLAUDE_READY_FOOTER_MARKER = "for agents".freeze
+     # The caret as the FIRST glyph (`❯ …`, older builds) or the LAST glyph
+     # (`… ?  ❯`, the line-end caret newer builds render after the cwd/git
+     # context). A caret embedded mid-line is Claude's own output, not the
+     # idle prompt, so it is intentionally not matched.
+-    CLAUDE_READY_PROMPT_LINE = /\A❯(?:\s|\z)|\s❯\z/.freeze
+-    CLAUDE_MENU_OPTION_LINE = /\A\s*❯\s*\d+\./.freeze
+-    CLAUDE_PROMPT_CONTEXT_LINES = 4
+-    # Lines at the bottom of the input box to inspect for the idle caret:
+-    # the caret line itself plus at most one hint footer rendered below it.
+-    CLAUDE_PROMPT_TAIL_LINES = 2
++    # Ruby's `\s` does not include every Unicode separator Claude can render.
++    # Keep U+00A0 NBSP and the rest of Unicode Zs explicit in both the idle
++    # caret and numbered-menu matchers so a menu cannot bypass the guard.
++    CLAUDE_READY_PROMPT_LINE = /\A❯(?:[[:space:]\p{Zs}]|\z)|[[:space:]\p{Zs}]❯\z/.freeze
++    CLAUDE_MENU_OPTION_LINE = /\A[[:space:]\p{Zs}]*❯[[:space:]\p{Zs}]*\d+\./.freeze
++    CLAUDE_TEXTUAL_LINE_START_PROMPT = /\A❯[[:space:]\p{Zs}]+[^[:space:]\p{Zs}]/.freeze
++    CLAUDE_LEGACY_TEXTUAL_PROMPT_LINE = /\A❯[[:space:]\p{Zs}]+Try[[:space:]\p{Zs}]+"[^"]+"\z/.freeze
++    CLAUDE_PROMPT_SCAN_LINES = 10
++    CLAUDE_INPUT_SEPARATOR_LINE = /\A[[:space:]\p{Zs}─━┄┅┈┉╌╍═╭╮╰╯│]+\z/.freeze
++    CLAUDE_INPUT_FOOTER_LINE = /\A(?:⏵⏵|[←↵⇥⌘]).*for agents.*\z/.freeze
+     # Allowed-tool sets shared by every stage that spawns Claude. Keeping
+     # them as constants means a policy change lands in one place; previous
+     # PRs inlined the string literal across 11 sites and silently drifted
+@@ -82,6 +88,12 @@ module Hive
+     PLANNER_ALLOWED_TOOLS = "Read,Write,Edit,LS".freeze
+     IMPLEMENTER_ALLOWED_TOOLS = "Read,Write,Edit,Bash,LS,Glob,Grep".freeze
+     DEFAULT_ALLOWED_TOOLS = PLANNER_ALLOWED_TOOLS
++    # Keep every script launched directly by this module in one enumerable
++    # manifest. Packaging checks consume this same source of truth, so adding
++    # another launcher script cannot quietly leave its runtime file behind.
++    LAUNCHER_SCRIPTS = {
++      interactive_wrapper: File.expand_path("scripts/interactive_claude_wrapper.sh", __dir__)
++    }.freeze
+ 
+     ORPHAN_SWEEP_LOG_MAX_BYTES = 64 * 1024
+     # Patterns that mark tmux itself as unavailable (binary missing, too
+@@ -468,7 +480,7 @@ module Hive
+                         mcp_config_path: nil, strict_mcp_config: false)
+       command = [
+         "bash",
+-        File.expand_path("scripts/interactive_claude_wrapper.sh", __dir__),
++        LAUNCHER_SCRIPTS.fetch(:interactive_wrapper),
+         "--cwd", cwd
+       ]
+       Array(add_dirs).each { |dir| command.concat([ "--add-dir", dir ]) }
+@@ -561,7 +573,7 @@ module Hive
+       deadline = [ ready_deadline, caller_deadline ].compact.min
+       last_tail = ""
+       loop do
+-        last_tail = runner.capture_pane_tail(bytes: SENTINEL_CAPTURE_BYTES)
++        last_tail = capture_readiness_pane(runner)
+ 
+         if claude_trust_prompt?(last_tail)
+           runner.send_keys("Enter")
+@@ -602,40 +614,94 @@ module Hive
+     end
+ 
+     def claude_trust_prompt?(pane)
+-      current_prompt_text(pane).then do |text|
++      current_claude_screen_text(pane).then do |text|
+         CLAUDE_TRUST_PROMPT_MARKERS.all? { |marker| text.include?(marker) }
+       end
+     end
+ 
+     def claude_ready_prompt?(pane)
+-      current_text = current_prompt_text(pane)
+-      current_lines = current_text.each_line.map(&:strip).reject(&:empty?)
++      current_lines = current_prompt_lines(pane)
++      current_text = current_lines.join("\n")
++      safety_text = current_claude_screen_text(pane)
+ 
+-      return false if CLAUDE_TRUST_PROMPT_MARKERS.all? { |marker| current_text.include?(marker) }
+-      return false if current_text.include?(CLAUDE_PERMISSION_PROMPT_MARKER)
++      return false if CLAUDE_TRUST_PROMPT_MARKERS.all? { |marker| safety_text.include?(marker) }
++      return false if safety_text.include?(CLAUDE_PERMISSION_PROMPT_MARKER)
+       return false unless pane.include?(CLAUDE_READY_BANNER_MARKER) ||
+                           current_text.include?(CLAUDE_READY_FOOTER_MARKER)
+ 
+-      # The idle caret sits at the bottom of the input box: it is the last
+-      # non-blank line, or the line above it when a one-line hint footer
+-      # renders beneath it. Limiting the scan to those two lines (rather than
+-      # the whole region) keeps a caret Claude printed earlier in its own
+-      # output from reading as ready. A numbered menu option (`❯ 1.`) is an
+-      # interactive selection, not the idle prompt, so it never counts.
+-      current_lines.last(CLAUDE_PROMPT_TAIL_LINES).any? do |line|
+-        line.match?(CLAUDE_READY_PROMPT_LINE) && !line.match?(CLAUDE_MENU_OPTION_LINE)
++      # Keep trust and permission guards over the screen from the latest
++      # banner-shaped line, then scan only the last ten nonblank lines of the
++      # current prompt for the idle caret.
++      # A numbered menu option (`❯ 1.`) is interactive, not idle, and all
++      # lines after an idle candidate must be TUI chrome rather than Claude's
++      # substantive output.
++      scan_lines = current_lines.last(CLAUDE_PROMPT_SCAN_LINES)
++      scan_start = current_lines.length - scan_lines.length
++      scan_lines.each_index.any? do |index|
++        line = scan_lines.fetch(index)
++        current_index = scan_start + index
++        tail = scan_lines[(index + 1)..]
++        line.match?(CLAUDE_READY_PROMPT_LINE) &&
++          !line.match?(CLAUDE_MENU_OPTION_LINE) &&
++          idle_prompt_head?(current_lines[...current_index], line, tail) &&
++          idle_prompt_tail?(tail)
+       end
+     end
+ 
+-    def current_prompt_text(pane)
++    def current_claude_screen_text(pane)
++      lines = pane.each_line.map(&:strip)
++      boundary_index = 0
++      lines.each_index do |index|
++        next unless claude_banner_line?(lines.fetch(index))
++
++        preceding_block = lines[boundary_index...index]
++        safety_copy = preceding_block.any? { |line| line.include?(CLAUDE_PERMISSION_PROMPT_MARKER) } ||
++                      CLAUDE_TRUST_PROMPT_MARKERS.all? do |marker|
++                        preceding_block.any? { |line| line.include?(marker) }
++                      end
++        completed_menu = preceding_block.any? { |line| line.match?(CLAUDE_MENU_OPTION_LINE) }
++        boundary_index = index unless safety_copy && !completed_menu
++      end
++
++      (lines[boundary_index..] || []).join("\n")
++    end
++
++    def current_prompt_lines(pane)
+       raw_lines = pane.each_line.map(&:strip)
+       last_blank_index = raw_lines.rindex("")
+-      last_banner_index = raw_lines.rindex { |line| line.include?(CLAUDE_READY_BANNER_MARKER) }
++      last_banner_index = raw_lines.rindex { |line| claude_banner_line?(line) }
+       last_blank_start = last_blank_index ? last_blank_index + 1 : nil
+       start_index = [ last_banner_index, last_blank_start, 0 ].compact.max
+       current_lines = raw_lines[start_index..] || []
+ 
+-      current_lines.reject(&:empty?).last(CLAUDE_PROMPT_CONTEXT_LINES).join("\n")
++      current_lines.reject(&:empty?)
++    end
++
++    def claude_banner_line?(line)
++      line.match?(CLAUDE_READY_LOGO_BANNER_LINE) || line.match?(CLAUDE_READY_PLAIN_BANNER_LINE)
++    end
++
++    def idle_prompt_tail?(lines)
++      Array(lines).all? do |line|
++        line.match?(CLAUDE_INPUT_SEPARATOR_LINE) || line.match?(CLAUDE_INPUT_FOOTER_LINE)
++      end
++    end
++
++    def idle_prompt_head?(lines, candidate, tail)
++      if candidate.match?(CLAUDE_TEXTUAL_LINE_START_PROMPT)
++        return candidate.match?(CLAUDE_LEGACY_TEXTUAL_PROMPT_LINE)
++      end
++
++      return true if tail.empty?
++      return tail.any? { |line| line.match?(CLAUDE_INPUT_FOOTER_LINE) } unless candidate.start_with?("❯")
++
++      lines.last&.match?(CLAUDE_INPUT_SEPARATOR_LINE)
++    end
++
++    def capture_readiness_pane(runner)
++      return runner.capture_pane if runner.respond_to?(:capture_pane)
++
++      runner.capture_pane_tail(bytes: SENTINEL_CAPTURE_BYTES)
+     end
+ 
+     def wait_for_terminal_marker(task, runner, timeout)
+@@ -760,7 +826,7 @@ module Hive
+           return { status: :ok, log_label: log_label } if File.exist?(done_path(task))
+ 
+           begin
+-            pane = runner.capture_pane_tail(bytes: SENTINEL_CAPTURE_BYTES)
++            pane = capture_readiness_pane(runner)
+             tmux_error_streak = 0
+             return { status: :ok, log_label: log_label } if claude_ready_prompt?(pane)
+           rescue Hive::TmuxError => e
+diff --git a/lib/hive/tmux_runner.rb b/lib/hive/tmux_runner.rb
+index 0133c160..d65ca797 100644
+--- a/lib/hive/tmux_runner.rb
++++ b/lib/hive/tmux_runner.rb
+@@ -121,6 +121,14 @@ module Hive
+       tail.scrub
+     end
+ 
++    # Read pane history without byte slicing for safety-sensitive TUI
++    # classification. The readiness parser separates stale dialogs from the
++    # current prompt; keeping the history prevents a long dialog from clipping
++    # its permission or trust copy.
++    def capture_pane
++      run_tmux("capture-pane", "-t", target_pane, "-p", "-S", "-").scrub.rstrip
++    end
++
+     # Active pane's process PID. The wrapper script execs into claude
+     # (`exec "$@"` in interactive_claude_wrapper.sh), preserving the PID
+     # across the exec, so this is the claude PID we record into the task
+diff --git a/test/fixtures/panes/claude_menu_prompt.txt b/test/fixtures/panes/claude_menu_prompt.txt
+new file mode 100644
+index 00000000..a40d1647
+--- /dev/null
++++ b/test/fixtures/panes/claude_menu_prompt.txt
+@@ -0,0 +1,5 @@
++Claude Code v2.1.179
++What do you want to do?
++❯ 1. Stop and wait for limit to reset
++──────────────────────────────────────────────────────────────────────────────
++⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents
+diff --git a/test/fixtures/panes/claude_permission_prompt.txt b/test/fixtures/panes/claude_permission_prompt.txt
+new file mode 100644
+index 00000000..46195cf8
+--- /dev/null
++++ b/test/fixtures/panes/claude_permission_prompt.txt
+@@ -0,0 +1,6 @@
++Claude Code v2.1.179
++Do you want to make this edit?
++──────────────────────────────────────────────────────────────────────────────
++❯
++──────────────────────────────────────────────────────────────────────────────
++⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents
+diff --git a/test/fixtures/panes/claude_ready_2_1_179.txt b/test/fixtures/panes/claude_ready_2_1_179.txt
+new file mode 100644
+index 00000000..7b7d911d
+--- /dev/null
++++ b/test/fixtures/panes/claude_ready_2_1_179.txt
+@@ -0,0 +1,5 @@
++Claude Code v2.1.179
++──────────────────────────────────────────────────────────────────────────────
++❯ 
++──────────────────────────────────────────────────────────────────────────────
++⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents
+diff --git a/test/fixtures/panes/claude_ready_legacy.txt b/test/fixtures/panes/claude_ready_legacy.txt
+new file mode 100644
+index 00000000..e18606ee
+--- /dev/null
++++ b/test/fixtures/panes/claude_ready_legacy.txt
+@@ -0,0 +1,4 @@
++Claude Code v2.1.133
++Tip: try refactor
++
++❯ Try "refactor <filepath>"
+diff --git a/test/fixtures/panes/claude_trust_prompt.txt b/test/fixtures/panes/claude_trust_prompt.txt
+new file mode 100644
+index 00000000..b356f0c4
+--- /dev/null
++++ b/test/fixtures/panes/claude_trust_prompt.txt
+@@ -0,0 +1,4 @@
++Claude Code v2.1.179
++Quick safety check
++❯ 1. Yes, I trust this folder
++Enter to confirm
+diff --git a/test/integration/gem_package_test.rb b/test/integration/gem_package_test.rb
+new file mode 100644
+index 00000000..d6342558
+--- /dev/null
++++ b/test/integration/gem_package_test.rb
+@@ -0,0 +1,54 @@
++require "test_helper"
++require "open3"
++require "rubygems/package"
++require "hive/claude_launcher"
++
++class GemPackageTest < Minitest::Test
++  ROOT = File.expand_path("../..", __dir__)
++
++  def test_built_gem_contains_launcher_manifest_and_runtime_shell_scripts
++    Dir.mktmpdir("hive-gem-package") do |dir|
++      gem_path = File.join(dir, "hive-cli-test.gem")
++      output, status = Open3.capture2e("gem", "build", "hive.gemspec", "--output", gem_path, chdir: ROOT)
++
++      assert status.success?, "gem build failed:\n#{output}"
++      archive_paths = Gem::Package.new(gem_path).contents
++      expected_paths = launcher_script_paths | runtime_shell_script_paths
++
++      assert_archive_contains_paths(expected_paths, archive_paths)
++      assert_includes archive_paths, "lib/hive/scripts/interactive_claude_wrapper.sh"
++      assert_includes archive_paths, "lib/hive/scripts/stop_hook.sh"
++    end
++  end
++
++  def test_missing_launcher_manifest_path_diagnostic_names_gem_relative_path
++    missing_path = "lib/hive/scripts/missing_wrapper.sh"
++
++    error = assert_raises(Minitest::Assertion) do
++      assert_archive_contains_paths([ missing_path ], [])
++    end
++
++    assert_includes error.message, missing_path
++  end
++
++  private
++
++  def launcher_script_paths
++    Hive::ClaudeLauncher::LAUNCHER_SCRIPTS.each_value.map do |path|
++      path.delete_prefix("#{ROOT}/")
++    end
++  end
++
++  def runtime_shell_script_paths
++    Dir[File.join(ROOT, "lib/hive/scripts/**/*.sh")].map do |path|
++      path.delete_prefix("#{ROOT}/")
++    end
++  end
++
++  def assert_archive_contains_paths(expected_paths, archive_paths)
++    missing_paths = expected_paths - archive_paths
++
++    assert_empty missing_paths,
++                 "built gem is missing runtime scripts: #{missing_paths.join(', ')}"
++  end
++end
+diff --git a/test/unit/claude_launcher_test.rb b/test/unit/claude_launcher_test.rb
+index e9c71b65..000b7b70 100644
+--- a/test/unit/claude_launcher_test.rb
++++ b/test/unit/claude_launcher_test.rb
+@@ -507,6 +507,210 @@ class ClaudeLauncherTest < Minitest::Test
+     assert Hive::ClaudeLauncher.claude_ready_prompt?(pane)
+   end
+ 
++  def test_capture_readiness_pane_prefers_the_untruncated_visible_screen
++    screen = "Claude Code v2.1.179\nDo you want to make this edit?\n#{'x' * 9_000}\n❯"
++    runner = Object.new
++    runner.define_singleton_method(:capture_pane) { screen }
++    runner.define_singleton_method(:capture_pane_tail) do |bytes:|
++      raise "tail capture would clip safety copy at #{bytes} bytes"
++    end
++
++    assert_equal screen, Hive::ClaudeLauncher.capture_readiness_pane(runner)
++  end
++
++  def test_claude_ready_prompt_accepts_2_1_179_separator_caret_footer_fixture_with_literal_nbsp
++    pane = pane_fixture("claude_ready_2_1_179.txt")
++
++    assert_includes pane, "\u00A0"
++    assert_includes pane.codepoints, 0x00A0
++    assert Hive::ClaudeLauncher.claude_ready_prompt?(pane)
++  end
++
++  def test_claude_ready_prompt_accepts_legacy_fixture
++    assert Hive::ClaudeLauncher.claude_ready_prompt?(pane_fixture("claude_ready_legacy.txt"))
++  end
++
++  def test_claude_ready_prompt_scans_the_last_ten_nonblank_lines
++    separator = "────────────────────────────────────────────────────────────────────────"
++    at_scan_boundary = "Claude Code v2.1.179\n#{separator}\n❯\n" + ([ separator ] * 9).join("\n")
++    outside_scan_window = "Claude Code v2.1.179\n#{separator}\n❯\n" + ([ separator ] * 10).join("\n")
++
++    assert Hive::ClaudeLauncher.claude_ready_prompt?(at_scan_boundary)
++    refute Hive::ClaudeLauncher.claude_ready_prompt?(outside_scan_window)
++  end
++
++  def test_claude_ready_prompt_accepts_variable_separator_and_footer_depth
++    separator = "────────────────────────────────────────────────────────────────────────"
++    footer = "⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents"
++    panes = [
++      "Claude Code v2.1.179\n❯",
++      "Claude Code v2.1.179\n#{separator}\n❯\n#{separator}",
++      "Claude Code v2.1.179\n#{separator}\n❯\n#{separator}\n#{footer}"
++    ]
++
++    panes.each { |pane| assert Hive::ClaudeLauncher.claude_ready_prompt?(pane) }
++  end
++
++  def test_claude_ready_prompt_accepts_boxed_textual_prompt_with_opening_separator
++    separator = "────────────────────────────────────────────────────────────────────────"
++    footer = "⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents"
++    pane = "Claude Code v2.1.179\n#{separator}\n❯ Try \"refactor <filepath>\"\n" \
++           "#{separator}\n#{footer}"
++
++    assert Hive::ClaudeLauncher.claude_ready_prompt?(pane)
++  end
++
++  def test_claude_ready_prompt_accepts_legacy_textual_prompt_with_footer_only
++    footer = "⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents"
++    pane = "Claude Code v2.1.133\n❯ Try \"refactor <filepath>\"\n#{footer}"
++
++    assert Hive::ClaudeLauncher.claude_ready_prompt?(pane),
++           "the legacy textual prompt does not render an opening separator"
++  end
++
++  def test_claude_ready_prompt_rejects_streamed_prompt_shaped_output_before_input_chrome
++    separator = "────────────────────────────────────────────────────────────────────────"
++    footer = "⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents"
++    pane = "Claude Code v2.1.179\n❯ npm test\n" \
++           "#{separator}\n#{footer}"
++
++    refute Hive::ClaudeLauncher.claude_ready_prompt?(pane),
++           "prompt-shaped streamed output without an opening input separator is still busy"
++  end
++
++  def test_claude_ready_prompt_rejects_streamed_prompt_shaped_output_at_pane_bottom
++    panes = [
++      "Claude Code v2.1.179\n❯ npm test",
++      "Claude Code v2.1.179\n❯ Try npm test",
++      "Claude Code v2.1.179\n❯ Try again after the build"
++    ]
++
++    panes.each do |pane|
++      refute Hive::ClaudeLauncher.claude_ready_prompt?(pane),
++             "a final streamed command line is not an idle textual prompt"
++    end
++  end
++
++  def test_claude_ready_prompt_rejects_bare_caret_with_output_shaped_tail
++    separator = "────────────────────────────────────────────────────────────────────────"
++    panes = [
++      "Claude Code v2.1.179\n❯\n← still compiling",
++      "Claude Code v2.1.179\n❯\n#{separator}"
++    ]
++
++    panes.each do |pane|
++      refute Hive::ClaudeLauncher.claude_ready_prompt?(pane),
++             "a bare output caret needs opening input-box chrome before a trailing line"
++    end
++  end
++
++  def test_claude_ready_prompt_rejects_output_shaped_tail_after_line_end_caret
++    separator = "────────────────────────────────────────────────────────────────────────"
++    panes = [
++      "Claude Code v2.1.179\nworktree dirty  ❯\n← still compiling",
++      "Claude Code v2.1.179\nworktree dirty  ❯\n?────────",
++      "Claude Code v2.1.179\nstill compiling  ❯\n#{separator}",
++      "Claude Code v2.1.179\nstill compiling  ❯\n⏵⏵ still compiling"
++    ]
++
++    panes.each do |pane|
++      refute Hive::ClaudeLauncher.claude_ready_prompt?(pane),
++             "output-shaped tail text is not recognized input chrome"
++    end
++  end
++
++  def test_claude_ready_prompt_accepts_recognized_footer_after_line_end_caret
++    pane = "Claude Code v2.1.179\nworktree clean  ❯\n← for agents"
++
++    assert Hive::ClaudeLauncher.claude_ready_prompt?(pane)
++  end
++
++  def test_claude_ready_prompt_rejects_permission_fixture_with_ready_like_caret
++    pane = pane_fixture("claude_permission_prompt.txt")
++
++    refute Hive::ClaudeLauncher.claude_ready_prompt?(pane)
++    assert Hive::ClaudeLauncher.claude_ready_prompt?(pane.sub("Do you want to make this edit?", "Review the edit")),
++           "without permission copy, the fixture must otherwise be ready"
++  end
++
++  def test_claude_ready_prompt_checks_permission_guard_before_the_scan_window
++    separator = "────────────────────────────────────────────────────────────────────────"
++    footer = "⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents"
++    dialog = ([ "Edit preview line" ] * Hive::ClaudeLauncher::CLAUDE_PROMPT_SCAN_LINES).join("\n")
++    pane = "Claude Code v2.1.179\nDo you want to make this edit?\n#{dialog}\n" \
++           "#{separator}\n❯\n#{separator}\n#{footer}"
++
++    refute Hive::ClaudeLauncher.claude_ready_prompt?(pane),
++           "permission copy outside the caret scan window must still block readiness"
++  end
++
++  def test_claude_ready_prompt_checks_permission_guard_before_an_internal_blank_line
++    separator = "────────────────────────────────────────────────────────────────────────"
++    footer = "⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents"
++    pane = "Claude Code v2.1.179\nDo you want to make this edit?\n\n" \
++           "README: Claude Code supports tmux\n" \
++           "#{separator}\n❯\n#{separator}\n#{footer}"
++
++    refute Hive::ClaudeLauncher.claude_ready_prompt?(pane),
++           "blank lines inside a permission dialog must not hide its safety copy"
++  end
++
++  def test_claude_ready_prompt_does_not_treat_banner_shaped_preview_as_a_new_screen
++    separator = "───────────────────────────────────────────────────────────────────────"
++    footer = "⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents"
++    pane = "Claude Code v2.1.179\nDo you want to make this edit?\n" \
++           "▐▛███▜▌   Claude Code v2.1.170\n" \
++           "#{separator}\n❯\n#{separator}\n#{footer}"
++
++    refute Hive::ClaudeLauncher.claude_ready_prompt?(pane),
++           "banner-shaped edit content must not reset an active permission guard"
++  end
++
++  def test_claude_ready_prompt_rejects_trust_fixture_before_the_trust_flow
++    pane = pane_fixture("claude_trust_prompt.txt")
++
++    assert Hive::ClaudeLauncher.claude_trust_prompt?(pane)
++    refute Hive::ClaudeLauncher.claude_ready_prompt?(pane)
++  end
++
++  def test_claude_ready_prompt_checks_trust_guard_before_the_scan_window
++    separator = "────────────────────────────────────────────────────────────────────────"
++    footer = "⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents"
++    dialog = ([ "Folder detail line" ] * Hive::ClaudeLauncher::CLAUDE_PROMPT_SCAN_LINES).join("\n")
++    pane = "Claude Code v2.1.179\nQuick safety check\nYes, I trust this folder\n#{dialog}\n" \
++           "#{separator}\n❯\n#{separator}\n#{footer}"
++
++    refute Hive::ClaudeLauncher.claude_ready_prompt?(pane),
++           "trust copy outside the caret scan window must still block readiness"
++  end
++
++  def test_claude_ready_prompt_checks_trust_guard_before_an_internal_blank_line
++    separator = "───────────────────────────────────────────────────────────────────────"
++    footer = "⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents"
++    pane = "Claude Code v2.1.179\nQuick safety check\nYes, I trust this folder\n\n" \
++           "README: Claude Code supports tmux\n#{separator}\n❯\n#{separator}\n#{footer}"
++
++    assert Hive::ClaudeLauncher.claude_trust_prompt?(pane)
++    refute Hive::ClaudeLauncher.claude_ready_prompt?(pane),
++           "blank lines inside a trust dialog must not hide its safety copy"
++  end
++
++  def test_claude_ready_prompt_does_not_reset_trust_guard_at_banner_shaped_content
++    separator = "───────────────────────────────────────────────────────────────────────"
++    footer = "⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents"
++    pane = "Claude Code v2.1.179\nQuick safety check\nYes, I trust this folder\n" \
++           "▐▛███▜▌   Claude Code v2.1.170\n" \
++           "#{separator}\n❯\n#{separator}\n#{footer}"
++
++    assert Hive::ClaudeLauncher.claude_trust_prompt?(pane)
++    refute Hive::ClaudeLauncher.claude_ready_prompt?(pane),
++           "banner-shaped folder content must not reset an active trust guard"
++  end
++
++  def test_claude_ready_prompt_rejects_numbered_menu_with_nbsp_and_footer
++    refute Hive::ClaudeLauncher.claude_ready_prompt?(pane_fixture("claude_menu_prompt.txt"))
++  end
++
+   def test_claude_ready_prompt_rejects_stale_prompt_marker_in_scrollback
+     pane = "Claude Code v2.1.133\n❯ Try \"refactor <filepath>\"\n\nbackground indexing update"
+ 
+@@ -523,7 +727,7 @@ class ClaudeLauncherTest < Minitest::Test
+ 
+   def test_claude_ready_prompt_accepts_current_ready_prompt_with_stale_permission_scrollback
+     pane = "Claude Code v2.1.133\nDo you want to make this edit?\n❯ 1. Yes\n" \
+-           "Claude Code v2.1.133\n❯ Try \"refactor <filepath>\""
++           "▐▛███▜▌   Claude Code v2.1.133\n❯ Try \"refactor <filepath>\""
+ 
+     assert Hive::ClaudeLauncher.claude_ready_prompt?(pane)
+   end
+@@ -576,9 +780,9 @@ class ClaudeLauncherTest < Minitest::Test
+            "a caret embedded mid-line is Claude's own output, not the idle prompt"
+   end
+ 
+-  # The idle caret is at the BOTTOM of the input box. A caret with two or
+-  # more non-footer lines below it is stale output, not the live prompt, so
+-  # restricting the scan to the last two lines must exclude it.
++  # A caret candidate inside the 10-line scan remains busy when substantive
++  # output follows it; only recognized input separator/footer chrome may
++  # appear after the live prompt.
+   def test_claude_ready_prompt_rejects_caret_above_the_input_box_tail
+     pane = "Claude Code v2.1.133\n\n❯ Try \"refactor <filepath>\"\n" \
+            "running build step 1\nrunning build step 2"
+@@ -874,6 +1078,19 @@ class ClaudeLauncherTest < Minitest::Test
+     assert_equal %w[--effort medium], command.each_cons(2).find { |a, _| a == "--effort" }
+   end
+ 
++  def test_wrapper_command_uses_launcher_script_manifest
++    profile = Hive::AgentProfiles.lookup(:claude)
++    command = Hive::ClaudeLauncher.send(
++      :wrapper_command,
++      cwd: "/tmp", add_dirs: [], profile: profile,
++      permission_mode: "bypassPermissions"
++    )
++
++    wrapper = Hive::ClaudeLauncher::LAUNCHER_SCRIPTS.fetch(:interactive_wrapper)
++    assert_equal "interactive_claude_wrapper.sh", File.basename(wrapper)
++    assert_equal wrapper, command.fetch(1)
++  end
++
+   def test_wrapper_command_carries_mcp_config_flags_before_allowed_tools
+     profile = Hive::AgentProfiles.lookup(:claude)
+     command = Hive::ClaudeLauncher.send(
+diff --git a/test/unit/gemspec_test.rb b/test/unit/gemspec_test.rb
+index c4cd96dd..7df25769 100644
+--- a/test/unit/gemspec_test.rb
++++ b/test/unit/gemspec_test.rb
+@@ -10,6 +10,18 @@ class GemspecTest < Minitest::Test
+     assert_includes spec.files, "bin/hive-babysitter-stub-git"
+   end
+ 
++  def test_gem_package_includes_all_runtime_shell_scripts
++    spec = Gem::Specification.load(GEMSPEC_PATH)
++    source_scripts = Dir[File.expand_path("../../lib/hive/scripts/**/*.sh", __dir__)]
++      .map { |path| path.delete_prefix("#{File.expand_path('../..', __dir__)}/") }
++      .sort
++
++    assert_equal source_scripts, (source_scripts & spec.files).sort,
++                 "missing runtime shell scripts: #{(source_scripts - spec.files).join(', ')}"
++    assert_includes source_scripts, "lib/hive/scripts/interactive_claude_wrapper.sh"
++    assert_includes source_scripts, "lib/hive/scripts/stop_hook.sh"
++  end
++
+   def test_gem_executables_exclude_bash_hv_launcher
+     spec = Gem::Specification.load(GEMSPEC_PATH)
+ 
+diff --git a/test/unit/tmux_runner_test.rb b/test/unit/tmux_runner_test.rb
+index 005bccda..d3175504 100644
+--- a/test/unit/tmux_runner_test.rb
++++ b/test/unit/tmux_runner_test.rb
+@@ -282,6 +282,19 @@ class TmuxRunnerTest < Minitest::Test
+     end
+   end
+ 
++  def test_capture_pane_returns_untruncated_history
++    with_tmp_dir do |dir|
++      screen = "Do you want to make this edit?\n#{([ 'x' * 80 ] * 120).join("\n")}\n❯"
++      fake = write_fake_tmux(dir, <<~RUBY)
++        #!/usr/bin/env ruby
++        STDOUT.write(#{screen.dump}) if ARGV.include?("capture-pane")
++      RUBY
++      runner = Hive::TmuxRunner.new(name: unique_name("screen"), cwd: dir, tmux_bin: fake)
++
++      assert_equal screen, runner.capture_pane
++    end
++  end
++
+   def test_session_exists_returns_false_when_tmux_missing
+     with_tmp_dir do |dir|
+       runner = Hive::TmuxRunner.new(name: unique_name("missing-exists"), cwd: dir, tmux_bin: "missing-tmux-for-hive")
+diff --git a/wiki/gaps.md b/wiki/gaps.md
+index 2d71cc61..f5b0fa44 100644
+--- a/wiki/gaps.md
++++ b/wiki/gaps.md
+@@ -3,7 +3,7 @@ title: Gaps
+ type: gaps
+ source: wiki/* vs lib/, templates/, test/, bin/
+ created: 2026-04-25
+-updated: 2026-06-25
++updated: 2026-07-15
+ tags: [gap, todo]
+ ---
+ 
+@@ -142,6 +142,8 @@ completed real GitHub/Codex/Claude provider login plus a daemon-owned PR push.
+ 
+ 49. **Screenote live capture test-token endpoint is blocked on Screenote-side availability.** The OAuth/MCP implementation has opt-in live discovery, dynamic-registration, and preseeded auth-code exchange coverage in `test/integration/screenote_oauth_live_test.rb`. The live `create_screenshot_upload` round-trip is written in `test/integration/screenote_capture_live_test.rb`, but it skips until the Screenote non-interactive test-token endpoint URL, secret, and project id are provided. As of 2026-06-22 the upload tool's request/response contract is covered in CI by `test_call_tool_create_screenshot_upload_round_trips_through_http_seam` (`test/unit/screenote/mcp_client_test.rb`) through the FakeHttp seam; the remaining gap is narrowed to proving the *signed upload* against a real Screenote bearer, which still requires the blocked live endpoint.
+ 
++50. **The post-detector clean-install/live Claude acceptance is still incomplete.** On 2026-07-15 the review runner built and installed `hive-cli` into a clean temporary gem home, selected `/tmp/hive-clean-install-pass02.cTFt21/bin/hive`, observed version `0.3.2`, and resolved `interactive_claude_wrapper.sh` from the installed gem. The same installed binary's `hive doctor --json` exited `65` because the runner had no tmux, Compound Engineering Claude plugin, or `/plan` skill. Claude Code `2.1.191` was present, but `claude auth status` reported `loggedIn: false` and no API/OAuth credential was available. Consequently this run produced no live prompt submission, terminal marker, or no-manual-copy evidence. R8/R9/R11 acceptance must be rerun on a logged-in host with tmux and the configured skills, recording the selected binary/version, green doctor output, submitted prompt, and resulting marker. See [[stages/brainstorm]] and [[testing]].
++
+ ## 2026-06-16/17 refresh uncertainty
+ 
+ The 2026-06-17 audit rechecked recent source, tests, git history, project wiki
+diff --git a/wiki/log.d/20260715-claude-tmux-ready-detector.md b/wiki/log.d/20260715-claude-tmux-ready-detector.md
+new file mode 100644
+index 00000000..d21e35a0
+--- /dev/null
++++ b/wiki/log.d/20260715-claude-tmux-ready-detector.md
+@@ -0,0 +1,9 @@
++## [2026-07-15T00:00:00Z] fix — package Claude tmux scripts and widen guarded readiness detection
++
++**Action:** Updated the Claude tmux runtime contract after source inspection showed that `hive.gemspec` omitted `lib/hive/scripts/**/*.sh`, even though `Hive::ClaudeLauncher` directly starts `interactive_claude_wrapper.sh` and `Hive::StopHookInstaller` needs `stop_hook.sh`. The gemspec now packages the whole runtime-script directory; `Hive::ClaudeLauncher::LAUNCHER_SCRIPTS` is the enumerable source of truth for direct launcher script paths; a unit test checks the evaluated gemspec; `test/integration/gem_package_test.rb` builds a temporary gem and inspects its archive; and the release jobs check the launcher manifest after an isolated gem install and before artifact upload/publication.
++
++`ClaudeLauncher` now evaluates trust and permission guards from untruncated pane history. A later banner starts a new safety block only after a numbered safety menu in the preceding block, preserving active guards across long dialogs, internal blanks, and banner-shaped preview content while allowing completed dialogs to become stale. It then scans only the last 10 nonblank current-prompt lines for the caret rather than using a fixed two-line tail. It accepts bare and context-prefixed caret forms with Unicode separator whitespace, including U+00A0 NBSP, plus the known legacy quoted `❯ Try "…"` textual prompt. Other textual line-start carets remain busy output. A bare caret with trailing chrome needs the opening separator immediately above it; a line-end caret with trailing chrome needs a recognized `for agents` footer; and the legacy footer-only textual layout remains ready. Hand-authored legacy, Claude Code 2.1.179, long, blank-separated, and banner-shaped permission/trust, menu, and busy-stream fixtures pin the contract. The built-gem test also proves a missing manifest path is named gem-relatively in its assertion. [[stages/brainstorm]] and [[testing]] document the clean-install/live-validation procedure and the boundary that `/usr/bin/hive` versus service/user-local binary drift is diagnosed, not changed here.
++
++**Refreshed pages:**
++- [[stages/brainstorm]]
++- [[testing]]
+diff --git a/wiki/log.d/20260715T143614Z-claude-tmux-ready-review-hardening.md b/wiki/log.d/20260715T143614Z-claude-tmux-ready-review-hardening.md
+new file mode 100644
+index 00000000..ac674af9
+--- /dev/null
++++ b/wiki/log.d/20260715T143614Z-claude-tmux-ready-review-hardening.md
+@@ -0,0 +1,10 @@
++## [2026-07-15T14:36:14Z] fix — close Claude tmux readiness safety gaps
++
++**Action:** Hardened `Hive::ClaudeLauncher` after review found that its 10-line caret window also truncated permission/trust guards and that output-shaped text could satisfy broad prompt-chrome matchers. Readiness now captures untruncated pane history for safety guards, and a later banner starts a new safety block only after a numbered menu in the preceding block; long dialogs, internal blanks, and banner-shaped preview content therefore cannot erase active safety copy while completed dialogs become stale. Only the caret search is bounded. Arbitrary textual line-start carets, bare carets followed by unpaired chrome, and line-end carets without a recognized footer remain busy; the known legacy quoted `❯ Try "…"` footer-only prompt and boxed Claude Code 2.1.179 form remain ready. Focused regressions cover long, blank-separated, and banner-shaped permission/folder-trust dialogs, final streamed command output, arrow/separator-shaped tails, and the prior footer-only layout. [[stages/brainstorm]] and [[testing]] describe the resulting contract.
++
++The same pass produced clean-install packaging evidence for `hive-cli` 0.3.2 but could not complete the live acceptance because the review runner lacked tmux, configured Claude skills, and Claude authentication. [[gaps]] records the exact incomplete result so it is not mistaken for green doctor or terminal-marker evidence.
++
++**Refreshed pages:**
++- [[stages/brainstorm]]
++- [[testing]]
++- [[gaps]]
+diff --git a/wiki/stages/brainstorm.md b/wiki/stages/brainstorm.md
+index 87991c5d..b4d3709b 100644
+--- a/wiki/stages/brainstorm.md
++++ b/wiki/stages/brainstorm.md
+@@ -3,7 +3,7 @@ title: 2-brainstorm stage
+ type: stage
+ source: lib/hive/stages/brainstorm.rb, lib/hive/stages/brainstorm_tmux.rb, lib/hive/tmux_runner.rb, templates/brainstorm_prompt.md.erb
+ created: 2026-04-25
+-updated: 2026-06-16
++updated: 2026-07-15
+ tags: [stage, brainstorm, qa, tmux]
+ ---
+ 
+@@ -13,9 +13,9 @@ tags: [stage, brainstorm, qa, tmux]
+ 
+ - **State file**: `brainstorm.md` (touched empty if absent so the marker write has a target).
+ - **Prompt**: `templates/brainstorm_prompt.md.erb`, rendered with `project_name`, `task_folder`, `idea_text`. Idea text is wrapped in `<user_supplied content_type="idea_text">…</user_supplied>` per the prompt-injection boundary policy.
+-- **Agent invocation**: `cwd = task.folder`, `--add-dir <task.folder>`, `log_label = "brainstorm"`. For `claude.mode: tmux`, `Hive::ClaudeLauncher` starts Claude through `interactive_claude_wrapper.sh`, unsets API-key env vars, maps `claude.permission_mode` (default `bypassPermissions`) to the same flags the headless path uses (`bypassPermissions` → `--dangerously-skip-permissions`, otherwise `--permission-mode <mode>`) plus `--allowedTools Read,Write,Edit,LS`, waits for the TUI prompt, and then asks `Hive::TmuxRunner` to paste the rendered prompt and submit only after the pane tail has settled.
++- **Agent invocation**: `cwd = task.folder`, `--add-dir <task.folder>`, `log_label = "brainstorm"`. For `claude.mode: tmux`, `Hive::ClaudeLauncher` starts Claude through its `LAUNCHER_SCRIPTS` manifest entry `interactive_claude_wrapper.sh`, unsets API-key env vars, maps `claude.permission_mode` (default `bypassPermissions`) to the same flags the headless path uses (`bypassPermissions` → `--dangerously-skip-permissions`, otherwise `--permission-mode <mode>`) plus `--allowedTools Read,Write,Edit,LS`, waits for the TUI prompt, and then asks `Hive::TmuxRunner` to paste the rendered prompt and submit only after the pane tail has settled. `hive.gemspec` packages every runtime `lib/hive/scripts/**/*.sh` file (including the wrapper and Stop hook); tests inspect a built archive, and release smoke checks the isolated installed artifact.
+ - **Tmux readiness env vars**: `Hive::ClaudeLauncher` owns `HIVE_CLAUDE_TMUX_*` readiness settings. `SESSION_READY`, `PID_READY`, and `CLAUDE_READY` inherit `HIVE_CLAUDE_TMUX_READY_WAIT_TIMEOUT_SEC` when their specific env var is unset; `CLAUDE_READY` otherwise keeps a 120s bare default for slow Claude TUI startup. Legacy `HIVE_BRAINSTORM_TMUX_*` names remain fallback inputs during the migration window.
+-- **Claude TUI readiness predicates**: Trust and ready strings are named constants in `Hive::ClaudeLauncher`, pinned to the Claude Code 2.1.133 TUI observed during the 2026-05-25 tmux dogfood. `claude_ready_prompt?` accepts the idle caret at the bottom of the input box with the current Claude footer, including the patrol-observed case where the captured pane tail has scrolled the `Claude Code` banner out but still shows `... PR #N ... for agents`; it classifies trust and permission prompts from the current prompt block instead of stale scrollback, and rejects numbered menu options as non-ready.
++- **Claude TUI readiness predicates**: Trust and ready strings are named constants in `Hive::ClaudeLauncher`. `Hive::TmuxRunner#capture_pane` supplies untruncated pane history for trust and permission guards; a later banner starts a new safety block only after a numbered safety menu in the preceding block, so long dialogs, internal blanks, or banner-shaped preview content cannot erase an active guard while completed dialogs become stale. The detector searches only the last 10 nonblank current-prompt lines for a candidate. It accepts the bare line-start caret with ASCII/Unicode separator whitespace (including U+00A0 NBSP), the legacy quoted `❯ Try "…"` textual prompt, and the context-prefixed line-end form. Other textual line-start forms such as streamed `❯ npm test` or `❯ Try npm test` output remain busy. Only recognized separator/footer chrome may follow a candidate; a bare caret with trailing chrome also needs the opening separator immediately above it, while a line-end caret with trailing chrome needs the recognized `for agents` footer. The legacy footer-only textual layout remains valid. The detector retains banner/current-footer positive evidence, including the patrol-observed banner-scrolled case, and rejects ASCII- or NBSP-separated numbered menus, embedded carets, and substantive busy output. The fixture suite covers the Claude Code 2.1.179 separator/caret/separator/footer shape without tying readiness to a version or footer offset.
+ - **Tmux submit/session failures**: `Hive::TmuxRunner#send_prompt` loads and pastes the prompt through a tmux buffer, waits until the pane tail is identical across two consecutive captures (`PROMPT_SETTLE_STABLE_POLLS`) or the bounded `HIVE_TMUX_PROMPT_SETTLE_TIMEOUT_SEC` deadline passes, then sends one explicit Enter. `HIVE_TMUX_PROMPT_SUBMIT_DELAY_SEC` is the poll interval. This avoids the old large-paste race where Enter could fire while a multi-chunk prompt was still rendering and be swallowed by the input box. If tmux disappears before that Enter submit or a tmux command exceeds `HIVE_TMUX_COMMAND_TIMEOUT_SEC`, the typed tmux error propagates immediately. During marker polling, `Hive::ClaudeLauncher.wait_for_terminal_marker` also checks that the tmux session still exists while `brainstorm.md` is stuck on `AGENT_WORKING`; a disappeared session stamps `ERROR reason=tmux_session_terminated` instead of waiting for the full brainstorm timeout.
+ - **Tmux cleanup/orphan sweep**: cleanup is shared in `Hive::ClaudeLauncher`. After `/quit` and `kill_session`, the launcher sweeps leftover Claude processes by this task's `--add-dir <task.folder>` while skipping matched `tmux` commands and logging killed/skipped entries to `claude-tmux-orphan-sweep.log`. The skip is load-bearing because the tmux server can keep the first session's full argv and would otherwise match the task-specific sweep pattern.
+ - **Profile**: `Hive::Stages::Base.stage_profile(cfg, "brainstorm")` — reads `cfg.dig("brainstorm", "agent")` with `|| "claude"` fallback so legacy configs keep working. Spawn pins `status_mode: :state_file_marker` regardless of profile, because brainstorm's lifecycle contract is the WAITING/COMPLETE marker the agent writes to `brainstorm.md` — codex's profile default `:output_file_exists` would never satisfy that.
+diff --git a/wiki/testing.md b/wiki/testing.md
+index 259e6e7f..62d83660 100644
+--- a/wiki/testing.md
++++ b/wiki/testing.md
+@@ -3,7 +3,7 @@ title: Testing
+ type: reference
+ source: test/, Rakefile, bin/hive-eval, .rubocop.yml, .github/workflows/ci.yml, .github/workflows/release.yml, config/brakeman.ignore
+ created: 2026-04-25
+-updated: 2026-06-25
++updated: 2026-07-15
+ tags: [test, minitest, fixtures]
+ ---
+ 
+@@ -223,7 +223,7 @@ The live Telegram bot E2E wrapper lives at `test/e2e/tg/run_idea_e2e.sh` and is
+ 
+ ## Live Claude tmux dogfood
+ 
+-The global `claude.mode: tmux` path was manually dogfooded on 2026-05-25 in a disposable git project with a temporary `HIVE_HOME` and private `HIVE_TMUX_SOCKET`. The run used Claude Code 2.1.133 and tmux 3.6a.
++The global `claude.mode: tmux` path was manually dogfooded on 2026-05-25 in a disposable git project with a temporary `HIVE_HOME` and private `HIVE_TMUX_SOCKET`. The run used Claude Code 2.1.133 and tmux 3.6a. The detector is no longer pinned to that layout: `claude_launcher_test.rb` carries hand-authored legacy and Claude Code 2.1.179 panes, including literal U+00A0 NBSP, a 10-nonblank-line caret scan, variable separator/footer depth, and trust/permission/menu/stale/busy rejection cases. Trust and permission copy comes from untruncated pane history; boundary regressions cover long and blank-separated dialogs plus arbitrary, exact plain, and exact logo-bearing banner-shaped preview content. Final textual lines such as `❯ npm test` and `❯ Try npm test`, bare carets followed by unpaired chrome, and line-end carets followed only by separators or generic `⏵⏵` output remain busy. Only the known quoted legacy `❯ Try "…"` suggestion accepts a footer without an opening separator. `test/integration/gem_package_test.rb` builds a temporary `.gem` and reads its archive to require every launcher-manifest script plus all runtime shell scripts; the release workflow repeats the launcher-manifest assertion against its isolated installed gem, and the test suite pins that a missing manifest entry's diagnostic names its gem-relative path.
+ 
+ Run shape:
+ 
+@@ -238,6 +238,9 @@ argv pins, so it proves tmux-mode launch/cleanup but not the new
+ `--model default` or `--effort <level>` behavior against a live Claude
+ Code binary.
+ 
++For a post-change live validation, build and install the gem into a temporary
++`GEM_HOME`, record `GEM_HOME="$sandbox" GEM_PATH="$sandbox" "$sandbox/bin/hive" --version`, run that same environment's `hive doctor`, and reproduce `hive run <repo>/.hive-state/stages/2-brainstorm/add-local-hive-web-install-260629-f4ca` with Claude tmux mode and the Compound Engineering plugin installed. The expected outcome is stage-prompt submission and `WAITING` or another terminal marker, while doctor remains green. A different `/usr/bin/hive` or service-selected binary is recorded as the separate binary-drift issue; this work does not alter daemon or systemd selection. See [[stages/brainstorm]].
++
+ ## Eval suite (`test/eval/`)
+ 
+ The Telegram bot eval harness is opt-in and separate from the default suite:

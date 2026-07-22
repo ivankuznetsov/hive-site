@@ -425,8 +425,10 @@ section:nth-of-type(even) { background: var(--bg-alt); }
 }
 .bench-table-scroll .bench-matrix { min-width: 100%; margin-bottom: 0; }
 .bench-table-scroll:focus-visible { outline: 2px solid var(--accent, #d97757); outline-offset: 2px; }
-.bench-summary-table { margin-bottom: 0; }
-.bench-summary-table th:first-child { width: 25%; }
+.bench-summary-table { margin-bottom: 0; min-width: 64rem; }
+.bench-summary-table th:first-child { width: 23%; }
+.bench-summary-table thead th,
+.bench-sort-button { white-space: nowrap; }
 .bench-sort-button {
   align-items: baseline; appearance: none; background: none; border: 0; color: inherit;
   cursor: pointer; display: inline-flex; font: inherit; gap: 0.3rem; letter-spacing: inherit;
@@ -455,6 +457,15 @@ section:nth-of-type(even) { background: var(--bg-alt); }
 }
 .bench-summary-table tbody th small,
 .bench-summary-table td small { display: block; margin-top: 0.2rem; color: var(--muted, #9aa5b1); font-weight: 400; line-height: 1.35; }
+.bench-discussion-cell { background: color-mix(in srgb, var(--accent, #d97757) 5%, transparent); }
+.bench-discussion-missing { color: var(--muted, #9aa5b1); font-size: 0.88rem; }
+.bench-table-scroll--summary { margin-bottom: 0.55rem; }
+.bench-discussion-note {
+  background: color-mix(in srgb, var(--accent, #d97757) 6%, transparent);
+  border-left: 3px solid color-mix(in srgb, var(--accent, #d97757) 55%, transparent);
+  border-radius: 0 6px 6px 0; font-size: 0.82rem; line-height: 1.45;
+  margin: 0 0 0.8rem; padding: 0.55rem 0.7rem;
+}
 .bench-prelim {
   display: inline-block; font-size: 0.62em; font-weight: 700; letter-spacing: 0.06em;
   text-transform: uppercase; padding: 0.12em 0.45em; border-radius: 999px; margin-left: 0.35em;
@@ -487,6 +498,8 @@ section:nth-of-type(even) { background: var(--bg-alt); }
 
   .bench-summary-table,
   .bench-responsive-matrix { min-width: 0 !important; }
+
+  .bench-discussion-note { margin-top: -0.15rem; }
 
   .bench-summary-table thead,
   .bench-responsive-matrix thead {

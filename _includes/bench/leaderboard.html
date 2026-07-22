@@ -15,10 +15,7 @@
       columns remain the primary evidence because their calibrations differ.
       <span class="bench-prelim">same-family</span> means that judge shares a
       model family with the candidate. Bold scores are the independent means
-      used for ranking. On the three follow-up rows, <em>discussion final</em>
-      is a separate one-shot diagnostic: each judge sees the other anonymous
-      referee's rationale, challenges its own fresh verdict, then holds or
-      revises. It never changes sorting. Efficiency averages use only recorded cells.
+      used for the default ranking. Efficiency averages use only recorded cells.
     </p>
     <div class="bench-sort-controls" data-bench-sort-controls>
       <label for="bench-summary-sort">Sort by</label>
@@ -27,6 +24,7 @@
         <option value="candidate">Candidate</option>
         <option value="fable">Fable score</option>
         <option value="sol">Sol score</option>
+        <option value="discussion">After-discussion score</option>
         <option value="time">Mean time</option>
         <option value="cost">Cost per task</option>
         <option value="tokens">Tokens per task</option>
@@ -39,8 +37,9 @@
         <tr>
           <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="candidate" data-sort-type="text">Candidate <span aria-hidden="true"></span></button></th>
           <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="fable" data-sort-type="number">Fable <span aria-hidden="true"></span></button></th>
-          <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="sol" data-sort-type="number">Sol <small>xhigh / ultra</small> <span aria-hidden="true"></span></button></th>
+          <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="sol" data-sort-type="number">Sol ultra/xhigh <span aria-hidden="true"></span></button></th>
           <th scope="col" aria-sort="descending"><button class="bench-sort-button" type="button" data-sort-key="combined" data-sort-type="number">Combined <span aria-hidden="true">↓</span></button></th>
+          <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="discussion" data-sort-type="number">After discussion <span aria-hidden="true"></span></button></th>
           <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="time" data-sort-type="number">Mean time <span aria-hidden="true"></span></button></th>
           <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="cost" data-sort-type="number">$/task <span aria-hidden="true"></span></button></th>
           <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="tokens" data-sort-type="number">Tokens/task <span aria-hidden="true"></span></button></th>
@@ -59,6 +58,7 @@
             data-sort-fable="{{ fable_row.mean }}"
             data-sort-sol="{{ sol_row.mean }}"
             data-sort-combined="{{ combined_mean }}"
+            data-sort-discussion="{% if discussion_candidate %}{{ discussion_candidate.combined.mean }}{% endif %}"
             data-sort-time="{% if candidate.mean_minutes %}{{ candidate.mean_minutes }}{% endif %}"
             data-sort-cost="{% if candidate.cost_per_task_usd %}{{ candidate.cost_per_task_usd }}{% endif %}"
             data-sort-tokens="{% if candidate.normalized_mtokens_per_task %}{{ candidate.normalized_mtokens_per_task }}{% endif %}">
@@ -66,21 +66,24 @@
               <code>{{ candidate.label }}</code>
               <small>{{ candidate.reasoning }}</small>
               {% if candidate.samples_per_cell > 1 %}
-                <small><span class="bench-prelim">{{ candidate.samples_per_cell }} samples/judge</span>{% unless candidate.raw_evidence_published %} · site snapshot evidence{% endunless %}</small>
+                <small><span class="bench-prelim">{{ candidate.samples_per_cell }} samples/judge</span>{% if candidate.patches_published %} · scores + public diffs{% elsif candidate.raw_evidence_published == false %} · site snapshot evidence{% endif %}</small>
               {% endif %}
             </th>
             <td data-label="Fable">
               <span class="bench-cell-value"><strong>{{ fable_row.mean }}</strong>
-              {% if fable_row.same_family %}<span class="bench-prelim">same-family</span>{% endif %}
-              {% if discussion_candidate %}<small>discussion final {{ discussion_candidate.fable.mean }} · {{ discussion_candidate.fable.sample }}/{{ discussion_candidate.fable.total }}</small>{% endif %}</span>
+              {% if fable_row.same_family %}<span class="bench-prelim">same-family</span>{% endif %}</span>
             </td>
             <td data-label="Sol">
               <span class="bench-cell-value"><strong>{{ sol_row.mean }}</strong>
-              {% if sol_row.same_family %}<span class="bench-prelim">same-family</span>{% endif %}
-              {% if discussion_candidate %}<small>discussion final {{ discussion_candidate.sol.mean }} · {{ discussion_candidate.sol.sample }}/{{ discussion_candidate.sol.total }}</small>{% endif %}</span>
+              {% if sol_row.same_family %}<span class="bench-prelim">same-family</span>{% endif %}</span>
             </td>
-            <td data-label="Combined"><span class="bench-cell-value"><strong>{{ combined_mean }}</strong>
-              {% if discussion_candidate %}<small>discussion final {{ discussion_candidate.combined.mean }} · {{ discussion_candidate.combined.sample }}/{{ discussion_candidate.combined.total }} paired</small>{% endif %}</span></td>
+            <td data-label="Combined"><span class="bench-cell-value"><strong>{{ combined_mean }}</strong></span></td>
+            <td data-label="After discussion" class="bench-discussion-cell">
+              <span class="bench-cell-value">{% if discussion_candidate %}<strong>{{ discussion_candidate.combined.mean }}</strong>
+                <small>Fable {{ discussion_candidate.fable.mean }} · Sol {{ discussion_candidate.sol.mean }}</small>
+                <small>{{ discussion_candidate.combined.sample }}/{{ discussion_candidate.combined.total }} paired</small>
+              {% else %}<span class="bench-discussion-missing">not run</span>{% endif %}</span>
+            </td>
             <td data-label="Mean time">
               <span class="bench-cell-value">{% if candidate.mean_minutes %}{{ candidate.mean_minutes }} min
                 <small>{{ candidate.time_sample }}/{{ candidate.total }} timed</small>
@@ -89,6 +92,8 @@
             <td data-label="Cost / task">
               <span class="bench-cell-value">{% if candidate.cost_per_task_usd %}${{ candidate.cost_per_task_usd }}
                 <small>{{ candidate.cost_sample }}/{{ candidate.total }} priced</small>
+              {% elsif candidate.known_cost_per_task_usd %}{% assign rounded_known_cost = candidate.known_cost_per_task_usd | round: 2 %}{% assign one_decimal_known_cost = candidate.known_cost_per_task_usd | round: 1 %}${{ rounded_known_cost }}{% if rounded_known_cost == one_decimal_known_cost %}0{% endif %} known
+                <small>{{ candidate.known_cost_sample }}/{{ candidate.total }} known · partial</small>
               {% else %}unknown{% endif %}</span>
             </td>
             <td data-label="Tokens / task">
@@ -102,12 +107,18 @@
       </tbody>
     </table>
     </div>
+    <p class="bench-meta bench-discussion-note">
+      <strong>Discussion</strong> is a one-shot diagnostic: each judge saw the
+      other anonymous rationale, challenged its own fresh verdict, then held or
+      revised it. Only the three mixed-workflow follow-up rows ran this step, so
+      earlier candidates show <em>not run</em>. Independent scores remain the
+      default ranking; sorting this column uses the paired final mean, putting
+      uncovered rows last.
+    </p>
     <p class="bench-meta">
       Combined is <code>(Fable + Sol) / 2</code> and is used only to provide one
-      compact ordering. Discussion-final combined values likewise use only cells
-      with both final decisions; all 36 judge decisions and all 18 paired cells
-      are available. Token totals include fresh input, output, cache reads,
-      and cache writes. Rows labeled as Sol-only are partial provider subtotals,
+      compact ordering. Token totals include fresh input, output, cache reads,
+      and cache writes. Rows labeled as known-provider subtotals are partial,
       not complete workflow totals; Grok usage is unavailable. See the
       <a href="{{ '/bench/methodology/#time-tokens-and-cost' | relative_url }}">token
       accounting and pricing methodology</a> for the normalization rules,
@@ -151,18 +162,18 @@
               {% assign stat = candidate.efficiency_by_task[task.key] %}
               <td data-task="{{ task.key }}">
                 <span class="bench-cell-value">
-                {% if stat.cost_usd %}{% assign rounded_cost = stat.cost_usd | round: 2 %}{% assign one_decimal_cost = stat.cost_usd | round: 1 %}<strong>${{ rounded_cost }}{% if rounded_cost == one_decimal_cost %}0{% endif %}</strong>{% else %}<strong>cost unknown</strong>{% endif %}<br>
+                {% if stat.cost_usd %}{% assign rounded_cost = stat.cost_usd | round: 2 %}{% assign one_decimal_cost = stat.cost_usd | round: 1 %}<strong>${{ rounded_cost }}{% if rounded_cost == one_decimal_cost %}0{% endif %}</strong>{% elsif stat.known_cost_usd %}{% assign rounded_cost = stat.known_cost_usd | round: 2 %}{% assign one_decimal_cost = stat.known_cost_usd | round: 1 %}<strong>${{ rounded_cost }}{% if rounded_cost == one_decimal_cost %}0{% endif %} known</strong><br><small>known-provider cost · partial</small>{% else %}<strong>cost unknown</strong>{% endif %}<br>
                 {% if stat.tokens %}
                   {% assign input_mtokens = stat.tokens.input | times: 0.000001 | round: 3 %}
                   {% assign output_mtokens = stat.tokens.output | times: 0.000001 | round: 3 %}
                   {% assign cache_read_mtokens = stat.tokens.cache_read | times: 0.000001 | round: 3 %}
                   {% assign cache_write_mtokens = stat.tokens.cache_write | times: 0.000001 | round: 3 %}
-                  <small><strong>{{ stat.normalized_mtokens }}M </strong><span class="bench-info-cluster"><strong>{% if candidate.token_scope %}Sol-only tokens{% else %}tokens{% endif %}</strong><button type="button" class="bench-info"
-                      aria-label="{% if candidate.token_scope %}Sol-only token details; {{ candidate.token_scope }}. {% else %}Token details: {% endif %}fresh input {{ input_mtokens }} million, output {{ output_mtokens }} million, cache read {{ cache_read_mtokens }} million, cache write {{ cache_write_mtokens }} million"
+                  <small><strong>{{ stat.normalized_mtokens }}M </strong><span class="bench-info-cluster"><strong>{% if candidate.token_scope %}Known-provider tokens{% else %}tokens{% endif %}</strong><button type="button" class="bench-info"
+                      aria-label="{% if candidate.token_scope %}Known-provider token details; {{ candidate.token_scope }}. {% else %}Token details: {% endif %}fresh input {{ input_mtokens }} million, output {{ output_mtokens }} million, cache read {{ cache_read_mtokens }} million, cache write {{ cache_write_mtokens }} million"
                       data-bench-tooltip="{% if candidate.token_scope %}{{ candidate.token_scope }} · {% endif %}Fresh input {{ input_mtokens }}M · output {{ output_mtokens }}M · cache read {{ cache_read_mtokens }}M · cache write {{ cache_write_mtokens }}M"><span class="bench-info-glyph" aria-hidden="true">i</span></button></span>
                   </small><br>
                   {% if candidate.token_scope %}<small>{{ candidate.token_scope }}</small><br>{% endif %}
-                {% else %}{% if candidate.token_scope %}<small>Sol tokens unavailable</small><br><small>{{ candidate.token_scope }}</small><br>{% else %}<small>tokens unknown</small><br>{% endif %}{% endif %}
+                {% else %}{% if candidate.token_scope %}<small>known-provider tokens unavailable</small><br><small>{{ candidate.token_scope }}</small><br>{% else %}<small>tokens unknown</small><br>{% endif %}{% endif %}
                 <small>{% if stat.wall_minutes %}{{ stat.wall_minutes }} min{% else %}time not recorded{% endif %}</small>
                 </span>
               </td>
@@ -215,8 +226,8 @@
               <td data-task="{{ task.key }}">
                 <span class="bench-cell-value">
                 {% if cell.result_url %}<a href="{{ cell.result_url }}">{{ cell.scores }}</a>{% else %}{{ cell.scores }}{% endif %}<br>
-                {% if discussion_cell %}<small>discussion final
-                  {% if discussion_cell.fable.final != nil %}{{ discussion_cell.fable.final }}{% else %}unavailable{% endif %} /
+                {% if discussion_cell %}<small>discussion final · Fable
+                  {% if discussion_cell.fable.final != nil %}{{ discussion_cell.fable.final }}{% else %}unavailable{% endif %} · Sol
                   {% if discussion_cell.sol.final != nil %}{{ discussion_cell.sol.final }}{% else %}unavailable{% endif %}
                 </small><br>{% endif %}
                 <small>{% if cell.patch_url %}<a href="{{ cell.patch_url }}">diff</a>{% else %}diff not public{% endif %}{% if cell.judge_samples %} · {{ candidate.samples_per_cell }} samples/judge{% endif %}</small>
@@ -247,10 +258,8 @@
 
     <h2>Audit the campaign</h2>
     <p>
-      Every leaderboard score can be traced to a machine-readable record. The
-      original 36-cell campaign also publishes every exact final diff; the 18
-      mixed-workflow patches are not yet in the public raw-evidence bundle. The
-      published evidence lets you:
+      Every leaderboard score can be traced to a machine-readable record, and
+      all 54 exact final diffs are public. The published evidence lets you:
     </p>
     <ul>
       <li>Read the <a href="{{ b.evidence.readme }}">publication notes</a> for
@@ -267,19 +276,17 @@
         layer, recorded time, normalized token values, and API-equivalent cost
         estimates.</li>
       <li>Read or compare the <a href="{{ b.evidence.cells }}">36 original
-        candidate patches</a>&mdash;the public final code artifacts available
-        for direct audit today.</li>
+        candidate patches</a> or follow the per-cell links above for all 18
+        mixed-workflow patches.</li>
     </ul>
     <p>
-      For the original campaign, these artifacts let you audit a score against
-      the code and verify each patch against the manifest's byte size and
-      SHA-256. For the follow-up, the site snapshot preserves the independent
-      score samples and intervals while raw patch publication remains pending.
-      Raw provider streams, build logs, target clones, and auth material are
-      intentionally not published. Displayed wall times can be checked in the
-      score results where raw evidence is public. Normalized token splits and
-      recomputed costs live in the site snapshot and cannot yet be independently
-      rebuilt from the public bundle.
+      These artifacts let you audit every score against the candidate code.
+      The original campaign manifest also records each patch's byte size and
+      SHA-256. Raw provider streams, build logs, target clones, and auth
+      material are intentionally not published. Displayed wall times can be
+      checked in the score results where raw evidence is public. Normalized
+      token splits and recomputed costs live in the site snapshot and cannot yet
+      be independently rebuilt from the public bundle.
     </p>
     <ul class="bench-foot">
       {% for note in b.notes %}<li>{{ note }}</li>{% endfor %}
