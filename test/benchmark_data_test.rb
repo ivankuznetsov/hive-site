@@ -104,30 +104,26 @@ class BenchmarkDataTest < Minitest::Test
     assert_equal "diagnostic", discussion.fetch("status")
     assert_equal 18, discussion.dig("coverage", "cells")
     assert_equal 18, discussion.dig("coverage", "expected_cells")
-    assert_equal 35, discussion.dig("coverage", "judge_decisions")
+    assert_equal 36, discussion.dig("coverage", "judge_decisions")
     assert_equal 36, discussion.dig("coverage", "expected_judge_decisions")
-    assert_equal 17, discussion.dig("coverage", "fully_adjusted_cells")
-    assert_equal [{
-      "candidate_id" => "fable-plan->grok-exec-sol-review",
-      "task_key" => "daemon",
-      "judge" => "gpt-5.6-sol"
-    }], discussion.dig("coverage", "missing")
+    assert_equal 18, discussion.dig("coverage", "fully_adjusted_cells")
+    assert_empty discussion.dig("coverage", "missing")
     assert_equal(-0.778, discussion.dig("summary", "mean_revision_by_judge", "fable-5"))
-    assert_equal(-0.053, discussion.dig("summary", "mean_revision_by_judge", "gpt-5.6-sol"))
+    assert_equal(-0.061, discussion.dig("summary", "mean_revision_by_judge", "gpt-5.6-sol"))
     assert_equal 2.044, discussion.dig("summary", "mean_spread_before")
-    assert_equal 1.317, discussion.dig("summary", "mean_spread_after")
+    assert_equal 1.328, discussion.dig("summary", "mean_spread_after")
 
     discussion_candidates = discussion.fetch("candidates").to_h { |candidate| [candidate.fetch("id"), candidate] }
     assert_equal [6.583, 6, 6], discussion_candidates.dig("fable-plan->grok-exec-sol-review", "fable").values_at("mean", "sample", "total")
-    assert_equal [5.5, 5, 6], discussion_candidates.dig("fable-plan->grok-exec-sol-review", "sol").values_at("mean", "sample", "total")
-    assert_equal [6.05, 5, 6], discussion_candidates.dig("fable-plan->grok-exec-sol-review", "combined").values_at("mean", "sample", "total")
+    assert_equal [5.517, 6, 6], discussion_candidates.dig("fable-plan->grok-exec-sol-review", "sol").values_at("mean", "sample", "total")
+    assert_equal [6.05, 6, 6], discussion_candidates.dig("fable-plan->grok-exec-sol-review", "combined").values_at("mean", "sample", "total")
     assert_equal [7.383, 6, 6], discussion_candidates.dig("sol-plan->grok-exec-sol-review", "fable").values_at("mean", "sample", "total")
     assert_equal [6.433, 6, 6], discussion_candidates.dig("sol-plan->grok-exec-sol-review", "sol").values_at("mean", "sample", "total")
     assert_equal [6.908, 6, 6], discussion_candidates.dig("sol-plan->grok-exec-sol-review", "combined").values_at("mean", "sample", "total")
     assert_equal [7.45, 6, 6], discussion_candidates.dig("sol-plan->terra-exec-sol-review", "fable").values_at("mean", "sample", "total")
     assert_equal [5.483, 6, 6], discussion_candidates.dig("sol-plan->terra-exec-sol-review", "sol").values_at("mean", "sample", "total")
     assert_equal [6.467, 6, 6], discussion_candidates.dig("sol-plan->terra-exec-sol-review", "combined").values_at("mean", "sample", "total")
-    assert_nil discussion_candidates.dig("fable-plan->grok-exec-sol-review", "cells", "daemon", "sol", "final")
+    assert_equal 5.6, discussion_candidates.dig("fable-plan->grok-exec-sol-review", "cells", "daemon", "sol", "final")
     assert_equal 6.5, discussion_candidates.dig("fable-plan->grok-exec-sol-review", "cells", "daemon", "fable", "final")
 
     terra_candidate = DATA.fetch("candidates").find do |candidate|
@@ -225,11 +221,12 @@ class BenchmarkDataTest < Minitest::Test
       assert_includes sol_grok_summary, "discussion final 6.433 · 6/6"
       assert_includes sol_grok_summary, "discussion final 6.908 · 6/6 paired"
       assert_includes fable_summary, "discussion final 6.583 · 6/6"
-      assert_includes fable_summary, "discussion final 5.5 · 5/6"
-      assert_includes fable_summary, "discussion final 6.05 · 5/6 paired"
+      assert_includes fable_summary, "discussion final 5.517 · 6/6"
+      assert_includes fable_summary, "discussion final 6.05 · 6/6 paired"
       assert_equal 6, fable_row.scan("discussion final").length
       assert_includes fable_row, "6.5 /"
-      assert_includes fable_row, "unavailable"
+      assert_includes fable_row, "5.6"
+      refute_includes fable_row, "unavailable"
       assert_includes html, "a separate one-shot diagnostic"
 
       rendered_snapshot = JSON.parse(File.binread(File.join(destination, "bench", "results.json")))

@@ -2,7 +2,7 @@
   "schema": "hive-bench-results-site",
   "schema_version": 7,
   "corpus_version": "v2-ce + v3-mixed-workflows-followup-20260713",
-  "generated_at": "2026-07-22T11:59:16Z",
+  "generated_at": "2026-07-22T13:02:50Z",
   "status": "preliminary_complete",
   "coverage": {
     "cells": 54,
@@ -38,29 +38,23 @@
     "coverage": {
       "cells": 18,
       "expected_cells": 18,
-      "judge_decisions": 35,
+      "judge_decisions": 36,
       "expected_judge_decisions": 36,
-      "fully_adjusted_cells": 17,
-      "missing": [
-        {
-          "candidate_id": "fable-plan->grok-exec-sol-review",
-          "task_key": "daemon",
-          "judge": "gpt-5.6-sol"
-        }
-      ]
+      "fully_adjusted_cells": 18,
+      "missing": []
     },
     "summary": {
       "cells": 18,
       "mean_revision_by_judge": {
         "fable-5": -0.778,
-        "gpt-5.6-sol": -0.053
+        "gpt-5.6-sol": -0.061
       },
       "mean_abs_revision_by_judge": {
         "fable-5": 0.778,
-        "gpt-5.6-sol": 0.276
+        "gpt-5.6-sol": 0.272
       },
       "mean_spread_before": 2.044,
-      "mean_spread_after": 1.317
+      "mean_spread_after": 1.328
     },
     "candidates": [
       {
@@ -71,13 +65,13 @@
           "total": 6
         },
         "sol": {
-          "mean": 5.5,
-          "sample": 5,
+          "mean": 5.517,
+          "sample": 6,
           "total": 6
         },
         "combined": {
           "mean": 6.05,
-          "sample": 5,
+          "sample": 6,
           "total": 6
         },
         "cells": {
@@ -160,9 +154,9 @@
             },
             "sol": {
               "initial": 5.8,
-              "final": null,
-              "delta": null,
-              "revised": false
+              "final": 5.6,
+              "delta": -0.2,
+              "revised": true
             }
           }
         }
@@ -2406,7 +2400,7 @@
   "notes": [
     "All 54 generation cells completed. Every objective gate is no_gate in both campaigns, so scores are judge evidence, not test-pass rates.",
     "The original 36-cell campaign uses one sample per judge; the 18-cell mixed-workflow follow-up uses three samples per judge and ran adversarial deliberation across all 18 cells.",
-    "Discussion final is a separate one-shot diagnostic, not an adjustment to the independent three-sample leaderboard mean. It covers 35/36 judge decisions; the missing Sol decision is shown as unavailable and is not imputed.",
+    "Discussion final is a separate one-shot diagnostic, not an adjustment to the independent three-sample leaderboard mean. It covers 36/36 judge decisions. The originally interrupted Sol round-two daemon verdict was recovered from the preserved round-one referee pair; no independent score changed.",
     "Efficiency uses each campaign's serialized generation telemetry. Five Sol → Terra follow-up cells have recomputed API-equivalent costs; Grok workflows keep cost unknown because Grok usage telemetry is unavailable.",
     "The mixed Opus → Codex estimate is $115.5829 across six cells: $67.3351 Codex 5.5, $47.6319 Opus 4.8, and $0.6159 Haiku utility calls, or $19.26 per task on average.",
     "Grok workflows publish explicitly partial Sol-only token subtotals where retained Sol events are complete. These are not full-workflow totals, and no Grok tokens are imputed.",

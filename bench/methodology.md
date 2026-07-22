@@ -128,12 +128,14 @@ rationale, must argue the strongest evidence-based case that its own fresh
 verdict is wrong, and finally holds or revises. It is not an adjustment applied
 to the three-sample mean.
 
-The site publishes 35 of 36 discussion-final judge decisions across all 18
-follow-up cells. The missing Sol decision for the Fable-plan/Grok-execute
-`daemon` cell is shown as unavailable and is not imputed. Discussion finals do
-not replace the independent leaderboard because exposing verdicts can add
-anchoring or convergence pressure even when it also surfaces genuine misses.
-The per-task board displays `Fable / Sol` in that order for both layers.
+The site publishes all 36 discussion-final judge decisions across all 18
+follow-up cells. Sol's originally interrupted second-round decision for the
+Fable-plan/Grok-execute `daemon` cell was recovered by replaying only round two
+from the preserved pair of round-one verdicts, plan, diff, and reference.
+Discussion finals do not replace the independent leaderboard because exposing
+verdicts can add anchoring or convergence pressure even when it also surfaces
+genuine misses. The per-task board displays `Fable / Sol` in that order for
+both layers.
 
 Judge calibrations are not interchangeable. The site keeps separate Fable and
 Sol columns as the primary evidence and uses their arithmetic mean only as a
