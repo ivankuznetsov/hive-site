@@ -70,9 +70,34 @@ class BenchmarkDataTest < Minitest::Test
     assert_nil fable_candidate.fetch("cost_total_usd")
     assert_equal 0, fable_candidate.fetch("cost_sample")
     assert fable_candidate.fetch("efficiency_by_task").values.all? { |task| task["cost_usd"].nil? }
-    assert_nil fable_candidate.fetch("normalized_mtokens_per_task")
-    assert_equal 0, fable_candidate.fetch("token_sample")
-    assert fable_candidate.fetch("efficiency_by_task").values.all? { |task| task["tokens"].nil? }
+    assert_equal 18.026, fable_candidate.fetch("normalized_mtokens_per_task")
+    assert_equal 2, fable_candidate.fetch("token_sample")
+    assert_equal "Sol review only · Fable plan excluded · Grok telemetry unavailable",
+                 fable_candidate.fetch("token_scope")
+    assert_equal %w[add-i-key fix-review], fable_candidate.fetch("efficiency_by_task").filter_map { |task, stat|
+      task if stat["tokens"]
+    }
+
+    sol_grok_candidate = DATA.fetch("candidates").find do |candidate|
+      candidate.fetch("id") == "sol-plan->grok-exec-sol-review"
+    end
+    assert_nil sol_grok_candidate.fetch("cost_per_task_usd")
+    assert_nil sol_grok_candidate.fetch("cost_total_usd")
+    assert_equal 0, sol_grok_candidate.fetch("cost_sample")
+    assert sol_grok_candidate.fetch("efficiency_by_task").values.all? { |task| task["cost_usd"].nil? }
+    assert_equal 29.123, sol_grok_candidate.fetch("normalized_mtokens_per_task")
+    assert_equal 6, sol_grok_candidate.fetch("token_sample")
+    assert_equal "Sol plan/review only · Grok telemetry unavailable", sol_grok_candidate.fetch("token_scope")
+    assert sol_grok_candidate.fetch("efficiency_by_task").values.all? { |task| task["tokens"] }
+
+    [fable_candidate, sol_grok_candidate].each do |candidate|
+      measured = candidate.fetch("efficiency_by_task").values.select { |task| task["tokens"] }
+      %w[input output cache_read cache_write].each do |bucket|
+        assert_equal measured.sum { |task| task.dig("tokens", bucket) }, candidate.dig("token_totals", bucket)
+      end
+      mean = measured.sum { |task| task.fetch("normalized_mtokens") } / measured.length
+      assert_in_delta mean, candidate.fetch("normalized_mtokens_per_task"), 0.001
+    end
 
     terra_candidate = DATA.fetch("candidates").find do |candidate|
       candidate.fetch("id") == "sol-plan->terra-exec-sol-review"
@@ -144,6 +169,25 @@ class BenchmarkDataTest < Minitest::Test
       fable_row = scores[/<tr>\s*<th scope="row"><code>Fable plan → Grok execute → Sol review<\/code>.*?<\/tr>/m]
       refute_nil fable_row
       refute_includes fable_row, ">diff</a>"
+
+      fable_summary = summary[/<tr[^>]*>\s*<th scope="row">\s*<code>Fable plan → Grok execute → Sol review<\/code>.*?<\/tr>/m]
+      refute_nil fable_summary
+      assert_includes fable_summary, "18.026M"
+      assert_includes fable_summary, "2/6 measured · partial"
+      assert_includes fable_summary, "Sol review only · Fable plan excluded · Grok telemetry unavailable"
+
+      sol_grok_summary = summary[/<tr[^>]*>\s*<th scope="row">\s*<code>Sol plan → Grok execute → Sol review<\/code>.*?<\/tr>/m]
+      refute_nil sol_grok_summary
+      assert_includes sol_grok_summary, "29.123M"
+      assert_includes sol_grok_summary, "6/6 measured · partial"
+      assert_includes sol_grok_summary, "Sol plan/review only · Grok telemetry unavailable"
+
+      fable_efficiency = efficiency[/<tr>\s*<th scope="row"><code>Fable plan → Grok execute → Sol review<\/code>.*?<\/tr>/m]
+      sol_grok_efficiency = efficiency[/<tr>\s*<th scope="row"><code>Sol plan → Grok execute → Sol review<\/code>.*?<\/tr>/m]
+      assert_equal 2, fable_efficiency.scan("Sol-only tokens").length
+      assert_equal 6, sol_grok_efficiency.scan("Sol-only tokens").length
+      assert_includes fable_efficiency, "Grok telemetry unavailable"
+      assert_includes sol_grok_efficiency, "Grok telemetry unavailable"
 
       rendered_snapshot = JSON.parse(File.binread(File.join(destination, "bench", "results.json")))
       assert_equal DATA, rendered_snapshot

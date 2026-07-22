@@ -85,7 +85,8 @@
             </td>
             <td data-label="Tokens / task">
               <span class="bench-cell-value">{% if candidate.normalized_mtokens_per_task %}{{ candidate.normalized_mtokens_per_task }}M
-                <small>{{ candidate.token_sample }}/{{ candidate.total }} measured</small>
+                <small>{{ candidate.token_sample }}/{{ candidate.total }} measured{% if candidate.token_scope %} · partial{% endif %}</small>
+                {% if candidate.token_scope %}<small>{{ candidate.token_scope }}</small>{% endif %}
               {% else %}unknown{% endif %}</span>
             </td>
           </tr>
@@ -96,7 +97,8 @@
     <p class="bench-meta">
       Combined is <code>(Fable + Sol) / 2</code> and is used only to provide one
       compact ordering. Token totals include fresh input, output, cache reads,
-      and cache writes. See the
+      and cache writes. Rows labeled as Sol-only are partial provider subtotals,
+      not complete workflow totals; Grok usage is unavailable. See the
       <a href="{{ '/bench/methodology/#time-tokens-and-cost' | relative_url }}">token
       accounting and pricing methodology</a> for the normalization rules,
       mixed-model attribution, and known telemetry gaps.
@@ -145,11 +147,12 @@
                   {% assign output_mtokens = stat.tokens.output | times: 0.000001 | round: 3 %}
                   {% assign cache_read_mtokens = stat.tokens.cache_read | times: 0.000001 | round: 3 %}
                   {% assign cache_write_mtokens = stat.tokens.cache_write | times: 0.000001 | round: 3 %}
-                  <small><strong>{{ stat.normalized_mtokens }}M </strong><span class="bench-info-cluster"><strong>tokens</strong><button type="button" class="bench-info"
-                      aria-label="Token details: fresh input {{ input_mtokens }} million, output {{ output_mtokens }} million, cache read {{ cache_read_mtokens }} million, cache write {{ cache_write_mtokens }} million"
-                      data-bench-tooltip="Fresh input {{ input_mtokens }}M · output {{ output_mtokens }}M · cache read {{ cache_read_mtokens }}M · cache write {{ cache_write_mtokens }}M"><span class="bench-info-glyph" aria-hidden="true">i</span></button></span>
+                  <small><strong>{{ stat.normalized_mtokens }}M </strong><span class="bench-info-cluster"><strong>{% if candidate.token_scope %}Sol-only tokens{% else %}tokens{% endif %}</strong><button type="button" class="bench-info"
+                      aria-label="{% if candidate.token_scope %}Sol-only token details; {{ candidate.token_scope }}. {% else %}Token details: {% endif %}fresh input {{ input_mtokens }} million, output {{ output_mtokens }} million, cache read {{ cache_read_mtokens }} million, cache write {{ cache_write_mtokens }} million"
+                      data-bench-tooltip="{% if candidate.token_scope %}{{ candidate.token_scope }} · {% endif %}Fresh input {{ input_mtokens }}M · output {{ output_mtokens }}M · cache read {{ cache_read_mtokens }}M · cache write {{ cache_write_mtokens }}M"><span class="bench-info-glyph" aria-hidden="true">i</span></button></span>
                   </small><br>
-                {% else %}<small>tokens unknown</small><br>{% endif %}
+                  {% if candidate.token_scope %}<small>{{ candidate.token_scope }}</small><br>{% endif %}
+                {% else %}{% if candidate.token_scope %}<small>Sol tokens unavailable</small><br><small>{{ candidate.token_scope }}</small><br>{% else %}<small>tokens unknown</small><br>{% endif %}{% endif %}
                 <small>{% if stat.wall_minutes %}{{ stat.wall_minutes }} min{% else %}time not recorded{% endif %}</small>
                 </span>
               </td>

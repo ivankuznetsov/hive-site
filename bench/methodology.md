@@ -174,9 +174,13 @@ Five of the six Sol-plan/Terra-execute cells preserve complete Codex events, so
 the site publishes their normalized token splits and API-equivalent costs. The
 recovered `fix-review` artifact retains only aggregate inclusive-input usage;
 its missing cached-input split makes its comparable tokens and price unknown.
-Grok emits no usable token events through this runner. Counts from the Fable or
-Sol stages surrounding a Grok execution are therefore partial and are not
-presented as complete workflow totals.
+Grok emits no usable token events through this runner. The two Grok-execution
+rows therefore publish explicitly labeled **Sol-only subtotals**, never complete
+workflow totals: Sol-plan/Grok-execute/Sol-review has retained Sol plan/review
+usage for all six tasks, while Fable-plan/Grok-execute/Sol-review has retained
+Sol review usage for two. The latter also excludes Fable planning so its label
+describes one consistent provider scope. Missing Sol completions are not
+estimated, and no Grok usage is imputed.
 
 All displayed wall times come from the corresponding serialized
 `wall_clock_sec` values. The per-event source logs used to reconstruct normalized
@@ -202,8 +206,10 @@ wall time rather than only the mean.
 Costs use the versioned `2026-06-usual` price table and are descriptive
 API-equivalent estimates, not a billing claim. Judge usage is excluded. Grok's
 runner emits no usable token events, so workflows that execute with Grok keep
-their total token and cost fields **unknown**, not zero. No missing value is
-imputed from another provider or model.
+their complete-workflow token totals and cost fields **unknown**, not zero. The
+displayed Sol-only subtotals are provider-scoped usage evidence and are not used
+to claim a full-workflow price. No missing value is imputed from another
+provider or model.
 
 ## Known limitations
 

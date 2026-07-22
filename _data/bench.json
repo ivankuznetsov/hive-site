@@ -1073,7 +1073,8 @@
       "id": "fable-plan->grok-exec-sol-review",
       "label": "Fable plan → Grok execute → Sol review",
       "reasoning": "Fable high plan · Grok xhigh execute · Sol xhigh review",
-      "note": "Fable plans, Grok executes, and Sol performs the production review.",
+      "note": "Fable plans, Grok executes, and Sol performs the production review. Token figures cover retained Sol review telemetry only; Fable planning is excluded and Grok provides no usable usage telemetry.",
+      "token_scope": "Sol review only · Fable plan excluded · Grok telemetry unavailable",
       "campaign_id": "v3-mixed-workflows-three-seed-20260713",
       "samples_per_cell": 3,
       "raw_evidence_published": false,
@@ -1084,14 +1085,24 @@
       "cost_per_task_usd": null,
       "cost_total_usd": null,
       "cost_sample": 0,
-      "normalized_mtokens_per_task": null,
-      "token_sample": 0,
-      "token_totals": null,
+      "normalized_mtokens_per_task": 18.026,
+      "token_sample": 2,
+      "token_totals": {
+        "input": 812414,
+        "output": 128913,
+        "cache_read": 35110912,
+        "cache_write": 0
+      },
       "efficiency_by_task": {
         "add-i-key": {
           "cost_usd": null,
-          "normalized_mtokens": null,
-          "tokens": null,
+          "normalized_mtokens": 11.513,
+          "tokens": {
+            "input": 310653,
+            "output": 47527,
+            "cache_read": 11154688,
+            "cache_write": 0
+          },
           "wall_minutes": 92.1
         },
         "web-install": {
@@ -1114,8 +1125,13 @@
         },
         "fix-review": {
           "cost_usd": null,
-          "normalized_mtokens": null,
-          "tokens": null,
+          "normalized_mtokens": 24.539,
+          "tokens": {
+            "input": 501761,
+            "output": 81386,
+            "cache_read": 23956224,
+            "cache_write": 0
+          },
           "wall_minutes": 87.2
         },
         "daemon": {
@@ -1372,7 +1388,8 @@
       "id": "sol-plan->grok-exec-sol-review",
       "label": "Sol plan → Grok execute → Sol review",
       "reasoning": "Sol xhigh plan · Grok xhigh execute · Sol xhigh review",
-      "note": "Sol plans and reviews while Grok executes.",
+      "note": "Sol plans and reviews while Grok executes. Token figures cover Sol stages only; Grok provides no usable usage telemetry.",
+      "token_scope": "Sol plan/review only · Grok telemetry unavailable",
       "campaign_id": "v3-mixed-workflows-three-seed-20260713",
       "samples_per_cell": 3,
       "raw_evidence_published": false,
@@ -1383,44 +1400,79 @@
       "cost_per_task_usd": null,
       "cost_total_usd": null,
       "cost_sample": 0,
-      "normalized_mtokens_per_task": null,
-      "token_sample": 0,
-      "token_totals": null,
+      "normalized_mtokens_per_task": 29.123,
+      "token_sample": 6,
+      "token_totals": {
+        "input": 4903724,
+        "output": 633331,
+        "cache_read": 169201408,
+        "cache_write": 0
+      },
       "efficiency_by_task": {
         "add-i-key": {
           "cost_usd": null,
-          "normalized_mtokens": null,
-          "tokens": null,
+          "normalized_mtokens": 33.998,
+          "tokens": {
+            "input": 802017,
+            "output": 116378,
+            "cache_read": 33079296,
+            "cache_write": 0
+          },
           "wall_minutes": 115.5
         },
         "web-install": {
           "cost_usd": null,
-          "normalized_mtokens": null,
-          "tokens": null,
+          "normalized_mtokens": 29.397,
+          "tokens": {
+            "input": 1077755,
+            "output": 91952,
+            "cache_read": 28227584,
+            "cache_write": 0
+          },
           "wall_minutes": 94.9
         },
         "install": {
           "cost_usd": null,
-          "normalized_mtokens": null,
-          "tokens": null,
+          "normalized_mtokens": 30.182,
+          "tokens": {
+            "input": 1031969,
+            "output": 153008,
+            "cache_read": 28996608,
+            "cache_write": 0
+          },
           "wall_minutes": 173.5
         },
         "fix-tmux": {
           "cost_usd": null,
-          "normalized_mtokens": null,
-          "tokens": null,
+          "normalized_mtokens": 6.697,
+          "tokens": {
+            "input": 281295,
+            "output": 32892,
+            "cache_read": 6382848,
+            "cache_write": 0
+          },
           "wall_minutes": 63.5
         },
         "fix-review": {
           "cost_usd": null,
-          "normalized_mtokens": null,
-          "tokens": null,
+          "normalized_mtokens": 22.795,
+          "tokens": {
+            "input": 502659,
+            "output": 84478,
+            "cache_read": 22207744,
+            "cache_write": 0
+          },
           "wall_minutes": null
         },
         "daemon": {
           "cost_usd": null,
-          "normalized_mtokens": null,
-          "tokens": null,
+          "normalized_mtokens": 51.67,
+          "tokens": {
+            "input": 1208029,
+            "output": 154623,
+            "cache_read": 50307328,
+            "cache_write": 0
+          },
           "wall_minutes": 213.1
         }
       },
@@ -2008,9 +2060,9 @@
   "notes": [
     "All 54 generation cells completed. Every objective gate is no_gate in both campaigns, so scores are judge evidence, not test-pass rates.",
     "The original 36-cell campaign uses one sample per judge; the 18-cell mixed-workflow follow-up uses three samples per judge and completed all adversarial deliberations.",
-    "Efficiency uses each campaign's serialized generation telemetry. Follow-up API-equivalent costs are unknown; provider-reported amounts are not mixed into the comparable cost columns.",
+    "Efficiency uses each campaign's serialized generation telemetry. Five Sol → Terra follow-up cells have recomputed API-equivalent costs; Grok workflows keep cost unknown because Grok usage telemetry is unavailable.",
     "The mixed Opus → Codex estimate is $115.5829 across six cells: $67.3351 Codex 5.5, $47.6319 Opus 4.8, and $0.6159 Haiku utility calls, or $19.26 per task on average.",
-    "Grok-only and Sol-planned mixed workflows do not expose enough normalized token/cost evidence for comparable cost rows.",
+    "Grok workflows publish explicitly partial Sol-only token subtotals where retained Sol events are complete. These are not full-workflow totals, and no Grok tokens are imputed.",
     "Wall-time means use only recorded samples. Recovered follow-up artifacts preserve scores and patches but not original wall time.",
     "Costs use the benchmark's versioned 2026-06 usual-tier table and are API-equivalent estimates, not subscription invoices; judge usage is excluded.",
     "The site's machine-readable snapshot contains all follow-up score samples and intervals; the 18 follow-up patches are not yet in the public raw-evidence bundle."
