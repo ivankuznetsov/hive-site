@@ -70,8 +70,21 @@ class BenchmarkDataTest < Minitest::Test
     assert_nil fable_candidate.fetch("cost_total_usd")
     assert_equal 0, fable_candidate.fetch("cost_sample")
     assert fable_candidate.fetch("efficiency_by_task").values.all? { |task| task["cost_usd"].nil? }
-    assert_equal 30, DATA.dig("efficiency_accounting", "priced_cells")
-    assert_equal 0, DATA.dig("efficiency_accounting", "followup_priced_cells")
+    assert_nil fable_candidate.fetch("normalized_mtokens_per_task")
+    assert_equal 0, fable_candidate.fetch("token_sample")
+    assert fable_candidate.fetch("efficiency_by_task").values.all? { |task| task["tokens"].nil? }
+
+    terra_candidate = DATA.fetch("candidates").find do |candidate|
+      candidate.fetch("id") == "sol-plan->terra-exec-sol-review"
+    end
+    assert_equal 26.12, terra_candidate.fetch("cost_per_task_usd")
+    assert_equal 5, terra_candidate.fetch("cost_sample")
+    assert_equal 34.807, terra_candidate.fetch("normalized_mtokens_per_task")
+    assert_equal 5, terra_candidate.fetch("token_sample")
+    assert_nil terra_candidate.dig("efficiency_by_task", "fix-review", "cost_usd")
+    assert_nil terra_candidate.dig("efficiency_by_task", "fix-review", "tokens")
+    assert_equal 35, DATA.dig("efficiency_accounting", "priced_cells")
+    assert_equal 5, DATA.dig("efficiency_accounting", "followup_priced_cells")
 
     DATA.fetch("primary_judges").each do |judge|
       FOLLOWUP_IDS.each do |candidate_id|

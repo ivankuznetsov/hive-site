@@ -14,7 +14,7 @@
     "source": "campaign-serialized generation telemetry",
     "parser": "HiveBench::TokenReport",
     "pricing_version": "2026-06-usual",
-    "priced_cells": 30,
+    "priced_cells": 35,
     "total_cells": 54,
     "judge_usage_included": false,
     "excluded_cumulative_event_types": [
@@ -28,7 +28,7 @@
       "cache_read",
       "cache_write"
     ],
-    "followup_priced_cells": 0,
+    "followup_priced_cells": 5,
     "followup_timed_cells": 14
   },
   "primary_judges": [
@@ -1084,79 +1084,44 @@
       "cost_per_task_usd": null,
       "cost_total_usd": null,
       "cost_sample": 0,
-      "normalized_mtokens_per_task": 10.12,
-      "token_sample": 6,
-      "token_totals": {
-        "input": 36117991,
-        "output": 325603,
-        "cache_read": 21663702,
-        "cache_write": 2589042
-      },
+      "normalized_mtokens_per_task": null,
+      "token_sample": 0,
+      "token_totals": null,
       "efficiency_by_task": {
         "add-i-key": {
           "cost_usd": null,
-          "normalized_mtokens": 15.17,
-          "tokens": {
-            "input": 11503953,
-            "output": 67139,
-            "cache_read": 3256782,
-            "cache_write": 340097
-          },
+          "normalized_mtokens": null,
+          "tokens": null,
           "wall_minutes": 92.1
         },
         "web-install": {
           "cost_usd": null,
-          "normalized_mtokens": 6.75,
-          "tokens": {
-            "input": 31016,
-            "output": 29257,
-            "cache_read": 5932423,
-            "cache_write": 752463
-          },
+          "normalized_mtokens": null,
+          "tokens": null,
           "wall_minutes": 150.7
         },
         "install": {
           "cost_usd": null,
-          "normalized_mtokens": 1.81,
-          "tokens": {
-            "input": 22348,
-            "output": 74020,
-            "cache_read": 1420543,
-            "cache_write": 292110
-          },
+          "normalized_mtokens": null,
+          "tokens": null,
           "wall_minutes": null
         },
         "fix-tmux": {
           "cost_usd": null,
-          "normalized_mtokens": 3.11,
-          "tokens": {
-            "input": 37975,
-            "output": 20310,
-            "cache_read": 2730880,
-            "cache_write": 324915
-          },
+          "normalized_mtokens": null,
+          "tokens": null,
           "wall_minutes": 25.5
         },
         "fix-review": {
           "cost_usd": null,
-          "normalized_mtokens": 29.67,
-          "tokens": {
-            "input": 24488936,
-            "output": 114467,
-            "cache_read": 4620530,
-            "cache_write": 443645
-          },
+          "normalized_mtokens": null,
+          "tokens": null,
           "wall_minutes": 87.2
         },
         "daemon": {
           "cost_usd": null,
-          "normalized_mtokens": 4.19,
-          "tokens": {
-            "input": 33763,
-            "output": 20410,
-            "cache_read": 3702544,
-            "cache_write": 435812
-          },
+          "normalized_mtokens": null,
+          "tokens": null,
           "wall_minutes": 136.2
         }
       },
@@ -1714,35 +1679,60 @@
       "total": 6,
       "mean_minutes": 166,
       "time_sample": 4,
-      "cost_per_task_usd": null,
-      "cost_total_usd": null,
-      "cost_sample": 0,
-      "normalized_mtokens_per_task": null,
-      "token_sample": 0,
-      "token_totals": null,
+      "cost_per_task_usd": 26.12,
+      "cost_total_usd": 130.597,
+      "cost_sample": 5,
+      "normalized_mtokens_per_task": 34.807,
+      "token_sample": 5,
+      "token_totals": {
+        "input": 4947853,
+        "output": 722519,
+        "cache_read": 168364288,
+        "cache_write": 0
+      },
       "efficiency_by_task": {
         "add-i-key": {
-          "cost_usd": null,
-          "normalized_mtokens": null,
-          "tokens": null,
+          "cost_usd": 17.1596,
+          "normalized_mtokens": 21.823,
+          "tokens": {
+            "input": 688562,
+            "output": 106769,
+            "cache_read": 21027328,
+            "cache_write": 0
+          },
           "wall_minutes": 91.4
         },
         "web-install": {
-          "cost_usd": null,
-          "normalized_mtokens": null,
-          "tokens": null,
+          "cost_usd": 21.697,
+          "normalized_mtokens": 30.491,
+          "tokens": {
+            "input": 748275,
+            "output": 104556,
+            "cache_read": 29637888,
+            "cache_write": 0
+          },
           "wall_minutes": 197.7
         },
         "install": {
-          "cost_usd": null,
-          "normalized_mtokens": null,
-          "tokens": null,
+          "cost_usd": 31.5074,
+          "normalized_mtokens": 38.249,
+          "tokens": {
+            "input": 1459063,
+            "output": 197194,
+            "cache_read": 36592640,
+            "cache_write": 0
+          },
           "wall_minutes": 179.5
         },
         "fix-tmux": {
-          "cost_usd": null,
-          "normalized_mtokens": null,
-          "tokens": null,
+          "cost_usd": 31.2778,
+          "normalized_mtokens": 43.864,
+          "tokens": {
+            "input": 1031246,
+            "output": 159491,
+            "cache_read": 42673664,
+            "cache_write": 0
+          },
           "wall_minutes": null
         },
         "fix-review": {
@@ -1752,9 +1742,14 @@
           "wall_minutes": null
         },
         "daemon": {
-          "cost_usd": null,
-          "normalized_mtokens": null,
-          "tokens": null,
+          "cost_usd": 28.9552,
+          "normalized_mtokens": 39.608,
+          "tokens": {
+            "input": 1020707,
+            "output": 154509,
+            "cache_read": 38432768,
+            "cache_write": 0
+          },
           "wall_minutes": 195.2
         }
       },

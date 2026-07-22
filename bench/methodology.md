@@ -169,12 +169,14 @@ model ids provide the first attribution signal; stages provide the fallback for
 Codex events that do not carry a model id. Claude's internal Haiku utility calls
 remain a separate priced model instead of being charged at the Opus rate.
 
-The follow-up uses the telemetry serialized in each completed campaign cell.
-Only the Fable-plan/Grok-execute workflow has a complete comparable token split
-for all six tasks. Its serialized costs are provider-reported rather than
-recomputed API-equivalent estimates, so the site's comparable cost columns keep
-them unknown. The Sol-planned mixed workflows retain timing and raw usage
-counts, but not enough cache attribution for normalized token or price rows.
+The follow-up retains the per-event stage logs used by `HiveBench::TokenReport`.
+Five of the six Sol-plan/Terra-execute cells preserve complete Codex events, so
+the site publishes their normalized token splits and API-equivalent costs. The
+recovered `fix-review` artifact retains only aggregate inclusive-input usage;
+its missing cached-input split makes its comparable tokens and price unknown.
+Grok emits no usable token events through this runner. Counts from the Fable or
+Sol stages surrounding a Grok execution are therefore partial and are not
+presented as complete workflow totals.
 
 All displayed wall times come from the corresponding serialized
 `wall_clock_sec` values. The per-event source logs used to reconstruct normalized
@@ -199,9 +201,9 @@ wall time rather than only the mean.
 
 Costs use the versioned `2026-06-usual` price table and are descriptive
 API-equivalent estimates, not a billing claim. Judge usage is excluded. Grok's
-runner emits no usable token events, so its token and cost fields remain
-**unknown**, not zero. No missing value is imputed from another provider or
-model.
+runner emits no usable token events, so workflows that execute with Grok keep
+their total token and cost fields **unknown**, not zero. No missing value is
+imputed from another provider or model.
 
 ## Known limitations
 
