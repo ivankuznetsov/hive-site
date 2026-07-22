@@ -140,7 +140,12 @@ class WorkflowDocumentationTest < Minitest::Test
     assert_match(/placeholder instruction/i, guide)
     assert_match(/`inbox → work → done`.*`idea\.md`/m, guide)
     assert_includes guide, "ruby -rbase64"
-    assert_includes guide, "gem install base64 --no-document"
+    assert_includes guide, "hive_gem_home=\"${HIVE_PREFIX:-${XDG_DATA_HOME:-$HOME/.local/share}}/hive/gems\""
+    assert_includes guide, "hive_gem_home=\"$(brew --prefix hive)/libexec\""
+    assert_includes guide, "hive_gem_home=/usr/share/hive/gems"
+    assert_includes guide, 'GEM_HOME="$hive_gem_home" GEM_PATH="$hive_gem_home" ruby -rbase64'
+    assert_includes guide, 'gem install base64 --install-dir "$hive_gem_home" --no-document'
+    refute_match(/^gem install base64 --no-document$/, guide)
     assert_match(/vague outcome/i, guide)
     assert_match(/missing.*COMPLETE/i, guide)
     assert_match(/too many.*checkpoint/i, guide)
@@ -178,7 +183,9 @@ class WorkflowDocumentationTest < Minitest::Test
 
       concepts_raw = File.binread(File.join(site, "docs", "concepts.md"))
       custom_raw = File.binread(File.join(site, "docs", "custom-workflows.md"))
+      llms_index = File.binread(File.join(site, "llms.txt"))
       llms_full = File.binread(File.join(site, "llms-full.txt"))
+      refute Dir.exist?(File.join(site, "acceptance")), "PR acceptance evidence must not be published"
       [concepts_raw, custom_raw].each do |markdown|
         refute_match(/\A---/, markdown)
         refute_match(/\{\{|\{%|include\s+/, markdown)
@@ -186,6 +193,9 @@ class WorkflowDocumentationTest < Minitest::Test
       assert_includes concepts_raw, "# How Hive workflows work"
       assert_includes custom_raw, "id: editorial"
       assert_includes custom_raw, "editorial/approval.md"
+      assert_includes llms_index, "reusable agent workflows"
+      assert_includes llms_index, "flagship coding workflow"
+      assert_includes llms_index, "project-authored workflows"
       assert_includes llms_full, "# How Hive workflows work"
       assert_includes llms_full, "# Creating custom workflows"
 

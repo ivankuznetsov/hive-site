@@ -4,7 +4,7 @@ layout: doc
 parent: Command reference
 nav_order: 2
 permalink: /docs/commands/new/
-description: Capture a new idea into a Hive project's inbox so you can move it through the pipeline.
+description: Capture a new task into the selected workflow's entry stage so you can move it through the process.
 ---
 
 # hive new

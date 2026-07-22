@@ -29,13 +29,29 @@ stable release when this page was updated.
 Hive 0.6.5 also needs the `base64` gem when it runs under Ruby 3.4, where
 `base64` is no longer a default gem. Check the Ruby environment that launches
 Hive before the first `hive run`; if the check fails, install the dependency
-into that same gem environment:
+into Hive's isolated gem home for the channel you installed:
 
 ```bash
-ruby -rbase64 -e 'puts "base64 available"'
-# If that command fails:
-gem install base64 --no-document
+# install.sh (including a custom HIVE_PREFIX)
+hive_gem_home="${HIVE_PREFIX:-${XDG_DATA_HOME:-$HOME/.local/share}}/hive/gems"
+GEM_HOME="$hive_gem_home" GEM_PATH="$hive_gem_home" ruby -rbase64 -e 'puts "base64 available"'
+gem install base64 --install-dir "$hive_gem_home" --no-document
+
+# Homebrew
+hive_gem_home="$(brew --prefix hive)/libexec"
+GEM_HOME="$hive_gem_home" GEM_PATH="$hive_gem_home" ruby -rbase64 -e 'puts "base64 available"'
+gem install base64 --install-dir "$hive_gem_home" --no-document
+
+# AUR
+hive_gem_home=/usr/share/hive/gems
+GEM_HOME="$hive_gem_home" GEM_PATH="$hive_gem_home" ruby -rbase64 -e 'puts "base64 available"'
+sudo gem install base64 --install-dir "$hive_gem_home" --no-document
 ```
+
+Run only the check and repair for your install channel, then repeat its
+environment-scoped `ruby -rbase64` check before retrying Hive. A bare check or
+`gem install` uses your default Ruby environment, which is not the isolated
+environment these Hive launchers use.
 
 1. TOC
 {:toc}
