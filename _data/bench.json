@@ -1,21 +1,21 @@
 {
   "schema": "hive-bench-results-site",
-  "schema_version": 5,
-  "corpus_version": "v2-ce",
-  "generated_at": "2026-07-13T08:53:36Z",
+  "schema_version": 6,
+  "corpus_version": "v2-ce + v3-mixed-workflows-followup-20260713",
+  "generated_at": "2026-07-22T09:13:44Z",
   "status": "preliminary_complete",
   "coverage": {
-    "cells": 36,
-    "expected_cells": 36,
+    "cells": 54,
+    "expected_cells": 54,
     "tasks": 6,
-    "candidates": 6
+    "candidates": 9
   },
   "efficiency_accounting": {
-    "source": "per-event generation stage stream logs",
+    "source": "campaign-serialized generation telemetry",
     "parser": "HiveBench::TokenReport",
     "pricing_version": "2026-06-usual",
     "priced_cells": 30,
-    "total_cells": 36,
+    "total_cells": 54,
     "judge_usage_included": false,
     "excluded_cumulative_event_types": [
       "result",
@@ -27,14 +27,16 @@
       "output",
       "cache_read",
       "cache_write"
-    ]
+    ],
+    "followup_priced_cells": 0,
+    "followup_timed_cells": 14
   },
   "primary_judges": [
     {
       "id": "gpt-5.6-sol",
       "label": "GPT-5.6 Sol",
-      "reasoning_effort": "xhigh",
-      "samples_per_cell": 1,
+      "reasoning_effort": "varies by campaign",
+      "samples_per_cell": null,
       "rows": [
         {
           "id": "all-codex-5.6-sol-xhigh",
@@ -42,7 +44,10 @@
           "mean": 6.183,
           "scored": 6,
           "total": 6,
-          "same_family": true
+          "same_family": true,
+          "campaign_id": "v2-ce",
+          "reasoning_effort": "xhigh",
+          "samples_per_cell": 1
         },
         {
           "id": "opus-plan->codex-exec-xhigh",
@@ -50,7 +55,10 @@
           "mean": 4.783,
           "scored": 6,
           "total": 6,
-          "same_family": true
+          "same_family": true,
+          "campaign_id": "v2-ce",
+          "reasoning_effort": "xhigh",
+          "samples_per_cell": 1
         },
         {
           "id": "all-opus-4.8",
@@ -58,7 +66,10 @@
           "mean": 4.25,
           "scored": 6,
           "total": 6,
-          "same_family": false
+          "same_family": false,
+          "campaign_id": "v2-ce",
+          "reasoning_effort": "xhigh",
+          "samples_per_cell": 1
         },
         {
           "id": "all-grok-4.5",
@@ -66,7 +77,10 @@
           "mean": 4.217,
           "scored": 6,
           "total": 6,
-          "same_family": false
+          "same_family": false,
+          "campaign_id": "v2-ce",
+          "reasoning_effort": "xhigh",
+          "samples_per_cell": 1
         },
         {
           "id": "all-codex-xhigh",
@@ -74,7 +88,10 @@
           "mean": 3.867,
           "scored": 6,
           "total": 6,
-          "same_family": true
+          "same_family": true,
+          "campaign_id": "v2-ce",
+          "reasoning_effort": "xhigh",
+          "samples_per_cell": 1
         },
         {
           "id": "all-glm-5.2",
@@ -82,15 +99,59 @@
           "mean": 3.617,
           "scored": 6,
           "total": 6,
-          "same_family": false
+          "same_family": false,
+          "campaign_id": "v2-ce",
+          "reasoning_effort": "xhigh",
+          "samples_per_cell": 1
+        },
+        {
+          "id": "fable-plan->grok-exec-sol-review",
+          "label": "Fable plan → Grok execute → Sol review",
+          "mean": 4.667,
+          "scored": 6,
+          "total": 6,
+          "same_family": true,
+          "campaign_id": "v3-mixed-workflows-three-seed-20260713",
+          "reasoning_effort": "ultra",
+          "samples_per_cell": 3
+        },
+        {
+          "id": "sol-plan->grok-exec-sol-review",
+          "label": "Sol plan → Grok execute → Sol review",
+          "mean": 4.845,
+          "scored": 6,
+          "total": 6,
+          "same_family": true,
+          "campaign_id": "v3-mixed-workflows-three-seed-20260713",
+          "reasoning_effort": "ultra",
+          "samples_per_cell": 3
+        },
+        {
+          "id": "sol-plan->terra-exec-sol-review",
+          "label": "Sol plan → Terra execute → Sol review",
+          "mean": 5.133,
+          "scored": 6,
+          "total": 6,
+          "same_family": true,
+          "campaign_id": "v3-mixed-workflows-three-seed-20260713",
+          "reasoning_effort": "ultra",
+          "samples_per_cell": 3
         }
-      ]
+      ],
+      "reasoning_effort_by_campaign": {
+        "v2-ce": "xhigh",
+        "v3-mixed-workflows-three-seed-20260713": "ultra"
+      },
+      "samples_per_cell_by_campaign": {
+        "v2-ce": 1,
+        "v3-mixed-workflows-three-seed-20260713": 3
+      }
     },
     {
       "id": "fable-5",
       "label": "Fable 5",
-      "reasoning_effort": "unspecified",
-      "samples_per_cell": 1,
+      "reasoning_effort": "varies by campaign",
+      "samples_per_cell": null,
       "rows": [
         {
           "id": "all-codex-5.6-sol-xhigh",
@@ -98,7 +159,10 @@
           "mean": 6.917,
           "scored": 6,
           "total": 6,
-          "same_family": false
+          "same_family": false,
+          "campaign_id": "v2-ce",
+          "reasoning_effort": "unspecified",
+          "samples_per_cell": 1
         },
         {
           "id": "all-grok-4.5",
@@ -106,7 +170,10 @@
           "mean": 6.333,
           "scored": 6,
           "total": 6,
-          "same_family": false
+          "same_family": false,
+          "campaign_id": "v2-ce",
+          "reasoning_effort": "unspecified",
+          "samples_per_cell": 1
         },
         {
           "id": "opus-plan->codex-exec-xhigh",
@@ -114,7 +181,10 @@
           "mean": 6.167,
           "scored": 6,
           "total": 6,
-          "same_family": true
+          "same_family": true,
+          "campaign_id": "v2-ce",
+          "reasoning_effort": "unspecified",
+          "samples_per_cell": 1
         },
         {
           "id": "all-opus-4.8",
@@ -122,7 +192,10 @@
           "mean": 6.083,
           "scored": 6,
           "total": 6,
-          "same_family": true
+          "same_family": true,
+          "campaign_id": "v2-ce",
+          "reasoning_effort": "unspecified",
+          "samples_per_cell": 1
         },
         {
           "id": "all-glm-5.2",
@@ -130,7 +203,10 @@
           "mean": 4.833,
           "scored": 6,
           "total": 6,
-          "same_family": false
+          "same_family": false,
+          "campaign_id": "v2-ce",
+          "reasoning_effort": "unspecified",
+          "samples_per_cell": 1
         },
         {
           "id": "all-codex-xhigh",
@@ -138,9 +214,53 @@
           "mean": 4.667,
           "scored": 6,
           "total": 6,
-          "same_family": false
+          "same_family": false,
+          "campaign_id": "v2-ce",
+          "reasoning_effort": "unspecified",
+          "samples_per_cell": 1
+        },
+        {
+          "id": "fable-plan->grok-exec-sol-review",
+          "label": "Fable plan → Grok execute → Sol review",
+          "mean": 6.194,
+          "scored": 6,
+          "total": 6,
+          "same_family": true,
+          "campaign_id": "v3-mixed-workflows-three-seed-20260713",
+          "reasoning_effort": "unspecified",
+          "samples_per_cell": 3
+        },
+        {
+          "id": "sol-plan->grok-exec-sol-review",
+          "label": "Sol plan → Grok execute → Sol review",
+          "mean": 7.778,
+          "scored": 6,
+          "total": 6,
+          "same_family": false,
+          "campaign_id": "v3-mixed-workflows-three-seed-20260713",
+          "reasoning_effort": "unspecified",
+          "samples_per_cell": 3
+        },
+        {
+          "id": "sol-plan->terra-exec-sol-review",
+          "label": "Sol plan → Terra execute → Sol review",
+          "mean": 7.055,
+          "scored": 6,
+          "total": 6,
+          "same_family": false,
+          "campaign_id": "v3-mixed-workflows-three-seed-20260713",
+          "reasoning_effort": "unspecified",
+          "samples_per_cell": 3
         }
-      ]
+      ],
+      "reasoning_effort_by_campaign": {
+        "v2-ce": "unspecified",
+        "v3-mixed-workflows-three-seed-20260713": "unspecified"
+      },
+      "samples_per_cell_by_campaign": {
+        "v2-ce": 1,
+        "v3-mixed-workflows-three-seed-20260713": 3
+      }
     }
   ],
   "supplemental_judge": {
@@ -249,14 +369,79 @@
       "cost_sample": 6,
       "normalized_mtokens_per_task": 74.86,
       "token_sample": 6,
-      "token_totals": { "input": 7128536, "output": 993973, "cache_read": 441019136, "cache_write": 0 },
+      "token_totals": {
+        "input": 7128536,
+        "output": 993973,
+        "cache_read": 441019136,
+        "cache_write": 0
+      },
       "efficiency_by_task": {
-        "add-i-key": { "cost_usd": 20.9874, "normalized_mtokens": 28.26, "tokens": { "input": 735389, "output": 120344, "cache_read": 27400192, "cache_write": 0 }, "wall_minutes": 95.3 },
-        "web-install": { "cost_usd": 88.2255, "normalized_mtokens": 142.43, "tokens": { "input": 2161848, "output": 246859, "cache_read": 140020992, "cache_write": 0 }, "wall_minutes": 227.4 },
-        "install": { "cost_usd": 105.2448, "normalized_mtokens": 167.52, "tokens": { "input": 2388996, "output": 363868, "cache_read": 164767488, "cache_write": 0 }, "wall_minutes": 224.2 },
-        "fix-tmux": { "cost_usd": 20.3585, "normalized_mtokens": 32.37, "tokens": { "input": 580766, "output": 52902, "cache_read": 31735296, "cache_write": 0 }, "wall_minutes": 40.7 },
-        "fix-review": { "cost_usd": 18.9374, "normalized_mtokens": 29.98, "tokens": { "input": 437504, "output": 67028, "cache_read": 29478144, "cache_write": 0 }, "wall_minutes": null },
-        "daemon": { "cost_usd": 32.2178, "normalized_mtokens": 48.58, "tokens": { "input": 824033, "output": 142972, "cache_read": 47617024, "cache_write": 0 }, "wall_minutes": null }
+        "add-i-key": {
+          "cost_usd": 20.9874,
+          "normalized_mtokens": 28.26,
+          "tokens": {
+            "input": 735389,
+            "output": 120344,
+            "cache_read": 27400192,
+            "cache_write": 0
+          },
+          "wall_minutes": 95.3
+        },
+        "web-install": {
+          "cost_usd": 88.2255,
+          "normalized_mtokens": 142.43,
+          "tokens": {
+            "input": 2161848,
+            "output": 246859,
+            "cache_read": 140020992,
+            "cache_write": 0
+          },
+          "wall_minutes": 227.4
+        },
+        "install": {
+          "cost_usd": 105.2448,
+          "normalized_mtokens": 167.52,
+          "tokens": {
+            "input": 2388996,
+            "output": 363868,
+            "cache_read": 164767488,
+            "cache_write": 0
+          },
+          "wall_minutes": 224.2
+        },
+        "fix-tmux": {
+          "cost_usd": 20.3585,
+          "normalized_mtokens": 32.37,
+          "tokens": {
+            "input": 580766,
+            "output": 52902,
+            "cache_read": 31735296,
+            "cache_write": 0
+          },
+          "wall_minutes": 40.7
+        },
+        "fix-review": {
+          "cost_usd": 18.9374,
+          "normalized_mtokens": 29.98,
+          "tokens": {
+            "input": 437504,
+            "output": 67028,
+            "cache_read": 29478144,
+            "cache_write": 0
+          },
+          "wall_minutes": null
+        },
+        "daemon": {
+          "cost_usd": 32.2178,
+          "normalized_mtokens": 48.58,
+          "tokens": {
+            "input": 824033,
+            "output": 142972,
+            "cache_read": 47617024,
+            "cache_write": 0
+          },
+          "wall_minutes": null
+        }
       },
       "cells": {
         "add-i-key": {
@@ -289,7 +474,10 @@
           "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-codex-5.6-sol-xhigh--make-the-hive-daemon-automatically-260629-223d/results.json",
           "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-codex-5.6-sol-xhigh--make-the-hive-daemon-automatically-260629-223d/candidate.patch"
         }
-      }
+      },
+      "campaign_id": "v2-ce",
+      "samples_per_cell": 1,
+      "raw_evidence_published": true
     },
     {
       "id": "opus-plan->codex-exec-xhigh",
@@ -305,19 +493,84 @@
       "cost_sample": 6,
       "normalized_mtokens_per_task": 27.67,
       "token_sample": 6,
-      "token_totals": { "input": 2316931, "output": 328495, "cache_read": 160063061, "cache_write": 3323418 },
+      "token_totals": {
+        "input": 2316931,
+        "output": 328495,
+        "cache_read": 160063061,
+        "cache_write": 3323418
+      },
       "cost_breakdown_usd": {
         "gpt-5.5": 67.3351,
         "claude-opus-4-8": 47.6319,
         "claude-haiku-4-5": 0.6159
       },
       "efficiency_by_task": {
-        "add-i-key": { "cost_usd": 25.7455, "normalized_mtokens": 39.89, "tokens": { "input": 392117, "output": 50805, "cache_read": 38684505, "cache_write": 759794 }, "wall_minutes": null },
-        "web-install": { "cost_usd": 16.9525, "normalized_mtokens": 22.79, "tokens": { "input": 480800, "output": 86830, "cache_read": 22032050, "cache_write": 186130 }, "wall_minutes": 50.9 },
-        "install": { "cost_usd": 31.017, "normalized_mtokens": 47.85, "tokens": { "input": 360883, "output": 59578, "cache_read": 46605064, "cache_write": 827662 }, "wall_minutes": 75.0 },
-        "fix-tmux": { "cost_usd": 11.9163, "normalized_mtokens": 14.69, "tokens": { "input": 253051, "output": 26094, "cache_read": 13814139, "cache_write": 593882 }, "wall_minutes": 73.0 },
-        "fix-review": { "cost_usd": 12.948, "normalized_mtokens": 18.12, "tokens": { "input": 315214, "output": 42512, "cache_read": 17486693, "cache_write": 270877 }, "wall_minutes": 46.9 },
-        "daemon": { "cost_usd": 17.0037, "normalized_mtokens": 22.7, "tokens": { "input": 514866, "output": 62676, "cache_read": 21440610, "cache_write": 685073 }, "wall_minutes": 58.2 }
+        "add-i-key": {
+          "cost_usd": 25.7455,
+          "normalized_mtokens": 39.89,
+          "tokens": {
+            "input": 392117,
+            "output": 50805,
+            "cache_read": 38684505,
+            "cache_write": 759794
+          },
+          "wall_minutes": null
+        },
+        "web-install": {
+          "cost_usd": 16.9525,
+          "normalized_mtokens": 22.79,
+          "tokens": {
+            "input": 480800,
+            "output": 86830,
+            "cache_read": 22032050,
+            "cache_write": 186130
+          },
+          "wall_minutes": 50.9
+        },
+        "install": {
+          "cost_usd": 31.017,
+          "normalized_mtokens": 47.85,
+          "tokens": {
+            "input": 360883,
+            "output": 59578,
+            "cache_read": 46605064,
+            "cache_write": 827662
+          },
+          "wall_minutes": 75
+        },
+        "fix-tmux": {
+          "cost_usd": 11.9163,
+          "normalized_mtokens": 14.69,
+          "tokens": {
+            "input": 253051,
+            "output": 26094,
+            "cache_read": 13814139,
+            "cache_write": 593882
+          },
+          "wall_minutes": 73
+        },
+        "fix-review": {
+          "cost_usd": 12.948,
+          "normalized_mtokens": 18.12,
+          "tokens": {
+            "input": 315214,
+            "output": 42512,
+            "cache_read": 17486693,
+            "cache_write": 270877
+          },
+          "wall_minutes": 46.9
+        },
+        "daemon": {
+          "cost_usd": 17.0037,
+          "normalized_mtokens": 22.7,
+          "tokens": {
+            "input": 514866,
+            "output": 62676,
+            "cache_read": 21440610,
+            "cache_write": 685073
+          },
+          "wall_minutes": 58.2
+        }
       },
       "cells": {
         "add-i-key": {
@@ -350,7 +603,10 @@
           "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/opus-plan-%3Ecodex-exec-xhigh--make-the-hive-daemon-automatically-260629-223d/results.json",
           "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/opus-plan-%3Ecodex-exec-xhigh--make-the-hive-daemon-automatically-260629-223d/candidate.patch"
         }
-      }
+      },
+      "campaign_id": "v2-ce",
+      "samples_per_cell": 1,
+      "raw_evidence_published": true
     },
     {
       "id": "all-opus-4.8",
@@ -366,14 +622,79 @@
       "cost_sample": 6,
       "normalized_mtokens_per_task": 59.82,
       "token_sample": 6,
-      "token_totals": { "input": 923038, "output": 36000, "cache_read": 349561272, "cache_write": 8424071 },
+      "token_totals": {
+        "input": 923038,
+        "output": 36000,
+        "cache_read": 349561272,
+        "cache_write": 8424071
+      },
       "efficiency_by_task": {
-        "add-i-key": { "cost_usd": 24.2902, "normalized_mtokens": 39.03, "tokens": { "input": 139286, "output": 5040, "cache_read": 37692192, "cache_write": 1194544 }, "wall_minutes": 59.5 },
-        "web-install": { "cost_usd": 33.0767, "normalized_mtokens": 54.71, "tokens": { "input": 117334, "output": 5300, "cache_read": 53063280, "cache_write": 1523627 }, "wall_minutes": 44.0 },
-        "install": { "cost_usd": 74.3344, "normalized_mtokens": 125.82, "tokens": { "input": 279090, "output": 10667, "cache_read": 123327646, "cache_write": 2201693 }, "wall_minutes": 98.7 },
-        "fix-tmux": { "cost_usd": 11.3479, "normalized_mtokens": 17.23, "tokens": { "input": 128227, "output": 2492, "cache_read": 16384230, "cache_write": 714939 }, "wall_minutes": 39.9 },
-        "fix-review": { "cost_usd": 27.7496, "normalized_mtokens": 47.07, "tokens": { "input": 116038, "output": 5343, "cache_read": 45933297, "cache_write": 1017808 }, "wall_minutes": 55.1 },
-        "daemon": { "cost_usd": 43.6381, "normalized_mtokens": 75.08, "tokens": { "input": 143063, "output": 7158, "cache_read": 73160627, "cache_write": 1771460 }, "wall_minutes": 85.0 }
+        "add-i-key": {
+          "cost_usd": 24.2902,
+          "normalized_mtokens": 39.03,
+          "tokens": {
+            "input": 139286,
+            "output": 5040,
+            "cache_read": 37692192,
+            "cache_write": 1194544
+          },
+          "wall_minutes": 59.5
+        },
+        "web-install": {
+          "cost_usd": 33.0767,
+          "normalized_mtokens": 54.71,
+          "tokens": {
+            "input": 117334,
+            "output": 5300,
+            "cache_read": 53063280,
+            "cache_write": 1523627
+          },
+          "wall_minutes": 44
+        },
+        "install": {
+          "cost_usd": 74.3344,
+          "normalized_mtokens": 125.82,
+          "tokens": {
+            "input": 279090,
+            "output": 10667,
+            "cache_read": 123327646,
+            "cache_write": 2201693
+          },
+          "wall_minutes": 98.7
+        },
+        "fix-tmux": {
+          "cost_usd": 11.3479,
+          "normalized_mtokens": 17.23,
+          "tokens": {
+            "input": 128227,
+            "output": 2492,
+            "cache_read": 16384230,
+            "cache_write": 714939
+          },
+          "wall_minutes": 39.9
+        },
+        "fix-review": {
+          "cost_usd": 27.7496,
+          "normalized_mtokens": 47.07,
+          "tokens": {
+            "input": 116038,
+            "output": 5343,
+            "cache_read": 45933297,
+            "cache_write": 1017808
+          },
+          "wall_minutes": 55.1
+        },
+        "daemon": {
+          "cost_usd": 43.6381,
+          "normalized_mtokens": 75.08,
+          "tokens": {
+            "input": 143063,
+            "output": 7158,
+            "cache_read": 73160627,
+            "cache_write": 1771460
+          },
+          "wall_minutes": 85
+        }
       },
       "cells": {
         "add-i-key": {
@@ -406,7 +727,10 @@
           "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-opus-4.8--make-the-hive-daemon-automatically-260629-223d/results.json",
           "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-opus-4.8--make-the-hive-daemon-automatically-260629-223d/candidate.patch"
         }
-      }
+      },
+      "campaign_id": "v2-ce",
+      "samples_per_cell": 1,
+      "raw_evidence_published": true
     },
     {
       "id": "all-grok-4.5",
@@ -424,12 +748,42 @@
       "token_sample": 0,
       "token_totals": null,
       "efficiency_by_task": {
-        "add-i-key": { "cost_usd": null, "normalized_mtokens": null, "tokens": null, "wall_minutes": 30.1 },
-        "web-install": { "cost_usd": null, "normalized_mtokens": null, "tokens": null, "wall_minutes": 32.1 },
-        "install": { "cost_usd": null, "normalized_mtokens": null, "tokens": null, "wall_minutes": 27.3 },
-        "fix-tmux": { "cost_usd": null, "normalized_mtokens": null, "tokens": null, "wall_minutes": null },
-        "fix-review": { "cost_usd": null, "normalized_mtokens": null, "tokens": null, "wall_minutes": 23.2 },
-        "daemon": { "cost_usd": null, "normalized_mtokens": null, "tokens": null, "wall_minutes": 23.9 }
+        "add-i-key": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": 30.1
+        },
+        "web-install": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": 32.1
+        },
+        "install": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": 27.3
+        },
+        "fix-tmux": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": null
+        },
+        "fix-review": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": 23.2
+        },
+        "daemon": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": 23.9
+        }
       },
       "cells": {
         "add-i-key": {
@@ -462,7 +816,10 @@
           "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-grok-4.5--make-the-hive-daemon-automatically-260629-223d/results.json",
           "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-grok-4.5--make-the-hive-daemon-automatically-260629-223d/candidate.patch"
         }
-      }
+      },
+      "campaign_id": "v2-ce",
+      "samples_per_cell": 1,
+      "raw_evidence_published": true
     },
     {
       "id": "all-codex-xhigh",
@@ -478,14 +835,79 @@
       "cost_sample": 6,
       "normalized_mtokens_per_task": 24.01,
       "token_sample": 6,
-      "token_totals": { "input": 3342536, "output": 539602, "cache_read": 140181888, "cache_write": 0 },
+      "token_totals": {
+        "input": 3342536,
+        "output": 539602,
+        "cache_read": 140181888,
+        "cache_write": 0
+      },
       "efficiency_by_task": {
-        "add-i-key": { "cost_usd": 14.5531, "normalized_mtokens": 19.17, "tokens": { "input": 563535, "output": 82433, "cache_read": 18524800, "cache_write": 0 }, "wall_minutes": 51.0 },
-        "web-install": { "cost_usd": 20.9505, "normalized_mtokens": 29.53, "tokens": { "input": 709534, "output": 101380, "cache_read": 28722816, "cache_write": 0 }, "wall_minutes": 52.9 },
-        "install": { "cost_usd": 20.2089, "normalized_mtokens": 28.59, "tokens": { "input": 547432, "output": 116995, "cache_read": 27923712, "cache_write": 0 }, "wall_minutes": 67.0 },
-        "fix-tmux": { "cost_usd": 7.8062, "normalized_mtokens": 11.42, "tokens": { "input": 229784, "output": 35994, "cache_read": 11154944, "cache_write": 0 }, "wall_minutes": 26.0 },
-        "fix-review": { "cost_usd": 22.6186, "normalized_mtokens": 31.1, "tokens": { "input": 795250, "output": 118271, "cache_read": 30188416, "cache_write": 0 }, "wall_minutes": 75.0 },
-        "daemon": { "cost_usd": 16.8545, "normalized_mtokens": 24.25, "tokens": { "input": 497001, "output": 84529, "cache_read": 23667200, "cache_write": 0 }, "wall_minutes": 40.4 }
+        "add-i-key": {
+          "cost_usd": 14.5531,
+          "normalized_mtokens": 19.17,
+          "tokens": {
+            "input": 563535,
+            "output": 82433,
+            "cache_read": 18524800,
+            "cache_write": 0
+          },
+          "wall_minutes": 51
+        },
+        "web-install": {
+          "cost_usd": 20.9505,
+          "normalized_mtokens": 29.53,
+          "tokens": {
+            "input": 709534,
+            "output": 101380,
+            "cache_read": 28722816,
+            "cache_write": 0
+          },
+          "wall_minutes": 52.9
+        },
+        "install": {
+          "cost_usd": 20.2089,
+          "normalized_mtokens": 28.59,
+          "tokens": {
+            "input": 547432,
+            "output": 116995,
+            "cache_read": 27923712,
+            "cache_write": 0
+          },
+          "wall_minutes": 67
+        },
+        "fix-tmux": {
+          "cost_usd": 7.8062,
+          "normalized_mtokens": 11.42,
+          "tokens": {
+            "input": 229784,
+            "output": 35994,
+            "cache_read": 11154944,
+            "cache_write": 0
+          },
+          "wall_minutes": 26
+        },
+        "fix-review": {
+          "cost_usd": 22.6186,
+          "normalized_mtokens": 31.1,
+          "tokens": {
+            "input": 795250,
+            "output": 118271,
+            "cache_read": 30188416,
+            "cache_write": 0
+          },
+          "wall_minutes": 75
+        },
+        "daemon": {
+          "cost_usd": 16.8545,
+          "normalized_mtokens": 24.25,
+          "tokens": {
+            "input": 497001,
+            "output": 84529,
+            "cache_read": 23667200,
+            "cache_write": 0
+          },
+          "wall_minutes": 40.4
+        }
       },
       "cells": {
         "add-i-key": {
@@ -518,7 +940,10 @@
           "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-codex-xhigh--make-the-hive-daemon-automatically-260629-223d/results.json",
           "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-codex-xhigh--make-the-hive-daemon-automatically-260629-223d/candidate.patch"
         }
-      }
+      },
+      "campaign_id": "v2-ce",
+      "samples_per_cell": 1,
+      "raw_evidence_published": true
     },
     {
       "id": "all-glm-5.2",
@@ -534,14 +959,79 @@
       "cost_sample": 6,
       "normalized_mtokens_per_task": 83.65,
       "token_sample": 6,
-      "token_totals": { "input": 42558032, "output": 3083984, "cache_read": 456278068, "cache_write": 0 },
+      "token_totals": {
+        "input": 42558032,
+        "output": 3083984,
+        "cache_read": 456278068,
+        "cache_write": 0
+      },
       "efficiency_by_task": {
-        "add-i-key": { "cost_usd": 15.8465, "normalized_mtokens": 64.59, "tokens": { "input": 4068790, "output": 385355, "cache_read": 60139434, "cache_write": 0 }, "wall_minutes": 114.1 },
-        "web-install": { "cost_usd": 22.0865, "normalized_mtokens": 93.86, "tokens": { "input": 4574516, "output": 591993, "cache_read": 88693017, "cache_write": 0 }, "wall_minutes": 173.5 },
-        "install": { "cost_usd": 26.1523, "normalized_mtokens": 103.24, "tokens": { "input": 7785827, "output": 558202, "cache_read": 94895206, "cache_write": 0 }, "wall_minutes": 124.4 },
-        "fix-tmux": { "cost_usd": 9.8041, "normalized_mtokens": 40.87, "tokens": { "input": 1456447, "output": 470493, "cache_read": 38938790, "cache_write": 0 }, "wall_minutes": 91.4 },
-        "fix-review": { "cost_usd": 12.39, "normalized_mtokens": 17.05, "tokens": { "input": 11528438, "output": 157356, "cache_read": 5366263, "cache_write": 0 }, "wall_minutes": 29.7 },
-        "daemon": { "cost_usd": 45.5327, "normalized_mtokens": 182.31, "tokens": { "input": 13144014, "output": 920585, "cache_read": 168245358, "cache_write": 0 }, "wall_minutes": 153.4 }
+        "add-i-key": {
+          "cost_usd": 15.8465,
+          "normalized_mtokens": 64.59,
+          "tokens": {
+            "input": 4068790,
+            "output": 385355,
+            "cache_read": 60139434,
+            "cache_write": 0
+          },
+          "wall_minutes": 114.1
+        },
+        "web-install": {
+          "cost_usd": 22.0865,
+          "normalized_mtokens": 93.86,
+          "tokens": {
+            "input": 4574516,
+            "output": 591993,
+            "cache_read": 88693017,
+            "cache_write": 0
+          },
+          "wall_minutes": 173.5
+        },
+        "install": {
+          "cost_usd": 26.1523,
+          "normalized_mtokens": 103.24,
+          "tokens": {
+            "input": 7785827,
+            "output": 558202,
+            "cache_read": 94895206,
+            "cache_write": 0
+          },
+          "wall_minutes": 124.4
+        },
+        "fix-tmux": {
+          "cost_usd": 9.8041,
+          "normalized_mtokens": 40.87,
+          "tokens": {
+            "input": 1456447,
+            "output": 470493,
+            "cache_read": 38938790,
+            "cache_write": 0
+          },
+          "wall_minutes": 91.4
+        },
+        "fix-review": {
+          "cost_usd": 12.39,
+          "normalized_mtokens": 17.05,
+          "tokens": {
+            "input": 11528438,
+            "output": 157356,
+            "cache_read": 5366263,
+            "cache_write": 0
+          },
+          "wall_minutes": 29.7
+        },
+        "daemon": {
+          "cost_usd": 45.5327,
+          "normalized_mtokens": 182.31,
+          "tokens": {
+            "input": 13144014,
+            "output": 920585,
+            "cache_read": 168245358,
+            "cache_write": 0
+          },
+          "wall_minutes": 153.4
+        }
       },
       "cells": {
         "add-i-key": {
@@ -574,6 +1064,941 @@
           "result_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/all-glm-5.2--make-the-hive-daemon-automatically-260629-223d/results.json",
           "patch_url": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/cells/all-glm-5.2--make-the-hive-daemon-automatically-260629-223d/candidate.patch"
         }
+      },
+      "campaign_id": "v2-ce",
+      "samples_per_cell": 1,
+      "raw_evidence_published": true
+    },
+    {
+      "id": "fable-plan->grok-exec-sol-review",
+      "label": "Fable plan → Grok execute → Sol review",
+      "reasoning": "Fable high plan · Grok xhigh execute · Sol xhigh review",
+      "note": "Fable plans, Grok executes, and Sol performs the production review.",
+      "campaign_id": "v3-mixed-workflows-three-seed-20260713",
+      "samples_per_cell": 3,
+      "raw_evidence_published": false,
+      "completed": 6,
+      "total": 6,
+      "mean_minutes": 98.4,
+      "time_sample": 5,
+      "cost_per_task_usd": null,
+      "cost_total_usd": null,
+      "cost_sample": 0,
+      "normalized_mtokens_per_task": 10.12,
+      "token_sample": 6,
+      "token_totals": {
+        "input": 36117991,
+        "output": 325603,
+        "cache_read": 21663702,
+        "cache_write": 2589042
+      },
+      "efficiency_by_task": {
+        "add-i-key": {
+          "cost_usd": null,
+          "normalized_mtokens": 15.17,
+          "tokens": {
+            "input": 11503953,
+            "output": 67139,
+            "cache_read": 3256782,
+            "cache_write": 340097
+          },
+          "wall_minutes": 92.1
+        },
+        "web-install": {
+          "cost_usd": null,
+          "normalized_mtokens": 6.75,
+          "tokens": {
+            "input": 31016,
+            "output": 29257,
+            "cache_read": 5932423,
+            "cache_write": 752463
+          },
+          "wall_minutes": 150.7
+        },
+        "install": {
+          "cost_usd": null,
+          "normalized_mtokens": 1.81,
+          "tokens": {
+            "input": 22348,
+            "output": 74020,
+            "cache_read": 1420543,
+            "cache_write": 292110
+          },
+          "wall_minutes": null
+        },
+        "fix-tmux": {
+          "cost_usd": null,
+          "normalized_mtokens": 3.11,
+          "tokens": {
+            "input": 37975,
+            "output": 20310,
+            "cache_read": 2730880,
+            "cache_write": 324915
+          },
+          "wall_minutes": 25.5
+        },
+        "fix-review": {
+          "cost_usd": null,
+          "normalized_mtokens": 29.67,
+          "tokens": {
+            "input": 24488936,
+            "output": 114467,
+            "cache_read": 4620530,
+            "cache_write": 443645
+          },
+          "wall_minutes": 87.2
+        },
+        "daemon": {
+          "cost_usd": null,
+          "normalized_mtokens": 4.19,
+          "tokens": {
+            "input": 33763,
+            "output": 20410,
+            "cache_read": 3702544,
+            "cache_write": 435812
+          },
+          "wall_minutes": 136.2
+        }
+      },
+      "cells": {
+        "add-i-key": {
+          "scores": "8.5 / 6.0",
+          "result_url": "/bench/results.json",
+          "patch_url": null,
+          "judge_samples": {
+            "fable-5": {
+              "mean": 8.5,
+              "stddev": 0,
+              "scores": [
+                8.5,
+                8.5,
+                8.5
+              ],
+              "interval": [
+                8.5,
+                8.5
+              ],
+              "same_family": true,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 6,
+              "stddev": 0.408,
+              "scores": [
+                6,
+                6.5,
+                5.5
+              ],
+              "interval": [
+                5.592,
+                6.408
+              ],
+              "same_family": true,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        },
+        "web-install": {
+          "scores": "5.167 / 3.167",
+          "result_url": "/bench/results.json",
+          "patch_url": null,
+          "judge_samples": {
+            "fable-5": {
+              "mean": 5.167,
+              "stddev": 0.85,
+              "scores": [
+                4,
+                6,
+                5.5
+              ],
+              "interval": [
+                4.317,
+                6.017
+              ],
+              "same_family": true,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 3.167,
+              "stddev": 0.236,
+              "scores": [
+                3,
+                3.5,
+                3
+              ],
+              "interval": [
+                2.931,
+                3.402
+              ],
+              "same_family": true,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        },
+        "install": {
+          "scores": "5.5 / 2.833",
+          "result_url": "/bench/results.json",
+          "patch_url": null,
+          "judge_samples": {
+            "fable-5": {
+              "mean": 5.5,
+              "stddev": 0.408,
+              "scores": [
+                5,
+                6,
+                5.5
+              ],
+              "interval": [
+                5.092,
+                5.908
+              ],
+              "same_family": true,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 2.833,
+              "stddev": 0.236,
+              "scores": [
+                3,
+                3,
+                2.5
+              ],
+              "interval": [
+                2.598,
+                3.069
+              ],
+              "same_family": true,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": true
+        },
+        "fix-tmux": {
+          "scores": "5.833 / 7.833",
+          "result_url": "/bench/results.json",
+          "patch_url": null,
+          "judge_samples": {
+            "fable-5": {
+              "mean": 5.833,
+              "stddev": 0.236,
+              "scores": [
+                5.5,
+                6,
+                6
+              ],
+              "interval": [
+                5.598,
+                6.069
+              ],
+              "same_family": true,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 7.833,
+              "stddev": 0.236,
+              "scores": [
+                7.5,
+                8,
+                8
+              ],
+              "interval": [
+                7.598,
+                8.069
+              ],
+              "same_family": true,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        },
+        "fix-review": {
+          "scores": "5.833 / 4.0",
+          "result_url": "/bench/results.json",
+          "patch_url": null,
+          "judge_samples": {
+            "fable-5": {
+              "mean": 5.833,
+              "stddev": 0.236,
+              "scores": [
+                5.5,
+                6,
+                6
+              ],
+              "interval": [
+                5.598,
+                6.069
+              ],
+              "same_family": true,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 4,
+              "stddev": 0.408,
+              "scores": [
+                4.5,
+                4,
+                3.5
+              ],
+              "interval": [
+                3.592,
+                4.408
+              ],
+              "same_family": true,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        },
+        "daemon": {
+          "scores": "6.333 / 4.167",
+          "result_url": "/bench/results.json",
+          "patch_url": null,
+          "judge_samples": {
+            "fable-5": {
+              "mean": 6.333,
+              "stddev": 0.236,
+              "scores": [
+                6.5,
+                6.5,
+                6
+              ],
+              "interval": [
+                6.098,
+                6.569
+              ],
+              "same_family": true,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 4.167,
+              "stddev": 0.236,
+              "scores": [
+                4,
+                4,
+                4.5
+              ],
+              "interval": [
+                3.931,
+                4.402
+              ],
+              "same_family": true,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        }
+      }
+    },
+    {
+      "id": "sol-plan->grok-exec-sol-review",
+      "label": "Sol plan → Grok execute → Sol review",
+      "reasoning": "Sol xhigh plan · Grok xhigh execute · Sol xhigh review",
+      "note": "Sol plans and reviews while Grok executes.",
+      "campaign_id": "v3-mixed-workflows-three-seed-20260713",
+      "samples_per_cell": 3,
+      "raw_evidence_published": false,
+      "completed": 6,
+      "total": 6,
+      "mean_minutes": 132.1,
+      "time_sample": 5,
+      "cost_per_task_usd": null,
+      "cost_total_usd": null,
+      "cost_sample": 0,
+      "normalized_mtokens_per_task": null,
+      "token_sample": 0,
+      "token_totals": null,
+      "efficiency_by_task": {
+        "add-i-key": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": 115.5
+        },
+        "web-install": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": 94.9
+        },
+        "install": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": 173.5
+        },
+        "fix-tmux": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": 63.5
+        },
+        "fix-review": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": null
+        },
+        "daemon": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": 213.1
+        }
+      },
+      "cells": {
+        "add-i-key": {
+          "scores": "9.0 / 6.167",
+          "result_url": "/bench/results.json",
+          "patch_url": null,
+          "judge_samples": {
+            "fable-5": {
+              "mean": 9,
+              "stddev": 0,
+              "scores": [
+                9,
+                9,
+                9
+              ],
+              "interval": [
+                9,
+                9
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 6.167,
+              "stddev": 0.236,
+              "scores": [
+                6.5,
+                6,
+                6
+              ],
+              "interval": [
+                5.931,
+                6.402
+              ],
+              "same_family": true,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        },
+        "web-install": {
+          "scores": "8.333 / 5.167",
+          "result_url": "/bench/results.json",
+          "patch_url": null,
+          "judge_samples": {
+            "fable-5": {
+              "mean": 8.333,
+              "stddev": 0.236,
+              "scores": [
+                8,
+                8.5,
+                8.5
+              ],
+              "interval": [
+                8.098,
+                8.569
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 5.167,
+              "stddev": 0.236,
+              "scores": [
+                5,
+                5.5,
+                5
+              ],
+              "interval": [
+                4.931,
+                5.402
+              ],
+              "same_family": true,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        },
+        "install": {
+          "scores": "7.833 / 4.067",
+          "result_url": "/bench/results.json",
+          "patch_url": null,
+          "judge_samples": {
+            "fable-5": {
+              "mean": 7.833,
+              "stddev": 0.471,
+              "scores": [
+                7.5,
+                7.5,
+                8.5
+              ],
+              "interval": [
+                7.362,
+                8.305
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 4.067,
+              "stddev": 0.094,
+              "scores": [
+                4,
+                4.2,
+                4
+              ],
+              "interval": [
+                3.972,
+                4.161
+              ],
+              "same_family": true,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        },
+        "fix-tmux": {
+          "scores": "9.167 / 5.833",
+          "result_url": "/bench/results.json",
+          "patch_url": null,
+          "judge_samples": {
+            "fable-5": {
+              "mean": 9.167,
+              "stddev": 0.236,
+              "scores": [
+                9,
+                9.5,
+                9
+              ],
+              "interval": [
+                8.931,
+                9.402
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 5.833,
+              "stddev": 0.236,
+              "scores": [
+                5.5,
+                6,
+                6
+              ],
+              "interval": [
+                5.598,
+                6.069
+              ],
+              "same_family": true,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        },
+        "fix-review": {
+          "scores": "4.0 / 4.0",
+          "result_url": "/bench/results.json",
+          "patch_url": null,
+          "judge_samples": {
+            "fable-5": {
+              "mean": 4,
+              "stddev": 0.408,
+              "scores": [
+                4.5,
+                3.5,
+                4
+              ],
+              "interval": [
+                3.592,
+                4.408
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 4,
+              "stddev": 0,
+              "scores": [
+                4,
+                4,
+                4
+              ],
+              "interval": [
+                4,
+                4
+              ],
+              "same_family": true,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": true
+        },
+        "daemon": {
+          "scores": "8.333 / 3.833",
+          "result_url": "/bench/results.json",
+          "patch_url": null,
+          "judge_samples": {
+            "fable-5": {
+              "mean": 8.333,
+              "stddev": 0.236,
+              "scores": [
+                8,
+                8.5,
+                8.5
+              ],
+              "interval": [
+                8.098,
+                8.569
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 3.833,
+              "stddev": 0.85,
+              "scores": [
+                5,
+                3.5,
+                3
+              ],
+              "interval": [
+                2.983,
+                4.683
+              ],
+              "same_family": true,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        }
+      }
+    },
+    {
+      "id": "sol-plan->terra-exec-sol-review",
+      "label": "Sol plan → Terra execute → Sol review",
+      "reasoning": "Sol xhigh plan · Terra xhigh execute · Sol xhigh review",
+      "note": "Sol plans and reviews while Terra executes.",
+      "campaign_id": "v3-mixed-workflows-three-seed-20260713",
+      "samples_per_cell": 3,
+      "raw_evidence_published": false,
+      "completed": 6,
+      "total": 6,
+      "mean_minutes": 166,
+      "time_sample": 4,
+      "cost_per_task_usd": null,
+      "cost_total_usd": null,
+      "cost_sample": 0,
+      "normalized_mtokens_per_task": null,
+      "token_sample": 0,
+      "token_totals": null,
+      "efficiency_by_task": {
+        "add-i-key": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": 91.4
+        },
+        "web-install": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": 197.7
+        },
+        "install": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": 179.5
+        },
+        "fix-tmux": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": null
+        },
+        "fix-review": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": null
+        },
+        "daemon": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": 195.2
+        }
+      },
+      "cells": {
+        "add-i-key": {
+          "scores": "8.833 / 5.267",
+          "result_url": "/bench/results.json",
+          "patch_url": null,
+          "judge_samples": {
+            "fable-5": {
+              "mean": 8.833,
+              "stddev": 0.236,
+              "scores": [
+                9,
+                8.5,
+                9
+              ],
+              "interval": [
+                8.598,
+                9.069
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 5.267,
+              "stddev": 0.377,
+              "scores": [
+                5.8,
+                5,
+                5
+              ],
+              "interval": [
+                4.89,
+                5.644
+              ],
+              "same_family": true,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        },
+        "web-install": {
+          "scores": "3.667 / 2.833",
+          "result_url": "/bench/results.json",
+          "patch_url": null,
+          "judge_samples": {
+            "fable-5": {
+              "mean": 3.667,
+              "stddev": 0.471,
+              "scores": [
+                4,
+                3,
+                4
+              ],
+              "interval": [
+                3.195,
+                4.138
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 2.833,
+              "stddev": 0.236,
+              "scores": [
+                2.5,
+                3,
+                3
+              ],
+              "interval": [
+                2.598,
+                3.069
+              ],
+              "same_family": true,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        },
+        "install": {
+          "scores": "8.0 / 3.167",
+          "result_url": "/bench/results.json",
+          "patch_url": null,
+          "judge_samples": {
+            "fable-5": {
+              "mean": 8,
+              "stddev": 0,
+              "scores": [
+                8,
+                8,
+                8
+              ],
+              "interval": [
+                8,
+                8
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 3.167,
+              "stddev": 0.236,
+              "scores": [
+                3,
+                3.5,
+                3
+              ],
+              "interval": [
+                2.931,
+                3.402
+              ],
+              "same_family": true,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        },
+        "fix-tmux": {
+          "scores": "8.333 / 6.9",
+          "result_url": "/bench/results.json",
+          "patch_url": null,
+          "judge_samples": {
+            "fable-5": {
+              "mean": 8.333,
+              "stddev": 0.236,
+              "scores": [
+                8.5,
+                8.5,
+                8
+              ],
+              "interval": [
+                8.098,
+                8.569
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 6.9,
+              "stddev": 0.294,
+              "scores": [
+                6.5,
+                7,
+                7.2
+              ],
+              "interval": [
+                6.606,
+                7.194
+              ],
+              "same_family": true,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": true
+        },
+        "fix-review": {
+          "scores": "8.167 / 7.233",
+          "result_url": "/bench/results.json",
+          "patch_url": null,
+          "judge_samples": {
+            "fable-5": {
+              "mean": 8.167,
+              "stddev": 0.624,
+              "scores": [
+                7.5,
+                8,
+                9
+              ],
+              "interval": [
+                7.543,
+                8.79
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 7.233,
+              "stddev": 0.613,
+              "scores": [
+                8,
+                6.5,
+                7.2
+              ],
+              "interval": [
+                6.621,
+                7.846
+              ],
+              "same_family": true,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": true
+        },
+        "daemon": {
+          "scores": "5.333 / 5.4",
+          "result_url": "/bench/results.json",
+          "patch_url": null,
+          "judge_samples": {
+            "fable-5": {
+              "mean": 5.333,
+              "stddev": 0.471,
+              "scores": [
+                6,
+                5,
+                5
+              ],
+              "interval": [
+                4.862,
+                5.805
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 5.4,
+              "stddev": 0.698,
+              "scores": [
+                4.5,
+                5.5,
+                6.2
+              ],
+              "interval": [
+                4.702,
+                6.098
+              ],
+              "same_family": true,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        }
       }
     }
   ],
@@ -581,14 +2006,40 @@
     "readme": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/README.md",
     "manifest": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/manifest.json",
     "results": "https://github.com/ivankuznetsov/hive-bench/blob/main/runs/v2-ce/results.json",
-    "cells": "https://github.com/ivankuznetsov/hive-bench/tree/main/runs/v2-ce/cells"
+    "cells": "https://github.com/ivankuznetsov/hive-bench/tree/main/runs/v2-ce/cells",
+    "followup_results": "/bench/results.json",
+    "followup_raw_evidence_published": false
   },
   "notes": [
-    "All 36 generation cells completed. Every objective gate is no_gate in this campaign, so scores are judge evidence, not test-pass rates.",
-    "Efficiency is recomputed uniformly from per-event generation stage logs. Each total includes fresh input, output, cache reads, and cache creation/writes; the site publishes that split per task and candidate average.",
+    "All 54 generation cells completed. Every objective gate is no_gate in both campaigns, so scores are judge evidence, not test-pass rates.",
+    "The original 36-cell campaign uses one sample per judge; the 18-cell mixed-workflow follow-up uses three samples per judge and completed all adversarial deliberations.",
+    "Efficiency uses each campaign's serialized generation telemetry. Follow-up API-equivalent costs are unknown; provider-reported amounts are not mixed into the comparable cost columns.",
     "The mixed Opus → Codex estimate is $115.5829 across six cells: $67.3351 Codex 5.5, $47.6319 Opus 4.8, and $0.6159 Haiku utility calls, or $19.26 per task on average.",
-    "Grok 4.5 exposes no usable token events, so its tokens and cost remain unknown rather than $0.",
-    "Wall time is missing for recovered artifacts: Sol has 4/6 timed cells, Grok 5/6, and the mixed candidate 5/6. Means use only the recorded samples.",
-    "Costs use the benchmark's versioned 2026-06 usual-tier table and are API-equivalent estimates, not subscription invoices; judge usage is excluded."
+    "Grok-only and Sol-planned mixed workflows do not expose enough normalized token/cost evidence for comparable cost rows.",
+    "Wall-time means use only recorded samples. Recovered follow-up artifacts preserve scores and patches but not original wall time.",
+    "Costs use the benchmark's versioned 2026-06 usual-tier table and are API-equivalent estimates, not subscription invoices; judge usage is excluded.",
+    "The site's machine-readable snapshot contains all follow-up score samples and intervals; the 18 follow-up patches are not yet in the public raw-evidence bundle."
+  ],
+  "campaigns": [
+    {
+      "id": "v2-ce",
+      "corpus_version": "v2-ce",
+      "cells": 36,
+      "candidates": 6,
+      "judge_samples_per_cell": 1,
+      "sol_reasoning_effort": "xhigh",
+      "deliberation_complete": false,
+      "raw_evidence_published": true
+    },
+    {
+      "id": "v3-mixed-workflows-three-seed-20260713",
+      "corpus_version": "v3-mixed-workflows-followup-20260713",
+      "cells": 18,
+      "candidates": 3,
+      "judge_samples_per_cell": 3,
+      "sol_reasoning_effort": "ultra",
+      "deliberation_complete": true,
+      "raw_evidence_published": false
+    }
   ]
 }

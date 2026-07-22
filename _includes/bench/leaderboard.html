@@ -1,5 +1,5 @@
 {% assign b = site.data.bench %}
-{% assign ranked_candidate_ids = "all-codex-5.6-sol-xhigh,opus-plan->codex-exec-xhigh,all-grok-4.5,all-opus-4.8,all-codex-xhigh,all-glm-5.2" | split: "," %}
+{% assign ranked_candidate_ids = "all-codex-5.6-sol-xhigh,sol-plan->grok-exec-sol-review,sol-plan->terra-exec-sol-review,opus-plan->codex-exec-xhigh,fable-plan->grok-exec-sol-review,all-grok-4.5,all-opus-4.8,all-codex-xhigh,all-glm-5.2" | split: "," %}
 {% assign sol_judge = b.primary_judges | where: "id", "gpt-5.6-sol" | first %}
 {% assign fable_judge = b.primary_judges | where: "id", "fable-5" | first %}
 <section class="bench-board">
@@ -35,7 +35,7 @@
         <tr>
           <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="candidate" data-sort-type="text">Candidate <span aria-hidden="true"></span></button></th>
           <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="fable" data-sort-type="number">Fable <span aria-hidden="true"></span></button></th>
-          <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="sol" data-sort-type="number">Sol <small>xhigh</small> <span aria-hidden="true"></span></button></th>
+          <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="sol" data-sort-type="number">Sol <small>xhigh / ultra</small> <span aria-hidden="true"></span></button></th>
           <th scope="col" aria-sort="descending"><button class="bench-sort-button" type="button" data-sort-key="combined" data-sort-type="number">Combined <span aria-hidden="true">↓</span></button></th>
           <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="time" data-sort-type="number">Mean time <span aria-hidden="true"></span></button></th>
           <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="cost" data-sort-type="number">$/task <span aria-hidden="true"></span></button></th>
@@ -60,12 +60,15 @@
             <th scope="row">
               <code>{{ candidate.label }}</code>
               <small>{{ candidate.reasoning }}</small>
+              {% if candidate.samples_per_cell > 1 %}
+                <small><span class="bench-prelim">{{ candidate.samples_per_cell }} samples/judge</span>{% unless candidate.raw_evidence_published %} · site snapshot evidence{% endunless %}</small>
+              {% endif %}
             </th>
             <td data-label="Fable">
               <span class="bench-cell-value"><strong>{{ fable_row.mean }}</strong>
               {% if fable_row.same_family %}<span class="bench-prelim">same-family</span>{% endif %}</span>
             </td>
-            <td data-label="Sol xhigh">
+            <td data-label="Sol">
               <span class="bench-cell-value"><strong>{{ sol_row.mean }}</strong>
               {% if sol_row.same_family %}<span class="bench-prelim">same-family</span>{% endif %}</span>
             </td>
@@ -159,9 +162,11 @@
 
     <h2>Full board (per task)</h2>
     <p class="bench-meta">
-      Every cell shows <code>Fable 5 / GPT-5.6 Sol</code>. Click the score for
-      the machine-readable cell result or <strong>diff</strong> for the exact
-      candidate patch. No task in this campaign has an objective gate.
+      Every cell shows <code>Fable 5 / GPT-5.6 Sol</code>. The original rows use
+      one score per judge; the mixed-workflow rows use three and display their
+      means. Click a score for its machine-readable record. Exact diffs are
+      linked where the public raw-evidence bundle contains them. No task in
+      either campaign has an objective gate.
     </p>
     <div class="bench-table-scroll bench-table-scroll--responsive" role="region" aria-label="Quality scores by task and candidate" tabindex="0">
     <table class="bench-table bench-matrix bench-responsive-matrix bench-score-matrix">
@@ -193,8 +198,8 @@
               {% assign cell = candidate.cells[task.key] %}
               <td data-task="{{ task.key }}">
                 <span class="bench-cell-value">
-                <a href="{{ cell.result_url }}">{{ cell.scores }}</a><br>
-                <small><a href="{{ cell.patch_url }}">diff</a></small>
+                {% if cell.result_url %}<a href="{{ cell.result_url }}">{{ cell.scores }}</a>{% else %}{{ cell.scores }}{% endif %}<br>
+                <small>{% if cell.patch_url %}<a href="{{ cell.patch_url }}">diff</a>{% else %}diff not public{% endif %}{% if cell.judge_samples %} · {{ candidate.samples_per_cell }} samples/judge{% endif %}</small>
                 </span>
               </td>
             {% endfor %}
@@ -222,8 +227,10 @@
 
     <h2>Audit the campaign</h2>
     <p>
-      Every leaderboard score can be traced to its machine-readable result and
-      the exact final diff that was judged. The published evidence lets you:
+      Every leaderboard score can be traced to a machine-readable record. The
+      original 36-cell campaign also publishes every exact final diff; the 18
+      mixed-workflow patches are not yet in the public raw-evidence bundle. The
+      published evidence lets you:
     </p>
     <ul>
       <li>Read the <a href="{{ b.evidence.readme }}">publication notes</a> for
@@ -235,20 +242,23 @@
         results</a> for quality scores, judge provenance, same-family flags,
         and gate status.</li>
       <li>Download the <a href="{{ '/bench/results.json' | relative_url }}">site
-        data snapshot</a> containing the displayed time, normalized token values,
-        and API-equivalent cost estimates.</li>
-      <li>Read or compare all <a href="{{ b.evidence.cells }}">36 candidate
-        patches</a>&mdash;the final code artifacts the judges scored.</li>
+        data snapshot</a> containing every displayed score, all three-sample
+        follow-up distributions and intervals, recorded time, normalized token
+        values, and API-equivalent cost estimates.</li>
+      <li>Read or compare the <a href="{{ b.evidence.cells }}">36 original
+        candidate patches</a>&mdash;the public final code artifacts available
+        for direct audit today.</li>
     </ul>
     <p>
-      Together, these artifacts let you audit a score against the code, compare
-      how candidates solved the same task, and verify the current patch against
-      the manifest's recorded byte size and SHA-256. Raw provider streams, build
-      logs, target clones, and auth material are intentionally not published.
-      Displayed wall times can be checked in the score results. The normalized
-      token splits and recomputed costs can be inspected in the site snapshot,
-      but not independently recomputed from the public bundle; older token and
-      cost fields in the score results are not the source for this table.
+      For the original campaign, these artifacts let you audit a score against
+      the code and verify each patch against the manifest's byte size and
+      SHA-256. For the follow-up, the site snapshot preserves the independent
+      score samples and intervals while raw patch publication remains pending.
+      Raw provider streams, build logs, target clones, and auth material are
+      intentionally not published. Displayed wall times can be checked in the
+      score results where raw evidence is public. Normalized token splits and
+      recomputed costs live in the site snapshot and cannot yet be independently
+      rebuilt from the public bundle.
     </p>
     <ul class="bench-foot">
       {% for note in b.notes %}<li>{{ note }}</li>{% endfor %}

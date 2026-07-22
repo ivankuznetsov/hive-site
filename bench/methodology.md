@@ -2,7 +2,7 @@
 layout: home
 title: hive-bench methodology & limitations
 nav_exclude: true
-description: How 36 hive-bench runs measured coding agents across planning, implementation, pull requests, review, and fixes—and how to read the limits.
+description: How 54 hive-bench runs measured coding agents across planning, implementation, pull requests, review, and fixes—and how to read the limits.
 permalink: /bench/methodology/
 ---
 
@@ -13,10 +13,11 @@ permalink: /bench/methodology/
 ## What one cell measures
 
 One cell is one corpus task run by one candidate configuration. The published
-campaign has six tasks and six candidates, for **36 generated cells**. A
-candidate can use one model across the workflow or split stages between models;
-for example, `opus-plan->codex-exec-xhigh` uses Opus to plan and review and
-Codex 5.5 xhigh to execute.
+board has six tasks and nine candidates across two completed campaigns, for
+**54 generated cells**. A candidate can use one model across the workflow or
+split stages between models; for example,
+`sol-plan->grok-exec-sol-review` uses Sol to plan and review and Grok to
+execute.
 
 Each task is a real completed Hive task with a merged reference PR. The runner
 rewinds a source clone to the task's base commit and supplies its frozen
@@ -53,6 +54,21 @@ which only evaluated the finished artifact afterward.
     <tr>
       <th scope="row">GPT-5.6 Sol xhigh</th>
       <td>Plan, implement, PR, triage, fix: Sol xhigh</td>
+      <td><code>codex-ce-code-review</code> using Sol xhigh</td>
+    </tr>
+    <tr>
+      <th scope="row">Sol plan &rarr; Grok execute &rarr; Sol review</th>
+      <td>Plan, PR, triage, fix: Sol xhigh;<br>Implement: Grok 4.5 xhigh</td>
+      <td><code>codex-ce-code-review</code> using Sol xhigh</td>
+    </tr>
+    <tr>
+      <th scope="row">Sol plan &rarr; Terra execute &rarr; Sol review</th>
+      <td>Plan, PR, triage, fix: Sol xhigh;<br>Implement: Terra xhigh</td>
+      <td><code>codex-ce-code-review</code> using Sol xhigh</td>
+    </tr>
+    <tr>
+      <th scope="row">Fable plan &rarr; Grok execute &rarr; Sol review</th>
+      <td>Plan: Fable 5 high;<br>Implement: Grok 4.5 xhigh;<br>PR, triage, fix: Sol xhigh</td>
       <td><code>codex-ce-code-review</code> using Sol xhigh</td>
     </tr>
     <tr>
@@ -97,12 +113,16 @@ Two judges independently score every final diff from 0–10 against the task and
 merged reference:
 
 - **Fable 5**, with reasoning enabled; its exact effort level was not preserved
-  in the benchmark record.
-- **GPT-5.6 Sol**, explicitly pinned to `xhigh` reasoning.
+  in either benchmark record.
+- **GPT-5.6 Sol**, pinned to `xhigh` for the original campaign and `ultra` for
+  the mixed-workflow follow-up.
 
 The merged PR tells a judge what the task ultimately required; candidates are
-not rewarded for textual or structural similarity. Each primary judge has one
-score sample per cell. The per-task board displays `Fable / Sol` in that order.
+not rewarded for textual or structural similarity. The original 36 cells have
+one score sample per judge. The 18 mixed-workflow cells have three samples per
+judge plus a completed adversarial deliberation pass; only the independent
+three-sample means enter the leaderboard. The per-task board displays
+`Fable / Sol` in that order.
 
 Judge calibrations are not interchangeable. The site keeps separate Fable and
 Sol columns as the primary evidence and uses their arithmetic mean only as a
@@ -118,40 +138,50 @@ published score data but are not used in the compact leaderboard ranking.
 
 ## Coverage and objective evidence
 
-All 36 candidate runs produced scoreable patches, and all 36 exact patches are
-published. There are no pending or failed generation cells in the published
-score result. Every objective-gate record is `no_gate`: the corpus does not yet
-have curated held-out tests suitable for a fair candidate-independent pass/fail
-claim. The current numbers are judge evidence, not test-pass rates.
+All 54 candidate runs produced scoreable patches, with no pending or failed
+generation cells. The original 36 exact patches are public. The 18
+mixed-workflow rows currently publish their complete score samples and
+intervals in the site snapshot, but not their raw patches. Every objective-gate
+record is `no_gate`: the corpus does not yet have curated held-out tests
+suitable for a fair candidate-independent pass/fail claim. The current numbers
+are judge evidence, not test-pass rates.
 
-The site links every score to its machine-readable cell result and exact
-candidate patch. The campaign manifest, complete merged `results.json`, and
-all evidence directories are public in
+The site links every score to a machine-readable record. For the original
+campaign, the manifest, complete merged `results.json`, exact candidate patches,
+and evidence directories are public in
 [hive-bench](https://github.com/ivankuznetsov/hive-bench/tree/main/runs/v2-ce).
+The follow-up's three-sample distributions are included in the site's
+[data snapshot]({{ '/bench/results.json' | relative_url }}); its raw-evidence
+bundle remains unpublished.
 
 ## Time, tokens, and cost
 
-Wall time is recorded per task where recoverable. Four Sol cells, five Grok
-cells, five mixed Opus/Codex cells, and all six cells for the remaining
-candidates have usable timing evidence. A displayed time mean uses only those
-recorded cells and always shows its sample count.
+Wall time is recorded per task where recoverable. The original campaign has 32
+timed cells; the mixed-workflow follow-up has 14. A displayed time mean uses
+only those recorded cells and always shows its sample count.
 
-Generation tokens and API-equivalent costs are recomputed uniformly from the
-per-event stage logs with `HiveBench::TokenReport`. Session-cumulative `result`
-and `system` events are excluded rather than counted again. Codex usage is
-normalized by subtracting `cached_input_tokens` from its inclusive input count,
-then pricing cached and uncached input separately. Event model ids provide the
-first attribution signal; stages provide the fallback for Codex events that do
-not carry a model id. Claude's internal Haiku utility calls remain a separate
-priced model instead of being charged at the Opus rate.
+For the original campaign, generation tokens and API-equivalent costs are
+recomputed uniformly from per-event stage logs with `HiveBench::TokenReport`.
+Session-cumulative `result` and `system` events are excluded rather than counted
+again. Codex usage is normalized by subtracting `cached_input_tokens` from its
+inclusive input count, then pricing cached and uncached input separately. Event
+model ids provide the first attribution signal; stages provide the fallback for
+Codex events that do not carry a model id. Claude's internal Haiku utility calls
+remain a separate priced model instead of being charged at the Opus rate.
 
-All 32 displayed wall times match the corresponding `wall_clock_sec` values in
-the published score results. The per-event source logs used to reconstruct the
-normalized token split and costs are not public. Those displayed values are
-available in the site's [data snapshot]({{ '/bench/results.json' | relative_url }}),
-but visitors cannot yet independently rerun that accounting from the public
-evidence bundle; older token and cost fields in the score results are not the
-source for the current table.
+The follow-up uses the telemetry serialized in each completed campaign cell.
+Only the Fable-plan/Grok-execute workflow has a complete comparable token split
+for all six tasks. Its serialized costs are provider-reported rather than
+recomputed API-equivalent estimates, so the site's comparable cost columns keep
+them unknown. The Sol-planned mixed workflows retain timing and raw usage
+counts, but not enough cache attribution for normalized token or price rows.
+
+All displayed wall times come from the corresponding serialized
+`wall_clock_sec` values. The per-event source logs used to reconstruct normalized
+token splits and costs are not public. Those displayed values are available in
+the site's [data snapshot]({{ '/bench/results.json' | relative_url }}), but
+visitors cannot yet independently rerun that accounting from the public
+evidence bundle.
 
 The normalized token total includes four non-overlapping buckets: fresh input,
 output, cache reads, and cache creation/writes. The site publishes the split for
@@ -177,13 +207,17 @@ model.
 
 - **Small, single-project corpus.** Six Ruby/CLI tasks from one repository do
   not support a universal "best coding model" claim.
-- **One sample per primary judge-cell.** There are no useful stability
-  intervals yet; small gaps may reverse under repeated judging.
+- **Mixed sampling depth.** The original 36 cells have one sample per primary
+  judge; the 18 follow-up cells have three. Stability intervals therefore exist
+  only for the follow-up rows, and close gaps in the original cohort may reverse.
 - **No objective gates.** Human-aligned judge scoring is the only current
   quality signal.
-- **Judge-family overlap.** Sol candidates are judged by Sol, while Opus and
-  the mixed candidate are judged by Fable. Flags disclose this but cannot
-  remove the bias.
+- **Judge-family overlap.** Every follow-up candidate uses Sol for at least one
+  production stage and is judged by Sol; the Fable-planned candidate is also
+  judged by Fable. Flags disclose this but cannot remove the bias.
+- **Follow-up raw patches are not public yet.** Their independent samples and
+  intervals are in the site snapshot, but direct code-level audit remains
+  available only for the original 36 cells.
 - **Corpus provenance can frame the task.** All original task plans were
   Claude-authored, even though candidates re-ran the workflow themselves.
 - **Recovered telemetry is incomplete.** Some finished cells predate complete
