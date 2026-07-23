@@ -119,25 +119,30 @@ merged reference:
 
 The merged PR tells a judge what the task ultimately required; candidates are
 not rewarded for textual or structural similarity. The original 36 cells have
-one score sample per judge. The 18 mixed-workflow cells have three samples per
-judge plus an adversarial deliberation pass. The bold independent three-sample
-means enter the leaderboard and define its default order. The secondary
-**discussion final** is a separate one-shot diagnostic run: each judge first re-grades the
-cell, then sees the other judge only as an anonymous referee with a score and
-rationale, must argue the strongest evidence-based case that its own fresh
-verdict is wrong, and finally holds or revises. It is not an adjustment applied
-to the three-sample mean.
+one score sample per judge; the 18 mixed-workflow cells have three samples per
+judge. The bold independent score for the original rows and independent
+three-sample mean for the follow-up rows enter the leaderboard and define its
+default order. All 54 cells then received an adversarial deliberation pass. The
+secondary **discussion final** is a separate one-shot diagnostic run with
+campaign-specific round-one provenance. The original campaign reused its exact
+published independent verdicts and rationales recovered from exact local
+provider sessions; the mixed-workflow follow-up freshly re-graded round one.
+In both campaigns, each judge then received the other judge's verdict
+anonymously, argued the strongest evidence-based case that its own view was
+wrong, and held or revised. It is not an adjustment applied to the independent
+score or mean.
 
-The site publishes all 36 discussion-final judge decisions across all 18
-follow-up cells. Sol's originally interrupted second-round decision for the
-Fable-plan/Grok-execute `daemon` cell was recovered by replaying only round two
-from the preserved pair of round-one verdicts, plan, diff, and reference.
+The site publishes all 108 discussion-final judge decisions across all 54
+cells. Reusing the original campaign's published initial verdicts means its
+round two did not rerun independent scoring. Sol's originally interrupted
+second-round decision for the Fable-plan/Grok-execute `daemon` follow-up cell
+was also recovered by replaying only round two from the preserved pair of
+round-one verdicts, plan, diff, and reference.
 Discussion finals do not replace the independent leaderboard because exposing
 verdicts can add anchoring or convergence pressure even when it also surfaces
-genuine misses. The optional **After discussion** sort orders the three covered
-rows by their paired final mean and places the six uncovered original-campaign
-rows last; it does not rewrite the independent scores. The per-task board
-displays Fable before Sol for both layers.
+genuine misses. The optional **After discussion** sort orders all nine rows by
+their paired final mean; it does not rewrite the independent scores. The
+per-task board displays Fable before Sol for both layers.
 
 Judge calibrations are not interchangeable. The site keeps separate Fable and
 Sol columns as the primary evidence and uses their arithmetic mean only as a

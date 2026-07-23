@@ -1,8 +1,8 @@
 {
   "schema": "hive-bench-results-site",
-  "schema_version": 7,
+  "schema_version": 8,
   "corpus_version": "v2-ce + v3-mixed-workflows-followup-20260713",
-  "generated_at": "2026-07-22T17:27:26Z",
+  "generated_at": "2026-07-23T08:34:31Z",
   "status": "preliminary_complete",
   "coverage": {
     "cells": 54,
@@ -34,30 +34,657 @@
   },
   "discussion_adjusted": {
     "status": "diagnostic",
-    "source_campaign_id": "v3-mixed-workflows-three-seed-20260713",
-    "description": "A separate one-shot diagnostic run. Each judge re-grades the cell, sees the other anonymous referee's score and rationale, argues the strongest evidence-based case that its own initial view is wrong, then holds or revises. Discussion-final scores do not replace the independent three-sample leaderboard means because shared verdicts can introduce anchoring or convergence pressure.",
+    "source_campaign_ids": [
+      "v2-ce",
+      "v3-mixed-workflows-three-seed-20260713"
+    ],
+    "description": "A separate one-shot diagnostic covering both campaigns. The v2-ce campaign reused its exact published independent verdicts and rationales recovered from exact local provider sessions for round one; the mixed-workflow follow-up freshly re-graded round one. In both campaigns, each judge then saw the other judge's verdict anonymously, argued the strongest evidence-based case that its own view was wrong, and held or revised. Discussion-final scores do not replace the independent leaderboard scores because shared verdicts can introduce anchoring or convergence pressure.",
     "coverage": {
-      "cells": 18,
-      "expected_cells": 18,
-      "judge_decisions": 36,
-      "expected_judge_decisions": 36,
-      "fully_adjusted_cells": 18,
+      "cells": 54,
+      "expected_cells": 54,
+      "judge_decisions": 108,
+      "expected_judge_decisions": 108,
+      "fully_adjusted_cells": 54,
       "missing": []
     },
     "summary": {
-      "cells": 18,
+      "cells": 54,
       "mean_revision_by_judge": {
-        "fable-5": -0.778,
-        "gpt-5.6-sol": -0.061
+        "fable-5": -0.763,
+        "gpt-5.6-sol": -0.156
       },
       "mean_abs_revision_by_judge": {
-        "fable-5": 0.778,
-        "gpt-5.6-sol": 0.272
+        "fable-5": 0.781,
+        "gpt-5.6-sol": 0.281
       },
-      "mean_spread_before": 2.044,
-      "mean_spread_after": 1.328
+      "mean_spread_before": 1.702,
+      "mean_spread_after": 0.998
     },
     "candidates": [
+      {
+        "id": "all-codex-5.6-sol-xhigh",
+        "fable": {
+          "mean": 6.25,
+          "sample": 6,
+          "total": 6
+        },
+        "sol": {
+          "mean": 5.867,
+          "sample": 6,
+          "total": 6
+        },
+        "combined": {
+          "mean": 6.058,
+          "sample": 6,
+          "total": 6
+        },
+        "cells": {
+          "add-i-key": {
+            "fable": {
+              "initial": 7.0,
+              "final": 7.0,
+              "delta": 0.0,
+              "revised": false
+            },
+            "sol": {
+              "initial": 7.0,
+              "final": 7.0,
+              "delta": 0.0,
+              "revised": false
+            }
+          },
+          "web-install": {
+            "fable": {
+              "initial": 7.0,
+              "final": 6.5,
+              "delta": -0.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 5.5,
+              "final": 5.5,
+              "delta": 0.0,
+              "revised": false
+            }
+          },
+          "install": {
+            "fable": {
+              "initial": 5.5,
+              "final": 4.0,
+              "delta": -1.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 3.5,
+              "final": 3.5,
+              "delta": 0.0,
+              "revised": false
+            }
+          },
+          "fix-tmux": {
+            "fable": {
+              "initial": 9.0,
+              "final": 8.5,
+              "delta": -0.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 8.5,
+              "final": 8.5,
+              "delta": 0.0,
+              "revised": false
+            }
+          },
+          "fix-review": {
+            "fable": {
+              "initial": 6.0,
+              "final": 6.0,
+              "delta": 0.0,
+              "revised": false
+            },
+            "sol": {
+              "initial": 7.1,
+              "final": 6.2,
+              "delta": -0.9,
+              "revised": true
+            }
+          },
+          "daemon": {
+            "fable": {
+              "initial": 7.0,
+              "final": 5.5,
+              "delta": -1.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 5.5,
+              "final": 4.5,
+              "delta": -1.0,
+              "revised": true
+            }
+          }
+        }
+      },
+      {
+        "id": "opus-plan->codex-exec-xhigh",
+        "fable": {
+          "mean": 5.583,
+          "sample": 6,
+          "total": 6
+        },
+        "sol": {
+          "mean": 4.95,
+          "sample": 6,
+          "total": 6
+        },
+        "combined": {
+          "mean": 5.267,
+          "sample": 6,
+          "total": 6
+        },
+        "cells": {
+          "add-i-key": {
+            "fable": {
+              "initial": 6.0,
+              "final": 5.5,
+              "delta": -0.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 5.0,
+              "final": 5.0,
+              "delta": 0.0,
+              "revised": false
+            }
+          },
+          "web-install": {
+            "fable": {
+              "initial": 5.0,
+              "final": 4.0,
+              "delta": -1.0,
+              "revised": true
+            },
+            "sol": {
+              "initial": 3.0,
+              "final": 4.0,
+              "delta": 1.0,
+              "revised": true
+            }
+          },
+          "install": {
+            "fable": {
+              "initial": 6.5,
+              "final": 6.0,
+              "delta": -0.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 4.5,
+              "final": 4.5,
+              "delta": 0.0,
+              "revised": false
+            }
+          },
+          "fix-tmux": {
+            "fable": {
+              "initial": 9.0,
+              "final": 9.0,
+              "delta": 0.0,
+              "revised": false
+            },
+            "sol": {
+              "initial": 8.7,
+              "final": 8.7,
+              "delta": 0.0,
+              "revised": false
+            }
+          },
+          "fix-review": {
+            "fable": {
+              "initial": 4.0,
+              "final": 3.5,
+              "delta": -0.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 3.0,
+              "final": 3.0,
+              "delta": 0.0,
+              "revised": false
+            }
+          },
+          "daemon": {
+            "fable": {
+              "initial": 6.5,
+              "final": 5.5,
+              "delta": -1.0,
+              "revised": true
+            },
+            "sol": {
+              "initial": 4.5,
+              "final": 4.5,
+              "delta": 0.0,
+              "revised": false
+            }
+          }
+        }
+      },
+      {
+        "id": "all-opus-4.8",
+        "fable": {
+          "mean": 5.5,
+          "sample": 6,
+          "total": 6
+        },
+        "sol": {
+          "mean": 4.167,
+          "sample": 6,
+          "total": 6
+        },
+        "combined": {
+          "mean": 4.833,
+          "sample": 6,
+          "total": 6
+        },
+        "cells": {
+          "add-i-key": {
+            "fable": {
+              "initial": 6.0,
+              "final": 5.5,
+              "delta": -0.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 5.0,
+              "final": 5.0,
+              "delta": 0.0,
+              "revised": false
+            }
+          },
+          "web-install": {
+            "fable": {
+              "initial": 4.5,
+              "final": 4.0,
+              "delta": -0.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 2.5,
+              "final": 2.5,
+              "delta": 0.0,
+              "revised": false
+            }
+          },
+          "install": {
+            "fable": {
+              "initial": 6.0,
+              "final": 6.0,
+              "delta": 0.0,
+              "revised": false
+            },
+            "sol": {
+              "initial": 2.5,
+              "final": 2.5,
+              "delta": 0.0,
+              "revised": false
+            }
+          },
+          "fix-tmux": {
+            "fable": {
+              "initial": 8.0,
+              "final": 7.5,
+              "delta": -0.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 7.5,
+              "final": 7.5,
+              "delta": 0.0,
+              "revised": false
+            }
+          },
+          "fix-review": {
+            "fable": {
+              "initial": 5.0,
+              "final": 4.0,
+              "delta": -1.0,
+              "revised": true
+            },
+            "sol": {
+              "initial": 3.0,
+              "final": 2.5,
+              "delta": -0.5,
+              "revised": true
+            }
+          },
+          "daemon": {
+            "fable": {
+              "initial": 7.0,
+              "final": 6.0,
+              "delta": -1.0,
+              "revised": true
+            },
+            "sol": {
+              "initial": 5.0,
+              "final": 5.0,
+              "delta": 0.0,
+              "revised": false
+            }
+          }
+        }
+      },
+      {
+        "id": "all-grok-4.5",
+        "fable": {
+          "mean": 4.883,
+          "sample": 6,
+          "total": 6
+        },
+        "sol": {
+          "mean": 3.883,
+          "sample": 6,
+          "total": 6
+        },
+        "combined": {
+          "mean": 4.383,
+          "sample": 6,
+          "total": 6
+        },
+        "cells": {
+          "add-i-key": {
+            "fable": {
+              "initial": 5.5,
+              "final": 5.0,
+              "delta": -0.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 5.1,
+              "final": 4.8,
+              "delta": -0.3,
+              "revised": true
+            }
+          },
+          "web-install": {
+            "fable": {
+              "initial": 6.0,
+              "final": 5.0,
+              "delta": -1.0,
+              "revised": true
+            },
+            "sol": {
+              "initial": 4.0,
+              "final": 3.5,
+              "delta": -0.5,
+              "revised": true
+            }
+          },
+          "install": {
+            "fable": {
+              "initial": 6.5,
+              "final": 3.0,
+              "delta": -3.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 2.0,
+              "final": 2.0,
+              "delta": 0.0,
+              "revised": false
+            }
+          },
+          "fix-tmux": {
+            "fable": {
+              "initial": 7.5,
+              "final": 6.8,
+              "delta": -0.7,
+              "revised": true
+            },
+            "sol": {
+              "initial": 6.2,
+              "final": 5.5,
+              "delta": -0.7,
+              "revised": true
+            }
+          },
+          "fix-review": {
+            "fable": {
+              "initial": 5.0,
+              "final": 3.5,
+              "delta": -1.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 3.0,
+              "final": 3.0,
+              "delta": 0.0,
+              "revised": false
+            }
+          },
+          "daemon": {
+            "fable": {
+              "initial": 7.5,
+              "final": 6.0,
+              "delta": -1.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 5.0,
+              "final": 4.5,
+              "delta": -0.5,
+              "revised": true
+            }
+          }
+        }
+      },
+      {
+        "id": "all-codex-xhigh",
+        "fable": {
+          "mean": 4.0,
+          "sample": 6,
+          "total": 6
+        },
+        "sol": {
+          "mean": 3.45,
+          "sample": 6,
+          "total": 6
+        },
+        "combined": {
+          "mean": 3.725,
+          "sample": 6,
+          "total": 6
+        },
+        "cells": {
+          "add-i-key": {
+            "fable": {
+              "initial": 5.5,
+              "final": 5.0,
+              "delta": -0.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 4.5,
+              "final": 4.5,
+              "delta": 0.0,
+              "revised": false
+            }
+          },
+          "web-install": {
+            "fable": {
+              "initial": 3.0,
+              "final": 3.0,
+              "delta": 0.0,
+              "revised": false
+            },
+            "sol": {
+              "initial": 3.5,
+              "final": 2.5,
+              "delta": -1.0,
+              "revised": true
+            }
+          },
+          "install": {
+            "fable": {
+              "initial": 5.0,
+              "final": 3.5,
+              "delta": -1.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 2.5,
+              "final": 2.5,
+              "delta": 0.0,
+              "revised": false
+            }
+          },
+          "fix-tmux": {
+            "fable": {
+              "initial": 5.0,
+              "final": 5.0,
+              "delta": 0.0,
+              "revised": false
+            },
+            "sol": {
+              "initial": 6.5,
+              "final": 5.5,
+              "delta": -1.0,
+              "revised": true
+            }
+          },
+          "fix-review": {
+            "fable": {
+              "initial": 3.5,
+              "final": 3.0,
+              "delta": -0.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 2.0,
+              "final": 1.5,
+              "delta": -0.5,
+              "revised": true
+            }
+          },
+          "daemon": {
+            "fable": {
+              "initial": 6.0,
+              "final": 4.5,
+              "delta": -1.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 4.2,
+              "final": 4.2,
+              "delta": 0.0,
+              "revised": false
+            }
+          }
+        }
+      },
+      {
+        "id": "all-glm-5.2",
+        "fable": {
+          "mean": 4.25,
+          "sample": 6,
+          "total": 6
+        },
+        "sol": {
+          "mean": 3.383,
+          "sample": 6,
+          "total": 6
+        },
+        "combined": {
+          "mean": 3.817,
+          "sample": 6,
+          "total": 6
+        },
+        "cells": {
+          "add-i-key": {
+            "fable": {
+              "initial": 6.5,
+              "final": 6.0,
+              "delta": -0.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 5.5,
+              "final": 5.0,
+              "delta": -0.5,
+              "revised": true
+            }
+          },
+          "web-install": {
+            "fable": {
+              "initial": 3.0,
+              "final": 3.0,
+              "delta": 0.0,
+              "revised": false
+            },
+            "sol": {
+              "initial": 3.0,
+              "final": 3.0,
+              "delta": 0.0,
+              "revised": false
+            }
+          },
+          "install": {
+            "fable": {
+              "initial": 6.0,
+              "final": 4.0,
+              "delta": -2.0,
+              "revised": true
+            },
+            "sol": {
+              "initial": 2.0,
+              "final": 2.5,
+              "delta": 0.5,
+              "revised": true
+            }
+          },
+          "fix-tmux": {
+            "fable": {
+              "initial": 7.0,
+              "final": 7.5,
+              "delta": 0.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 7.2,
+              "final": 6.8,
+              "delta": -0.4,
+              "revised": true
+            }
+          },
+          "fix-review": {
+            "fable": {
+              "initial": 1.5,
+              "final": 1.0,
+              "delta": -0.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 1.0,
+              "final": 0.5,
+              "delta": -0.5,
+              "revised": true
+            }
+          },
+          "daemon": {
+            "fable": {
+              "initial": 5.0,
+              "final": 4.0,
+              "delta": -1.0,
+              "revised": true
+            },
+            "sol": {
+              "initial": 3.0,
+              "final": 2.5,
+              "delta": -0.5,
+              "revised": true
+            }
+          }
+        }
+      },
       {
         "id": "fable-plan->grok-exec-sol-review",
         "fable": {
@@ -2443,8 +3070,8 @@
   },
   "notes": [
     "All 54 generation cells completed. Every objective gate is no_gate in both campaigns, so scores are judge evidence, not test-pass rates.",
-    "The original 36-cell campaign uses one sample per judge; the 18-cell mixed-workflow follow-up uses three samples per judge and ran adversarial deliberation across all 18 cells.",
-    "Discussion final is a separate one-shot diagnostic, not an adjustment to the independent three-sample leaderboard mean. It covers 36/36 judge decisions. The originally interrupted Sol round-two daemon verdict was recovered from the preserved round-one referee pair; no independent score changed.",
+    "The original 36-cell campaign uses one sample per judge; the 18-cell mixed-workflow follow-up uses three samples per judge. Both campaigns ran adversarial deliberation across all 54 cells.",
+    "Discussion final is a separate one-shot diagnostic, not an adjustment to the independent leaderboard scores. It covers 108/108 judge decisions. The original campaign reused its exact published verdicts and locally recovered rationales for round two; no independent score changed.",
     "Efficiency uses each campaign's serialized generation telemetry. Five Sol → Terra follow-up cells have recomputed API-equivalent costs; Grok workflows keep cost unknown because Grok usage telemetry is unavailable.",
     "The mixed Opus → Codex estimate is $115.5829 across six cells: $67.3351 Codex 5.5, $47.6319 Opus 4.8, and $0.6159 Haiku utility calls, or $19.26 per task on average.",
     "Grok workflows publish known-provider token and API-equivalent cost subtotals. They exclude Grok, remain partial, and never impute its missing telemetry.",
@@ -2460,7 +3087,7 @@
       "candidates": 6,
       "judge_samples_per_cell": 1,
       "sol_reasoning_effort": "xhigh",
-      "deliberation_complete": false,
+      "deliberation_complete": true,
       "raw_evidence_published": true
     },
     {

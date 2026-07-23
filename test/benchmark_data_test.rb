@@ -5,6 +5,27 @@ require "open3"
 
 class BenchmarkDataTest < Minitest::Test
   DATA = JSON.parse(File.read(File.join(ROOT, "_data", "bench.json")))
+  DISCUSSION_FIXTURE = JSON.parse(
+    File.read(File.join(ROOT, "test", "fixtures", "bench", "discussion_scores.json"))
+  )
+  DISCUSSION_JUDGES = {
+    "fable-5" => "fable",
+    "gpt-5.6-sol" => "sol"
+  }.freeze
+  DISCUSSION_SOURCES = {
+    "v2-ce" => {
+      "source_repository" => "hive-bench",
+      "source_artifact" => "runs/v2-ce/deliberation.json",
+      "source_sha256" => "e2968cca16739c25fea2d20ba1dee11e57255ab1a616068b18d1b5b6e6581f4f",
+      "round_one_mode" => "reused_published_independent_verdicts"
+    },
+    "v3-mixed-workflows-three-seed-20260713" => {
+      "source_repository" => "hive-bench-followup",
+      "source_artifact" => "runs/v3-mixed-workflows-three-seed-20260713/deliberation.json",
+      "source_sha256" => "f05d50a12940a94276cf24babdb63eb92c402b7744f119ed2d919c1854271cf5",
+      "round_one_mode" => "fresh_regrade"
+    }
+  }.freeze
   FOLLOWUP_IDS = [
     "fable-plan->grok-exec-sol-review",
     "sol-plan->grok-exec-sol-review",
@@ -23,7 +44,7 @@ class BenchmarkDataTest < Minitest::Test
   ].freeze
 
   def test_completed_followup_expands_the_existing_board
-    assert_equal 7, DATA.fetch("schema_version")
+    assert_equal 8, DATA.fetch("schema_version")
     assert_equal 54, DATA.dig("coverage", "cells")
     assert_equal 54, DATA.dig("coverage", "expected_cells")
     assert_equal 9, DATA.dig("coverage", "candidates")
@@ -115,18 +136,122 @@ class BenchmarkDataTest < Minitest::Test
 
     discussion = DATA.fetch("discussion_adjusted")
     assert_equal "diagnostic", discussion.fetch("status")
-    assert_equal 18, discussion.dig("coverage", "cells")
-    assert_equal 18, discussion.dig("coverage", "expected_cells")
-    assert_equal 36, discussion.dig("coverage", "judge_decisions")
-    assert_equal 36, discussion.dig("coverage", "expected_judge_decisions")
-    assert_equal 18, discussion.dig("coverage", "fully_adjusted_cells")
+    assert_equal %w[v2-ce v3-mixed-workflows-three-seed-20260713],
+                 discussion.fetch("source_campaign_ids")
+    assert_equal 54, discussion.dig("coverage", "cells")
+    assert_equal 54, discussion.dig("coverage", "expected_cells")
+    assert_equal 108, discussion.dig("coverage", "judge_decisions")
+    assert_equal 108, discussion.dig("coverage", "expected_judge_decisions")
+    assert_equal 54, discussion.dig("coverage", "fully_adjusted_cells")
     assert_empty discussion.dig("coverage", "missing")
-    assert_equal(-0.778, discussion.dig("summary", "mean_revision_by_judge", "fable-5"))
-    assert_equal(-0.061, discussion.dig("summary", "mean_revision_by_judge", "gpt-5.6-sol"))
-    assert_equal 2.044, discussion.dig("summary", "mean_spread_before")
-    assert_equal 1.328, discussion.dig("summary", "mean_spread_after")
+
+    summary = discussion.fetch("summary")
+    discussion_cells = discussion.fetch("candidates").flat_map do |candidate|
+      candidate.fetch("cells").values
+    end
+    assert_equal 54, discussion_cells.length
+    assert_equal discussion_cells.length, summary.fetch("cells")
+
+    DISCUSSION_JUDGES.each do |summary_judge, cell_judge|
+      decisions = discussion_cells.map { |cell| cell.fetch(cell_judge) }
+      mean_revision = decisions.sum { |decision| decision.fetch("delta") } / decisions.length.to_f
+      mean_abs_revision = decisions.sum { |decision| decision.fetch("delta").abs } / decisions.length.to_f
+
+      assert_in_delta mean_revision,
+                      summary.dig("mean_revision_by_judge", summary_judge), 0.001
+      assert_in_delta mean_abs_revision,
+                      summary.dig("mean_abs_revision_by_judge", summary_judge), 0.001
+    end
+
+    mean_spread_before = discussion_cells.sum do |cell|
+      (cell.dig("fable", "initial") - cell.dig("sol", "initial")).abs
+    end / discussion_cells.length.to_f
+    mean_spread_after = discussion_cells.sum do |cell|
+      (cell.dig("fable", "final") - cell.dig("sol", "final")).abs
+    end / discussion_cells.length.to_f
+    assert_in_delta mean_spread_before, summary.fetch("mean_spread_before"), 0.001
+    assert_in_delta mean_spread_after, summary.fetch("mean_spread_after"), 0.001
+
+    assert_in_delta(-0.763, summary.dig("mean_revision_by_judge", "fable-5"), 0.001)
+    assert_in_delta(-0.156, summary.dig("mean_revision_by_judge", "gpt-5.6-sol"), 0.001)
+    assert_in_delta 0.781, summary.dig("mean_abs_revision_by_judge", "fable-5"), 0.001
+    assert_in_delta 0.281, summary.dig("mean_abs_revision_by_judge", "gpt-5.6-sol"), 0.001
+    assert_in_delta 1.702, summary.fetch("mean_spread_before"), 0.001
+    assert_in_delta 0.998, summary.fetch("mean_spread_after"), 0.001
 
     discussion_candidates = discussion.fetch("candidates").to_h { |candidate| [candidate.fetch("id"), candidate] }
+    assert_equal 9, discussion_candidates.length
+    assert_equal DATA.fetch("candidates").map { |candidate| candidate.fetch("id") }.sort,
+                 discussion_candidates.keys.sort
+
+    assert_equal "hive-bench-discussion-score-fixture", DISCUSSION_FIXTURE.fetch("schema")
+    assert_equal 1, DISCUSSION_FIXTURE.fetch("schema_version")
+    assert_equal %w[initial final delta revised], DISCUSSION_FIXTURE.fetch("tuple_fields")
+    fixture_sources = DISCUSSION_FIXTURE.fetch("sources").to_h do |source|
+      [source.fetch("campaign_id"), source]
+    end
+    assert_equal DISCUSSION_SOURCES.keys.sort, fixture_sources.keys.sort
+    DISCUSSION_SOURCES.each do |campaign_id, expected_source|
+      source = fixture_sources.fetch(campaign_id)
+      expected_source.each do |field, expected_value|
+        assert_equal expected_value, source.fetch(field)
+      end
+    end
+
+    site_task_key_by_id = DATA.fetch("tasks").to_h do |task|
+      [task.fetch("id"), task.fetch("key")]
+    end
+    fixture_cells = fixture_sources.each_with_object({}) do |(campaign_id, source), cells|
+      source.fetch("cells").each do |cell|
+        key = [
+          campaign_id,
+          cell.fetch("candidate_id"),
+          site_task_key_by_id.fetch(cell.fetch("task_id"))
+        ]
+        refute cells.key?(key), "duplicate canonical discussion cell #{key.inspect}"
+        cells[key] = cell.fetch("judges")
+      end
+    end
+    assert_equal 54, fixture_cells.length
+    assert_equal discussion_cells.length, fixture_cells.length
+
+    discussion_candidates.each do |candidate_id, adjusted|
+      candidate = DATA.fetch("candidates").find { |entry| entry.fetch("id") == candidate_id }
+      assert_equal candidate.fetch("cells").keys.sort, adjusted.fetch("cells").keys.sort
+
+      %w[fable sol].each do |judge|
+        finals = adjusted.fetch("cells").values.map do |cell|
+          decision = cell.fetch(judge)
+          assert_in_delta decision.fetch("final") - decision.fetch("initial"),
+                          decision.fetch("delta"), 0.001
+          assert_equal decision.fetch("delta") != 0, decision.fetch("revised")
+          decision.fetch("final")
+        end
+        assert_in_delta finals.sum / finals.length, adjusted.dig(judge, "mean"), 0.001
+        assert_equal [6, 6], adjusted.fetch(judge).values_at("sample", "total")
+      end
+
+      combined_finals = adjusted.fetch("cells").values.flat_map do |cell|
+        [cell.dig("fable", "final"), cell.dig("sol", "final")]
+      end
+      assert_in_delta combined_finals.sum / combined_finals.length,
+                      adjusted.dig("combined", "mean"), 0.001
+      assert_equal [6, 6], adjusted.fetch("combined").values_at("sample", "total")
+
+      adjusted.fetch("cells").each do |task_key, cell|
+        source_judges = fixture_cells.fetch([
+          candidate.fetch("campaign_id"),
+          candidate_id,
+          task_key
+        ])
+        DISCUSSION_JUDGES.each do |source_judge, cell_judge|
+          assert_equal source_judges.fetch(source_judge), cell.fetch(cell_judge)
+        end
+      end
+    end
+    assert_equal [6.25, 6, 6], discussion_candidates.dig("all-codex-5.6-sol-xhigh", "fable").values_at("mean", "sample", "total")
+    assert_equal [5.867, 6, 6], discussion_candidates.dig("all-codex-5.6-sol-xhigh", "sol").values_at("mean", "sample", "total")
+    assert_equal [6.058, 6, 6], discussion_candidates.dig("all-codex-5.6-sol-xhigh", "combined").values_at("mean", "sample", "total")
     assert_equal [6.583, 6, 6], discussion_candidates.dig("fable-plan->grok-exec-sol-review", "fable").values_at("mean", "sample", "total")
     assert_equal [5.517, 6, 6], discussion_candidates.dig("fable-plan->grok-exec-sol-review", "sol").values_at("mean", "sample", "total")
     assert_equal [6.05, 6, 6], discussion_candidates.dig("fable-plan->grok-exec-sol-review", "combined").values_at("mean", "sample", "total")
@@ -138,6 +263,8 @@ class BenchmarkDataTest < Minitest::Test
     assert_equal [6.467, 6, 6], discussion_candidates.dig("sol-plan->terra-exec-sol-review", "combined").values_at("mean", "sample", "total")
     assert_equal 5.6, discussion_candidates.dig("fable-plan->grok-exec-sol-review", "cells", "daemon", "sol", "final")
     assert_equal 6.5, discussion_candidates.dig("fable-plan->grok-exec-sol-review", "cells", "daemon", "fable", "final")
+    assert_equal 4.5, discussion_candidates.dig("opus-plan->codex-exec-xhigh", "cells", "daemon", "sol", "final")
+    assert_equal 5.5, discussion_candidates.dig("opus-plan->codex-exec-xhigh", "cells", "daemon", "fable", "final")
 
     terra_candidate = DATA.fetch("candidates").find do |candidate|
       candidate.fetch("id") == "sol-plan->terra-exec-sol-review"
@@ -199,15 +326,15 @@ class BenchmarkDataTest < Minitest::Test
       assert_equal 3, summary.scan("3 samples/judge").length
       assert_equal 0, scores.scan("diff not public").length
       assert_equal 18, scores.scan("3 samples/judge").length
-      assert_equal 18, scores.scan("discussion final").length
+      assert_equal 54, scores.scan("discussion final").length
       assert_equal 54, scores.scan(">diff</a>").length
 
       assert_equal 1, summary.scan(/data-sort-key="discussion"[^>]*>After discussion/).length
       assert_includes summary, 'data-sort-key="discussion"'
       assert_includes html, '<option value="discussion">After-discussion score</option>'
-      assert_equal 3, summary.scan(/data-sort-discussion="[0-9]/).length
-      assert_equal 6, summary.scan('data-sort-discussion=""').length
-      assert_equal 6, summary.scan("not run").length
+      assert_equal 9, summary.scan(/data-sort-discussion="[0-9]/).length
+      assert_equal 0, summary.scan('data-sort-discussion=""').length
+      assert_equal 0, summary.scan("not run").length
       assert_includes summary, "Sol ultra/xhigh"
       refute_includes summary, "xhigh / ultra"
       assert_equal 0, summary.scan("discussion final").length
@@ -215,9 +342,14 @@ class BenchmarkDataTest < Minitest::Test
       discussion_note = html[/<p class="bench-meta bench-discussion-note">.*?<\/p>/m]
       refute_nil discussion_note
       assert_includes discussion_note, "one-shot diagnostic"
-      assert_includes discussion_note, "three mixed-workflow follow-up rows"
-      assert_includes discussion_note, "not run"
-      assert_match(/putting\s+uncovered rows last/, discussion_note)
+      assert_match(/six original rows reused their exact published independent\s+verdicts and recovered rationales/,
+                   discussion_note)
+      assert_match(/three mixed-workflow rows received\s+fresh round-one re-grades/, discussion_note)
+      assert_match(/In both campaigns, each judge then saw the other\s+anonymous verdict/, discussion_note)
+      assert_match(/All\s+nine rows/, discussion_note)
+      assert_includes discussion_note, "54 paired cells"
+      refute_includes discussion_note, "not run"
+      refute_includes discussion_note, "uncovered rows"
 
       RANKED_LABELS.first(3).drop(1).each do |label|
         row = scores[/<tr>\s*<th scope="row"><code>#{Regexp.escape(label)}<\/code>.*?<\/tr>/m]
@@ -260,6 +392,11 @@ class BenchmarkDataTest < Minitest::Test
       assert_equal 6, fable_row.scan("discussion final").length
       assert_match(/discussion final · Fable\s+6\.5 · Sol\s+5\.6/, fable_row)
       refute_includes fable_row, "unavailable"
+
+      flagship_row = scores[/<tr>\s*<th scope="row"><code>GPT-5.6 Sol xhigh<\/code>.*?<\/tr>/m]
+      refute_nil flagship_row
+      assert_equal 6, flagship_row.scan("discussion final").length
+      assert_match(/discussion final · Fable\s+5\.5 · Sol\s+4\.5/, flagship_row)
       assert_includes html, "one-shot diagnostic"
 
       css = File.read(File.join(ROOT, "assets", "css", "landing.scss"), encoding: Encoding::UTF_8)
