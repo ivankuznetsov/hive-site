@@ -14,10 +14,11 @@
     <p class="bench-meta">
       Ranked by the presentation-only mean of Fable and Sol. The two judge
       columns remain the primary evidence because their calibrations differ.
-      <span class="bench-prelim">same-family</span> means that judge shares a
-      model family with the candidate. Bold scores are the independent means
-      and remain the primary evidence; the table opens ordered by the paired
-      discussion-final mean. Efficiency averages use only recorded cells.
+      {% include bench/family-badge.html %}
+      means that judge shares a model family with the candidate. Bold scores
+      are the independent means and remain the primary evidence; the table
+      opens ordered by the paired discussion-final mean. Efficiency averages
+      use only recorded cells.
     </p>
     <div class="bench-sort-controls" data-bench-sort-controls>
       <label for="bench-summary-sort">Sort by</label>
@@ -73,11 +74,11 @@
             </th>
             <td data-label="Fable">
               <span class="bench-cell-value"><strong>{{ fable_row.mean }}</strong>
-              {% if fable_row.same_family %}<span class="bench-prelim">same-family</span>{% endif %}</span>
+              {% if fable_row.same_family %}{% include bench/family-badge.html judge="Fable" %}{% endif %}</span>
             </td>
             <td data-label="Sol">
               <span class="bench-cell-value"><strong>{{ sol_row.mean }}</strong>
-              {% if sol_row.same_family %}<span class="bench-prelim">same-family</span>{% endif %}</span>
+              {% if sol_row.same_family %}{% include bench/family-badge.html judge="Sol" %}{% endif %}</span>
             </td>
             <td data-label="Combined"><span class="bench-cell-value"><strong>{{ combined_mean }}</strong></span></td>
             <td data-label="After discussion" class="bench-discussion-cell">
@@ -94,14 +95,12 @@
             <td data-label="Cost / task">
               <span class="bench-cell-value">{% if candidate.cost_per_task_usd %}${{ candidate.cost_per_task_usd }}
                 <small>{{ candidate.cost_sample }}/{{ candidate.total }} priced</small>
-              {% elsif candidate.known_cost_per_task_usd %}{% assign rounded_known_cost = candidate.known_cost_per_task_usd | round: 2 %}{% assign one_decimal_known_cost = candidate.known_cost_per_task_usd | round: 1 %}${{ rounded_known_cost }}{% if rounded_known_cost == one_decimal_known_cost %}0{% endif %} known
-                <small>{{ candidate.known_cost_sample }}/{{ candidate.total }} known · partial</small>
+              {% elsif candidate.known_cost_per_task_usd %}{% assign rounded_known_cost = candidate.known_cost_per_task_usd | round: 2 %}{% assign one_decimal_known_cost = candidate.known_cost_per_task_usd | round: 1 %}${{ rounded_known_cost }}{% if rounded_known_cost == one_decimal_known_cost %}0{% endif %} known*
               {% else %}unknown{% endif %}</span>
             </td>
             <td data-label="Tokens / task">
-              <span class="bench-cell-value">{% if candidate.normalized_mtokens_per_task %}{{ candidate.normalized_mtokens_per_task }}M
-                <small>{{ candidate.token_sample }}/{{ candidate.total }} measured{% if candidate.token_scope %} · partial{% endif %}</small>
-                {% if candidate.token_scope %}<small>{{ candidate.token_scope }}</small>{% endif %}
+              <span class="bench-cell-value">{% if candidate.normalized_mtokens_per_task %}{{ candidate.normalized_mtokens_per_task }}M{% if candidate.token_scope %} known*{% else %}
+                <small>{{ candidate.token_sample }}/{{ candidate.total }} measured</small>{% endif %}
               {% else %}unknown{% endif %}</span>
             </td>
           </tr>
@@ -122,9 +121,10 @@
     <p class="bench-meta">
       Combined is <code>(Fable + Sol) / 2</code> and is used only to provide one
       compact ordering. Token totals include fresh input, output, cache reads,
-      and cache writes. Rows labeled as known-provider subtotals are partial,
-      not complete workflow totals; Grok usage is unavailable. See the
-      <a href="{{ '/bench/methodology/#time-tokens-and-cost' | relative_url }}">token
+      and cache writes. <strong>Known*</strong> values include only providers
+      with preserved telemetry. Grok usage and cost are unavailable, so those
+      values are lower-bound subtotals rather than complete workflow totals.
+      See the <a href="{{ '/bench/methodology/#time-tokens-and-cost' | relative_url }}">token
       accounting and pricing methodology</a> for the normalization rules,
       mixed-model attribution, and known telemetry gaps.
     </p>

@@ -1,7 +1,32 @@
 {% assign b = site.data.bench %}
-{% assign mixed_candidate = b.candidates | where: "id", "opus-plan->codex-exec-xhigh" | first %}
-{% assign codex_candidate = b.candidates | where: "id", "all-codex-xhigh" | first %}
-{% assign glm_candidate = b.candidates | where: "id", "all-glm-5.2" | first %}
+{% assign original_campaign = b.campaigns | where: "id", "v2-ce" | first %}
+{% assign followup_campaign = b.campaigns | where: "id", "v3-mixed-workflows-three-seed-20260713" | first %}
+{% assign fable_judge = b.primary_judges | where: "id", "fable-5" | first %}
+{% assign sol_judge = b.primary_judges | where: "id", "gpt-5.6-sol" | first %}
+{% assign all_sol_fable = fable_judge.rows | where: "id", "all-codex-5.6-sol-xhigh" | first %}
+{% assign all_sol_sol = sol_judge.rows | where: "id", "all-codex-5.6-sol-xhigh" | first %}
+{% assign sol_grok_fable = fable_judge.rows | where: "id", "sol-plan->grok-exec-sol-review" | first %}
+{% assign sol_grok_sol = sol_judge.rows | where: "id", "sol-plan->grok-exec-sol-review" | first %}
+{% assign sol_terra_fable = fable_judge.rows | where: "id", "sol-plan->terra-exec-sol-review" | first %}
+{% assign sol_terra_sol = sol_judge.rows | where: "id", "sol-plan->terra-exec-sol-review" | first %}
+{% assign all_sol_total = all_sol_fable.mean | plus: all_sol_sol.mean %}
+{% assign all_sol_independent = all_sol_total | divided_by: 2.0 | round: 3 %}
+{% assign sol_grok_total = sol_grok_fable.mean | plus: sol_grok_sol.mean %}
+{% assign sol_grok_independent = sol_grok_total | divided_by: 2.0 | round: 3 %}
+{% assign sol_terra_total = sol_terra_fable.mean | plus: sol_terra_sol.mean %}
+{% assign sol_terra_independent = sol_terra_total | divided_by: 2.0 | round: 3 %}
+{% assign all_sol_discussion = b.discussion_adjusted.candidates | where: "id", "all-codex-5.6-sol-xhigh" | first %}
+{% assign fable_grok_discussion = b.discussion_adjusted.candidates | where: "id", "fable-plan->grok-exec-sol-review" | first %}
+{% assign sol_grok_discussion = b.discussion_adjusted.candidates | where: "id", "sol-plan->grok-exec-sol-review" | first %}
+{% assign sol_terra_discussion = b.discussion_adjusted.candidates | where: "id", "sol-plan->terra-exec-sol-review" | first %}
+{% assign grok_candidate = b.candidates | where: "id", "all-grok-4.5" | first %}
+{% assign fable_grok_candidate = b.candidates | where: "id", "fable-plan->grok-exec-sol-review" | first %}
+{% assign sol_grok_candidate = b.candidates | where: "id", "sol-plan->grok-exec-sol-review" | first %}
+{% assign terra_candidate = b.candidates | where: "id", "sol-plan->terra-exec-sol-review" | first %}
+{% assign fable_grok_known_cost = fable_grok_candidate.known_cost_per_task_usd | round: 2 %}
+{% assign fable_grok_known_cost_one_decimal = fable_grok_candidate.known_cost_per_task_usd | round: 1 %}
+{% assign sol_grok_known_cost = sol_grok_candidate.known_cost_per_task_usd | round: 2 %}
+{% assign sol_grok_known_cost_one_decimal = sol_grok_candidate.known_cost_per_task_usd | round: 1 %}
 <section class="bench-intro">
   <div class="wrap">
     <p class="eyebrow">hive-bench</p>
@@ -16,7 +41,7 @@
 
     <h2>What this benchmark measures</h2>
     <p>
-      The corpus contains six completed tasks from the Hive repository. For
+      The corpus contains {{ b.coverage.tasks }} completed tasks from the Hive repository. For
       each task, the source is rewound to the original base commit and the
       candidate receives the frozen task inputs, but never the reference
       patch. A candidate may use one model for every stage or split planning
@@ -34,26 +59,40 @@
       <a href="{{ '/bench/methodology/#workflow-and-reviewer-configuration' | relative_url }}">methodology</a>.
     </p>
     <p>
-      The board covers all <strong>36 generation cells</strong>: six candidates
-      &times; six tasks. Each judge-cell pair has one independent score sample,
-      and this corpus has no curated objective test gates, so close rankings are
-      directional rather than definitive.
+      The board covers all <strong>{{ b.coverage.cells }} generation cells</strong>:
+      {{ b.coverage.candidates }} candidates &times; {{ b.coverage.tasks }} tasks.
+      The original {{ original_campaign.cells }} cells have
+      {{ original_campaign.judge_samples_per_cell }} independent score sample
+      per judge; the {{ followup_campaign.cells }} mixed-workflow cells have
+      {{ followup_campaign.judge_samples_per_cell }}. This corpus has no curated
+      objective test gates, so close rankings are directional rather than definitive.
     </p>
 
     <h2>How the scores should be read</h2>
     <ol class="bench-steps">
       <li><strong>Two independent rulers:</strong> Fable 5 and GPT-5.6 Sol
-        score each final diff from 0&ndash;10. Sol was explicitly run at
-        <code>xhigh</code>. Fable ran with reasoning enabled, but its exact
-        effort level was not preserved in the benchmark record.</li>
+        score each final diff from 0&ndash;10. Fable 5 ran at
+        <code>{{ fable_judge.reasoning_effort }}</code> in both campaigns. Sol ran
+        at <code>{{ original_campaign.sol_reasoning_effort }}</code> for the
+        original campaign and <code>{{ followup_campaign.sol_reasoning_effort }}</code>
+        for the mixed-workflow follow-up.</li>
       <li><strong>Keep both judge scores visible:</strong> the leaderboard uses
         their arithmetic mean only for a compact ordering because their
         calibrations differ. Every row retains separate Fable and Sol columns,
         and every matrix cell shows <code>Fable / Sol</code> in that order.</li>
+      <li><strong>Deliberation is not a third judge:</strong> after the
+        independent scores were recorded, Fable and Sol each saw the other
+        judge's anonymous verdict and reasoning, argued the strongest evidence
+        that its own initial score was wrong, and then held or revised that
+        score. <strong>After discussion</strong> is the arithmetic mean of those
+        two final scores. It is the default sort and a diagnostic layer, not a
+        replacement for the independent scores, because the exchange can add
+        anchoring or convergence pressure.</li>
       <li><strong>Show family conflicts:</strong> when the judge and candidate
         share a model family, that row is marked
-        <span class="bench-prelim">same-family</span>. The score remains
-        visible, but it is weaker evidence than a family-disjoint judgment.</li>
+        {% include bench/family-badge.html %}.
+        The score remains visible, but it is weaker evidence than a
+        family-disjoint judgment.</li>
       <li><strong>Keep efficiency descriptive:</strong> wall time, normalized
         generation tokens, and API-equivalent cost are shown where the underlying
         runner recorded them. Missing values are reported as unknown, never inferred.</li>
@@ -65,31 +104,53 @@
 
     <h2>What came out</h2>
     <p>
-      GPT-5.6 Sol xhigh leads the compact combined ordering at 6.550: 6.917 by
-      Fable and 6.183 by Sol. Its Sol judgment is same-family, while its Fable
-      judgment is family-disjoint. The mixed Opus/Codex configuration follows
-      at 5.475, then Grok 4.5 at 5.275. Grok completed its recorded timed cells
-      fastest at 27.3 minutes on average; its token count and cost are
-      unavailable from its runner and therefore remain unknown.
+      The independent scores put the all-Sol configuration first at
+      <strong>{{ all_sol_independent }}</strong>:
+      <strong>{{ all_sol_fable.mean }}</strong> by Fable and
+      <strong>{{ all_sol_sol.mean }}</strong> by Sol. After deliberation, the
+      winner changes: Sol plan &rarr; Grok execute &rarr; Sol review leads at
+      <strong>{{ sol_grok_discussion.combined.mean }}</strong>,
+      with <strong>{{ sol_grok_discussion.fable.mean }}</strong> by Fable and
+      <strong>{{ sol_grok_discussion.sol.mean }}</strong> by Sol. Sol plan
+      &rarr; Terra execute &rarr; Sol review follows at
+      <strong>{{ sol_terra_discussion.combined.mean }}</strong>, then all-Sol at
+      <strong>{{ all_sol_discussion.combined.mean }}</strong>, narrowly ahead of
+      Fable/Grok at <strong>{{ fable_grok_discussion.combined.mean }}</strong>.
     </p>
     <p>
-      The mixed Opus-plan &rarr; Codex-execute configuration is also strong:
-      second under Sol at 4.783 and third under Fable at 6.167. Both primary
-      judge families touch that candidate, however, so its rows carry a
-      same-family warning under both rulers. Uniform per-model reconstruction
-      puts its API-equivalent generation cost at an average of
-      ${{ mixed_candidate.cost_per_task_usd }} per task:
-      ${{ mixed_candidate.cost_total_usd | round: 2 }} over all six cells,
-      including Opus, Codex, and Haiku utility calls. Codex 5.5 xhigh is
-      nominally cheapest at an average of ${{ codex_candidate.cost_per_task_usd }}
-      per task; GLM follows at ${{ glm_candidate.cost_per_task_usd }}. These are
-      comparable token-priced estimates, not subscription bills.
+      The most curious change is the convergence itself. Across all
+      {{ b.discussion_adjusted.summary.cells }} cells, the two judges' mean
+      absolute spread fell from
+      <strong>{{ b.discussion_adjusted.summary.mean_spread_before }}</strong> to
+      <strong>{{ b.discussion_adjusted.summary.mean_spread_after }}</strong>.
+      That suggests the anonymous exchange surfaced real misses, but the same
+      movement may also reflect anchoring pressure. Deliberation therefore
+      remains a diagnostic rather than a cleaner replacement score.
     </p>
     <p>
-      These are scoped findings, not a universal model ranking. Six tasks from
-      one Ruby/CLI project and one score sample per judge cannot establish
-      broad superiority; they can show what happened when these exact
-      configurations drove this exact end-to-end workflow.
+      Grok 4.5 remains fastest on its recorded timed cells at
+      {{ grok_candidate.mean_minutes }} minutes on
+      average. For the mixed Grok workflows, preserved telemetry covers only
+      the non-Grok providers: Sol/Grok reports
+      ${{ sol_grok_known_cost }}{% if sol_grok_known_cost == sol_grok_known_cost_one_decimal %}0{% endif %} and
+      {{ sol_grok_candidate.normalized_mtokens_per_task }}M known tokens per
+      task, while Fable/Grok reports
+      ${{ fable_grok_known_cost }}{% if fable_grok_known_cost == fable_grok_known_cost_one_decimal %}0{% endif %} and
+      {{ fable_grok_candidate.normalized_mtokens_per_task }}M. Those are
+      lower-bound subtotals, not comparable complete workflow costs. Sol/Terra,
+      whose provider telemetry is available for {{ terra_candidate.cost_sample }}/{{ terra_candidate.total }}
+      cells, reports
+      ${{ terra_candidate.cost_per_task_usd }} per priced task.
+    </p>
+    <p>
+      These are scoped findings, not a universal model ranking.
+      {{ b.coverage.tasks }} tasks from
+      one Ruby/CLI project cannot establish broad superiority. The original
+      rows have {{ original_campaign.judge_samples_per_cell }} sample per judge,
+      the follow-up rows have {{ followup_campaign.judge_samples_per_cell }},
+      and the discussion layer is a single exchange; the results show what
+      happened when these exact configurations drove this exact end-to-end
+      workflow.
     </p>
 
     <h2>One task, end to end</h2>

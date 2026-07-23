@@ -295,6 +295,24 @@ class BenchmarkDataTest < Minitest::Test
       row = sol_rows.fetch("rows").find { |entry| entry.fetch("id") == candidate_id }
       assert_equal true, row.fetch("same_family")
     end
+
+    fable_judge = DATA.fetch("primary_judges").find { |judge| judge.fetch("id") == "fable-5" }
+    assert_equal "xhigh", fable_judge.fetch("reasoning_effort")
+    assert fable_judge.fetch("rows").all? { |row| row.fetch("reasoning_effort") == "xhigh" }
+    assert_equal(
+      {
+        "v2-ce" => "xhigh",
+        "v3-mixed-workflows-three-seed-20260713" => "xhigh"
+      },
+      fable_judge.fetch("reasoning_effort_by_campaign")
+    )
+    FOLLOWUP_IDS.each do |candidate_id|
+      candidate = DATA.fetch("candidates").find { |row| row.fetch("id") == candidate_id }
+      candidate.fetch("cells").each_value do |cell|
+        assert_equal "xhigh", cell.dig("judge_samples", "fable-5", "reasoning_effort")
+        assert_equal true, cell.dig("judge_samples", "fable-5", "reasoning_effort_explicit")
+      end
+    end
   end
 
   def test_followup_rows_render_inside_current_tables_only
@@ -311,9 +329,35 @@ class BenchmarkDataTest < Minitest::Test
       refute_includes html, "bench-followup"
       refute_includes html, "Experimental follow-up"
 
+      about = html[/<section class="bench-intro">.*?<\/section>/m]
       summary = html[/<table class="bench-table bench-summary-table".*?<\/table>/m]
       efficiency = html[/<table class="bench-table bench-matrix bench-responsive-matrix bench-efficiency-matrix">.*?<\/table>/m]
       scores = html[/<table class="bench-table bench-matrix bench-responsive-matrix bench-score-matrix">.*?<\/table>/m]
+
+      refute_nil about
+      assert_includes about, "54 generation cells"
+      assert_match(/9 candidates\s+&times; 6 tasks/, about)
+      assert_match(/Fable 5.*?<code>xhigh<\/code>/m, about)
+      refute_includes about, "exact effort level was not preserved"
+      assert_includes about, "Deliberation is not a third judge"
+      assert_match(
+        /all-Sol configuration.*?<strong>6\.55<\/strong>.*?<strong>6\.917<\/strong> by Fable.*?<strong>6\.183<\/strong> by Sol/m,
+        about
+      )
+      assert_match(
+        /Sol plan &rarr;\s+Grok execute &rarr; Sol review.*?<strong>6\.908<\/strong>.*?<strong>7\.383<\/strong> by Fable.*?<strong>6\.433<\/strong> by Sol/m,
+        about
+      )
+      assert_match(
+        /Sol plan\s+&rarr; Terra execute &rarr; Sol review.*?<strong>6\.467<\/strong>/m,
+        about
+      )
+      assert_match(/all-Sol.*?<strong>6\.058<\/strong>/m, about)
+      assert_match(/Fable\/Grok.*?<strong>6\.05<\/strong>/m, about)
+      assert_match(/spread fell from\s+<strong>1\.702<\/strong> to\s+<strong>0\.998<\/strong>/m, about)
+      assert_match(/Sol\/Grok reports\s+\$21\.35 and\s+29\.123M known tokens/m, about)
+      assert_match(/Fable\/Grok reports\s+\$7\.10 and\s+9\.24M/m, about)
+      assert_match(/telemetry is available for 5\/6\s+cells, reports\s+\$26\.12 per priced task/m, about)
 
       [summary, efficiency, scores].each do |table|
         refute_nil table
@@ -380,18 +424,19 @@ class BenchmarkDataTest < Minitest::Test
 
       fable_summary = summary[/<tr[^>]*>\s*<th scope="row">\s*<code>Fable plan → Grok execute → Sol review<\/code>.*?<\/tr>/m]
       refute_nil fable_summary
-      assert_includes fable_summary, "9.24M"
-      assert_includes fable_summary, "6/6 measured · partial"
-      assert_includes fable_summary, "Fable plan + Sol review only · Grok telemetry unavailable"
-      assert_includes fable_summary, "$7.10 known"
-      assert_includes fable_summary, "6/6 known · partial"
+      assert_includes fable_summary, "9.24M known*"
+      refute_includes fable_summary, "6/6 measured · partial"
+      refute_includes fable_summary, "Fable plan + Sol review only · Grok telemetry unavailable"
+      assert_includes fable_summary, "$7.10 known*"
+      refute_includes fable_summary, "6/6 known · partial"
 
       sol_grok_summary = summary[/<tr[^>]*>\s*<th scope="row">\s*<code>Sol plan → Grok execute → Sol review<\/code>.*?<\/tr>/m]
       refute_nil sol_grok_summary
-      assert_includes sol_grok_summary, "29.123M"
-      assert_includes sol_grok_summary, "6/6 measured · partial"
-      assert_includes sol_grok_summary, "Sol plan/review only · Grok telemetry unavailable"
-      assert_includes sol_grok_summary, "$21.35 known"
+      assert_includes sol_grok_summary, "29.123M known*"
+      refute_includes sol_grok_summary, "6/6 measured · partial"
+      refute_includes sol_grok_summary, "Sol plan/review only · Grok telemetry unavailable"
+      assert_includes sol_grok_summary, "$21.35 known*"
+      refute_includes sol_grok_summary, "6/6 known · partial"
 
       fable_efficiency = efficiency[/<tr>\s*<th scope="row"><code>Fable plan → Grok execute → Sol review<\/code>.*?<\/tr>/m]
       sol_grok_efficiency = efficiency[/<tr>\s*<th scope="row"><code>Sol plan → Grok execute → Sol review<\/code>.*?<\/tr>/m]
@@ -436,6 +481,35 @@ class BenchmarkDataTest < Minitest::Test
       css = File.read(File.join(ROOT, "assets", "css", "landing.scss"), encoding: Encoding::UTF_8)
       assert_match(/\.bench-summary-table thead th,\s*\.bench-sort-button \{ white-space: nowrap; \}/, css)
       assert_includes css, ".bench-summary-table { margin-bottom: 0; min-width: 64rem; }"
+      expected_family_badges = DATA.fetch("primary_judges").sum do |judge|
+        judge.fetch("rows").count { |row| row.fetch("same_family") }
+      end
+      family_badges = summary.scan(
+        /<span class="bench-prelim bench-family-badge" tabindex="0"\s+data-bench-tooltip="Same-family judge: [^"]+">SF<\/span>/m
+      )
+      assert_equal expected_family_badges, family_badges.length
+      expected_fable_badges = DATA.fetch("primary_judges")
+                                  .find { |judge| judge.fetch("id") == "fable-5" }
+                                  .fetch("rows")
+                                  .count { |row| row.fetch("same_family") }
+      expected_sol_badges = DATA.fetch("primary_judges")
+                                .find { |judge| judge.fetch("id") == "gpt-5.6-sol" }
+                                .fetch("rows")
+                                .count { |row| row.fetch("same_family") }
+      assert_equal(
+        expected_fable_badges,
+        summary.scan('data-bench-tooltip="Same-family judge: Fable shares a model family with the candidate."').length
+      )
+      assert_equal(
+        expected_sol_badges,
+        summary.scan('data-bench-tooltip="Same-family judge: Sol shares a model family with the candidate."').length
+      )
+      assert_equal(
+        1,
+        about.scan('data-bench-tooltip="Same-family judge: this judge shares a model family with the candidate."').length
+      )
+      assert_match(/\.bench-family-badge\s*\{[^}]*white-space:\s*nowrap;/m, css)
+      assert_match(/\.bench-family-badge:focus-visible\s*\{[^}]*outline:/m, css)
 
       rendered_snapshot = JSON.parse(File.binread(File.join(destination, "bench", "results.json")))
       assert_equal DATA, rendered_snapshot

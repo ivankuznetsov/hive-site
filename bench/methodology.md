@@ -112,8 +112,7 @@ not independently serialized per-cell configuration provenance.
 Two judges independently score every final diff from 0–10 against the task and
 merged reference:
 
-- **Fable 5**, with reasoning enabled; its exact effort level was not preserved
-  in either benchmark record.
+- **Fable 5**, pinned to `xhigh` in both campaigns.
 - **GPT-5.6 Sol**, pinned to `xhigh` for the original campaign and `ultra` for
   the mixed-workflow follow-up.
 
