@@ -318,6 +318,16 @@ class BenchmarkDataTest < Minitest::Test
       [summary, efficiency, scores].each do |table|
         refute_nil table
         assert_equal 9, table[/<tbody>.*?<\/tbody>/m].scan("<tr").length
+      end
+      summary_labels = summary.scan(/<th scope="row">\s*<code>([^<]+)<\/code>/m).flatten
+      candidate_labels = DATA.fetch("candidates").to_h do |candidate|
+        [candidate.fetch("id"), candidate.fetch("label")]
+      end
+      expected_discussion_labels = DATA.dig("discussion_adjusted", "candidates")
+                                           .sort_by { |candidate| -candidate.dig("combined", "mean") }
+                                           .map { |candidate| candidate_labels.fetch(candidate.fetch("id")) }
+      assert_equal expected_discussion_labels, summary_labels
+      [efficiency, scores].each do |table|
         labels = table.scan(/<th scope="row">\s*<code>([^<]+)<\/code>/m).flatten
         assert_equal RANKED_LABELS, labels
       end
@@ -331,8 +341,15 @@ class BenchmarkDataTest < Minitest::Test
 
       assert_equal 1, summary.scan(/data-sort-key="discussion"[^>]*>After discussion/).length
       assert_includes summary, 'data-sort-key="discussion"'
-      assert_includes html, '<option value="discussion">After-discussion score</option>'
-      assert_equal 9, summary.scan(/data-sort-discussion="[0-9]/).length
+      assert_match(/<option value="discussion" selected(?:="")?>After-discussion score<\/option>/,
+                   html)
+      assert_match(/aria-sort="descending"><button class="bench-sort-button" type="button" data-sort-key="discussion".*?↓/m,
+                   summary)
+      assert_match(/aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="combined"/,
+                   summary)
+      discussion_values = summary.scan(/data-sort-discussion="([0-9.]+)"/).flatten.map(&:to_f)
+      assert_equal 9, discussion_values.length
+      assert_equal discussion_values.sort.reverse, discussion_values
       assert_equal 0, summary.scan('data-sort-discussion=""').length
       assert_equal 0, summary.scan("not run").length
       assert_includes summary, "Sol ultra/xhigh"
@@ -348,6 +365,7 @@ class BenchmarkDataTest < Minitest::Test
       assert_match(/In both campaigns, each judge then saw the other\s+anonymous verdict/, discussion_note)
       assert_match(/All\s+nine rows/, discussion_note)
       assert_includes discussion_note, "54 paired cells"
+      assert_match(/After discussion is the\s+default table sort/, discussion_note)
       refute_includes discussion_note, "not run"
       refute_includes discussion_note, "uncovered rows"
 
@@ -377,11 +395,27 @@ class BenchmarkDataTest < Minitest::Test
 
       fable_efficiency = efficiency[/<tr>\s*<th scope="row"><code>Fable plan → Grok execute → Sol review<\/code>.*?<\/tr>/m]
       sol_grok_efficiency = efficiency[/<tr>\s*<th scope="row"><code>Sol plan → Grok execute → Sol review<\/code>.*?<\/tr>/m]
-      assert_equal 6, fable_efficiency.scan("Known-provider tokens").length
-      assert_equal 6, sol_grok_efficiency.scan("Known-provider tokens").length
+      refute_includes fable_efficiency, "Known-provider tokens"
+      refute_includes sol_grok_efficiency, "Known-provider tokens"
       refute_includes fable_efficiency, "Sol tokens unavailable"
-      assert_includes fable_efficiency, "Grok telemetry unavailable"
-      assert_includes sol_grok_efficiency, "Grok telemetry unavailable"
+      assert_equal 6, fable_efficiency.scan(/\$[\d.]+ known\*/).length
+      assert_equal 6, sol_grok_efficiency.scan(/\$[\d.]+ known\*/).length
+      assert_equal 6, fable_efficiency.scan("known* tokens").length
+      assert_equal 6, sol_grok_efficiency.scan("known* tokens").length
+      refute_includes fable_efficiency, "known-provider cost · partial"
+      refute_includes sol_grok_efficiency, "known-provider cost · partial"
+      refute_match(%r{</button></span>\s*</small><br>\s*<small>Fable plan \+ Sol review only},
+                   fable_efficiency)
+      refute_match(%r{</button></span>\s*</small><br>\s*<small>Sol plan/review only},
+                   sol_grok_efficiency)
+      assert_equal 6, fable_efficiency.scan("Fable plan + Sol review only · Grok telemetry unavailable · Fresh input").length
+      assert_equal 6, sol_grok_efficiency.scan("Sol plan/review only · Grok telemetry unavailable · Fresh input").length
+
+      telemetry_note = html[/<p class="bench-meta bench-telemetry-note">.*?<\/p>/m]
+      refute_nil telemetry_note
+      telemetry_text = telemetry_note.gsub(/<[^>]+>/, " ").gsub(/\s+/, " ").strip
+      assert_includes telemetry_text, "Known* values include only providers with preserved telemetry"
+      assert_includes telemetry_text, "Grok telemetry is unavailable"
 
       assert_includes sol_grok_summary, "7.383"
       assert_includes sol_grok_summary, "Fable 7.383 · Sol 6.433"

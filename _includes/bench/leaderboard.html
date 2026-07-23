@@ -1,5 +1,6 @@
 {% assign b = site.data.bench %}
 {% assign ranked_candidate_ids = "all-codex-5.6-sol-xhigh,sol-plan->grok-exec-sol-review,sol-plan->terra-exec-sol-review,opus-plan->codex-exec-xhigh,fable-plan->grok-exec-sol-review,all-grok-4.5,all-opus-4.8,all-codex-xhigh,all-glm-5.2" | split: "," %}
+{% assign discussion_ranked_candidate_ids = "sol-plan->grok-exec-sol-review,sol-plan->terra-exec-sol-review,all-codex-5.6-sol-xhigh,fable-plan->grok-exec-sol-review,opus-plan->codex-exec-xhigh,all-opus-4.8,all-grok-4.5,all-glm-5.2,all-codex-xhigh" | split: "," %}
 {% assign sol_judge = b.primary_judges | where: "id", "gpt-5.6-sol" | first %}
 {% assign fable_judge = b.primary_judges | where: "id", "fable-5" | first %}
 <section class="bench-board">
@@ -15,7 +16,8 @@
       columns remain the primary evidence because their calibrations differ.
       <span class="bench-prelim">same-family</span> means that judge shares a
       model family with the candidate. Bold scores are the independent means
-      used for the default ranking. Efficiency averages use only recorded cells.
+      and remain the primary evidence; the table opens ordered by the paired
+      discussion-final mean. Efficiency averages use only recorded cells.
     </p>
     <div class="bench-sort-controls" data-bench-sort-controls>
       <label for="bench-summary-sort">Sort by</label>
@@ -24,7 +26,7 @@
         <option value="candidate">Candidate</option>
         <option value="fable">Fable score</option>
         <option value="sol">Sol score</option>
-        <option value="discussion">After-discussion score</option>
+        <option value="discussion" selected>After-discussion score</option>
         <option value="time">Mean time</option>
         <option value="cost">Cost per task</option>
         <option value="tokens">Tokens per task</option>
@@ -38,15 +40,15 @@
           <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="candidate" data-sort-type="text">Candidate <span aria-hidden="true"></span></button></th>
           <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="fable" data-sort-type="number">Fable <span aria-hidden="true"></span></button></th>
           <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="sol" data-sort-type="number">Sol ultra/xhigh <span aria-hidden="true"></span></button></th>
-          <th scope="col" aria-sort="descending"><button class="bench-sort-button" type="button" data-sort-key="combined" data-sort-type="number">Combined <span aria-hidden="true">↓</span></button></th>
-          <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="discussion" data-sort-type="number">After discussion <span aria-hidden="true"></span></button></th>
+          <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="combined" data-sort-type="number">Combined <span aria-hidden="true"></span></button></th>
+          <th scope="col" aria-sort="descending"><button class="bench-sort-button" type="button" data-sort-key="discussion" data-sort-type="number">After discussion <span aria-hidden="true">↓</span></button></th>
           <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="time" data-sort-type="number">Mean time <span aria-hidden="true"></span></button></th>
           <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="cost" data-sort-type="number">$/task <span aria-hidden="true"></span></button></th>
           <th scope="col" aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="tokens" data-sort-type="number">Tokens/task <span aria-hidden="true"></span></button></th>
         </tr>
       </thead>
       <tbody>
-        {% for candidate_id in ranked_candidate_ids %}
+        {% for candidate_id in discussion_ranked_candidate_ids %}
           {% assign candidate = b.candidates | where: "id", candidate_id | first %}
           {% assign fable_row = fable_judge.rows | where: "id", candidate_id | first %}
           {% assign sol_row = sol_judge.rows | where: "id", candidate_id | first %}
@@ -113,8 +115,9 @@
       verdicts and recovered rationales; the three mixed-workflow rows received
       fresh round-one re-grades. In both campaigns, each judge then saw the other
       anonymous verdict, challenged its own view, and held or revised it. All
-      nine rows ran this step across 54 paired cells. Independent scores remain
-      the default ranking; sorting this column uses the paired final mean.
+      nine rows ran this step across 54 paired cells. After discussion is the
+      default table sort using the paired final mean; the independent scores
+      remain visible, sortable, and the primary evidence.
     </p>
     <p class="bench-meta">
       Combined is <code>(Fable + Sol) / 2</code> and is used only to provide one
@@ -163,18 +166,17 @@
               {% assign stat = candidate.efficiency_by_task[task.key] %}
               <td data-task="{{ task.key }}">
                 <span class="bench-cell-value">
-                {% if stat.cost_usd %}{% assign rounded_cost = stat.cost_usd | round: 2 %}{% assign one_decimal_cost = stat.cost_usd | round: 1 %}<strong>${{ rounded_cost }}{% if rounded_cost == one_decimal_cost %}0{% endif %}</strong>{% elsif stat.known_cost_usd %}{% assign rounded_cost = stat.known_cost_usd | round: 2 %}{% assign one_decimal_cost = stat.known_cost_usd | round: 1 %}<strong>${{ rounded_cost }}{% if rounded_cost == one_decimal_cost %}0{% endif %} known</strong><br><small>known-provider cost · partial</small>{% else %}<strong>cost unknown</strong>{% endif %}<br>
+                {% if stat.cost_usd %}{% assign rounded_cost = stat.cost_usd | round: 2 %}{% assign one_decimal_cost = stat.cost_usd | round: 1 %}<strong>${{ rounded_cost }}{% if rounded_cost == one_decimal_cost %}0{% endif %}</strong>{% elsif stat.known_cost_usd %}{% assign rounded_cost = stat.known_cost_usd | round: 2 %}{% assign one_decimal_cost = stat.known_cost_usd | round: 1 %}<strong>${{ rounded_cost }}{% if rounded_cost == one_decimal_cost %}0{% endif %} known*</strong>{% else %}<strong>cost unknown</strong>{% endif %}<br>
                 {% if stat.tokens %}
                   {% assign input_mtokens = stat.tokens.input | times: 0.000001 | round: 3 %}
                   {% assign output_mtokens = stat.tokens.output | times: 0.000001 | round: 3 %}
                   {% assign cache_read_mtokens = stat.tokens.cache_read | times: 0.000001 | round: 3 %}
                   {% assign cache_write_mtokens = stat.tokens.cache_write | times: 0.000001 | round: 3 %}
-                  <small><strong>{{ stat.normalized_mtokens }}M </strong><span class="bench-info-cluster"><strong>{% if candidate.token_scope %}Known-provider tokens{% else %}tokens{% endif %}</strong><button type="button" class="bench-info"
+                  <small><strong>{{ stat.normalized_mtokens }}M </strong><span class="bench-info-cluster"><strong>{% if candidate.token_scope %}known* tokens{% else %}tokens{% endif %}</strong><button type="button" class="bench-info"
                       aria-label="{% if candidate.token_scope %}Known-provider token details; {{ candidate.token_scope }}. {% else %}Token details: {% endif %}fresh input {{ input_mtokens }} million, output {{ output_mtokens }} million, cache read {{ cache_read_mtokens }} million, cache write {{ cache_write_mtokens }} million"
                       data-bench-tooltip="{% if candidate.token_scope %}{{ candidate.token_scope }} · {% endif %}Fresh input {{ input_mtokens }}M · output {{ output_mtokens }}M · cache read {{ cache_read_mtokens }}M · cache write {{ cache_write_mtokens }}M"><span class="bench-info-glyph" aria-hidden="true">i</span></button></span>
                   </small><br>
-                  {% if candidate.token_scope %}<small>{{ candidate.token_scope }}</small><br>{% endif %}
-                {% else %}{% if candidate.token_scope %}<small>known-provider tokens unavailable</small><br><small>{{ candidate.token_scope }}</small><br>{% else %}<small>tokens unknown</small><br>{% endif %}{% endif %}
+                {% else %}{% if candidate.token_scope %}<small>known* tokens unavailable</small><br>{% else %}<small>tokens unknown</small><br>{% endif %}{% endif %}
                 <small>{% if stat.wall_minutes %}{{ stat.wall_minutes }} min{% else %}time not recorded{% endif %}</small>
                 </span>
               </td>
@@ -184,6 +186,12 @@
       </tbody>
     </table>
     </div>
+    <p class="bench-meta bench-telemetry-note">
+      <strong>Known* values</strong> include only providers with preserved
+      telemetry. Current Grok workflows include Fable plan plus Sol review or
+      Sol plan/review, depending on the workflow; Grok telemetry is unavailable.
+      Use each token info button for its exact provider scope and token split.
+    </p>
 
     <h2>Full board (per task)</h2>
     <p class="bench-meta">

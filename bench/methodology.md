@@ -121,9 +121,11 @@ The merged PR tells a judge what the task ultimately required; candidates are
 not rewarded for textual or structural similarity. The original 36 cells have
 one score sample per judge; the 18 mixed-workflow cells have three samples per
 judge. The bold independent score for the original rows and independent
-three-sample mean for the follow-up rows enter the leaderboard and define its
-default order. All 54 cells then received an adversarial deliberation pass. The
-secondary **discussion final** is a separate one-shot diagnostic run with
+three-sample mean for the follow-up rows remain the leaderboard's primary
+evidence. The public summary table opens ordered by the paired discussion-final
+mean, while the independent scores remain visible and sortable. All 54 cells
+then received an adversarial deliberation pass. The secondary **discussion
+final** is a separate one-shot diagnostic run with
 campaign-specific round-one provenance. The original campaign reused its exact
 published independent verdicts and rationales recovered from exact local
 provider sessions; the mixed-workflow follow-up freshly re-graded round one.
@@ -140,9 +142,10 @@ was also recovered by replaying only round two from the preserved pair of
 round-one verdicts, plan, diff, and reference.
 Discussion finals do not replace the independent leaderboard because exposing
 verdicts can add anchoring or convergence pressure even when it also surfaces
-genuine misses. The optional **After discussion** sort orders all nine rows by
-their paired final mean; it does not rewrite the independent scores. The
-per-task board displays Fable before Sol for both layers.
+genuine misses. The default **After discussion** sort orders all nine rows by
+their paired final mean; choosing it as the presentation default does not
+rewrite the independent scores. The per-task board displays Fable before Sol
+for both layers.
 
 Judge calibrations are not interchangeable. The site keeps separate Fable and
 Sol columns as the primary evidence and uses their arithmetic mean only as a
