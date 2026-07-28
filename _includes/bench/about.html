@@ -12,17 +12,8 @@
 {% assign all_sol_independent = all_sol_total | divided_by: 2.0 | round: 3 %}
 {% assign flagship_total = flagship_fable.mean | plus: flagship_sol.mean %}
 {% assign flagship_independent = flagship_total | divided_by: 2.0 | round: 3 %}
-{% assign all_sol_discussion = b.discussion_adjusted.candidates | where: "id", "all-codex-5.6-sol-xhigh" | first %}
 {% assign flagship_discussion = b.discussion_adjusted.candidates | where: "id", "sol-plan@xhigh->exec@high+grok-review" | first %}
-{% assign sol_grok_discussion = b.discussion_adjusted.candidates | where: "id", "sol-plan->grok-exec-sol-review" | first %}
-{% assign sol_terra_discussion = b.discussion_adjusted.candidates | where: "id", "sol-plan->terra-exec-sol-review" | first %}
 {% assign grok_candidate = b.candidates | where: "id", "all-grok-4.5" | first %}
-{% assign flagship_candidate = b.candidates | where: "id", "sol-plan@xhigh->exec@high+grok-review" | first %}
-{% assign terra_grok_candidate = b.candidates | where: "id", "sol-plan->terra-exec-grok-review" | first %}
-{% assign flagship_known_cost = flagship_candidate.known_cost_per_task_usd | round: 2 %}
-{% assign flagship_known_cost_one_decimal = flagship_candidate.known_cost_per_task_usd | round: 1 %}
-{% assign terra_grok_known_cost = terra_grok_candidate.known_cost_per_task_usd | round: 2 %}
-{% assign terra_grok_known_cost_one_decimal = terra_grok_candidate.known_cost_per_task_usd | round: 1 %}
 <section class="bench-intro">
   <div class="wrap">
     <p class="eyebrow">hive-bench</p>
@@ -103,30 +94,17 @@
 
     <h2>What came out</h2>
     <p>
-      The independent scores put the all-Sol configuration first at
-      <strong>{{ all_sol_independent }}</strong>:
-      <strong>{{ all_sol_fable.mean }}</strong> by Fable and
-      <strong>{{ all_sol_sol.mean }}</strong> by Sol. The production-like Sol
-      plan &rarr; Sol execute &rarr; Sol + Grok review setup is second at
-      <strong>{{ flagship_independent }}</strong>:
-      <strong>{{ flagship_fable.mean }}</strong> by Fable and
-      <strong>{{ flagship_sol.mean }}</strong> by Sol. After deliberation, that
-      production-like setup leads at
-      <strong>{{ flagship_discussion.combined.mean }}</strong>, with
-      <strong>{{ flagship_discussion.fable.mean }}</strong> by Fable and
-      <strong>{{ flagship_discussion.sol.mean }}</strong> by Sol. Sol plan
-      &rarr; Grok execute &rarr; Sol review follows at
-      <strong>{{ sol_grok_discussion.combined.mean }}</strong>, then Sol plan
-      &rarr; Terra execute &rarr; Sol review at
-      <strong>{{ sol_terra_discussion.combined.mean }}</strong>, then all-Sol at
-      <strong>{{ all_sol_discussion.combined.mean }}</strong>.
+      The key result is a split winner. All-Sol leads the independent scoring at
+      <strong>{{ all_sol_independent }}</strong>. After discussion, the
+      production-like Sol plan &rarr; Sol execute &rarr; Sol + Grok review
+      setup leads at <strong>{{ flagship_discussion.combined.mean }}</strong>
+      after placing second independently at
+      <strong>{{ flagship_independent }}</strong>.
     </p>
     <p>
-      The most curious result is the new winner: it ranks second under the
-      three-sample independent mean but first under the one-shot
-      after-discussion mean. The two later campaigns freshly re-graded round
-      one before the judges exchanged verdicts, so this is not a mathematical
-      adjustment to the independent mean. Across all
+      The two later campaigns freshly re-graded round one before the judges
+      exchanged verdicts, so discussion is not a mathematical adjustment to
+      the independent mean. Across all
       {{ b.discussion_adjusted.summary.cells }} cells, the judges' mean
       absolute spread still fell from
       <strong>{{ b.discussion_adjusted.summary.mean_spread_before }}</strong> to
@@ -138,14 +116,9 @@
     <p>
       Grok 4.5 remains fastest on its recorded timed cells at
       {{ grok_candidate.mean_minutes }} minutes on
-      average. The production-like winner reports
-      ${{ flagship_known_cost }}{% if flagship_known_cost == flagship_known_cost_one_decimal %}0{% endif %}
-      and {{ flagship_candidate.normalized_mtokens_per_task }}M known Sol-stage
-      tokens per task. Sol plan &rarr; Terra execute &rarr; Grok review reports
-      ${{ terra_grok_known_cost }}{% if terra_grok_known_cost == terra_grok_known_cost_one_decimal %}0{% endif %}
-      and {{ terra_grok_candidate.normalized_mtokens_per_task }}M known Sol/Terra
-      tokens. Both cover all six cells, but both remain lower-bound subtotals
-      because Grok reviewer telemetry is unavailable.
+      average. Because Grok usage telemetry is unavailable, mixed Grok
+      workflows show lower-bound known-provider subtotals rather than complete
+      token and cost comparisons.
     </p>
     <p>
       These are scoped findings, not a universal model ranking.

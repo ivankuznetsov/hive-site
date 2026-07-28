@@ -411,25 +411,19 @@ class BenchmarkDataTest < Minitest::Test
       refute_includes about, "exact effort level was not preserved"
       assert_includes about, "Deliberation is not a third judge"
       assert_match(
-        /all-Sol configuration.*?<strong>6\.55<\/strong>.*?<strong>6\.917<\/strong> by Fable.*?<strong>6\.183<\/strong> by Sol/m,
+        /key result is a split winner.*?All-Sol leads the independent scoring at\s+<strong>6\.55<\/strong>/m,
         about
       )
       assert_match(
-        /production-like Sol\s+plan &rarr; Sol execute &rarr; Sol \+ Grok review setup is second at\s+<strong>6\.328<\/strong>.*?<strong>6\.722<\/strong> by Fable.*?<strong>5\.933<\/strong> by Sol/m,
+        /After discussion, the\s+production-like Sol plan &rarr; Sol execute &rarr; Sol \+ Grok review\s+setup leads at <strong>7\.525<\/strong>\s+after placing second independently at\s+<strong>6\.328<\/strong>/m,
         about
       )
-      assert_match(
-        /production-like setup leads at\s+<strong>7\.525<\/strong>.*?<strong>7\.917<\/strong> by Fable.*?<strong>7\.133<\/strong> by Sol/m,
-        about
-      )
-      assert_match(/Grok execute &rarr; Sol review follows at\s+<strong>6\.908<\/strong>/m, about)
-      assert_match(/Terra execute &rarr; Sol review at\s+<strong>6\.467<\/strong>/m, about)
-      assert_match(/all-Sol.*?<strong>6\.058<\/strong>/m, about)
-      assert_match(/ranks second under the\s+three-sample independent mean but first under the one-shot\s+after-discussion mean/m, about)
+      refute_match(/by Fable.*?by Sol/m, about)
+      refute_includes about, "follows at"
       assert_match(/spread still fell from\s+<strong>1\.77<\/strong> to\s+<strong>1\.039<\/strong>/m, about)
-      assert_match(/production-like winner reports\s+\$42\.94\s+and 63\.156M known Sol-stage\s+tokens per task/m, about)
-      assert_match(/Terra execute &rarr; Grok review reports\s+\$18\.63\s+and 26\.229M known Sol\/Terra\s+tokens/m, about)
-      assert_match(/Both cover all six cells.*?Grok reviewer telemetry is unavailable/m, about)
+      assert_match(/Grok 4\.5 remains fastest.*?27\.3 minutes.*?Grok usage telemetry is unavailable.*?lower-bound known-provider subtotals/m, about)
+      refute_includes about, "$42.94"
+      refute_includes about, "$18.63"
 
       [summary, efficiency, scores].each do |table|
         refute_nil table
