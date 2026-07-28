@@ -2,7 +2,7 @@
 layout: home
 title: hive-bench methodology & limitations
 nav_exclude: true
-description: How 54 hive-bench runs measured coding agents across planning, implementation, pull requests, review, and fixes—and how to read the limits.
+description: How 66 hive-bench runs measured coding agents across planning, implementation, pull requests, review, and fixes—and how to read the limits.
 permalink: /bench/methodology/
 ---
 
@@ -13,8 +13,8 @@ permalink: /bench/methodology/
 ## What one cell measures
 
 One cell is one corpus task run by one candidate configuration. The published
-board has six tasks and nine candidates across two completed campaigns, for
-**54 generated cells**. A candidate can use one model across the workflow or
+board has six tasks and eleven candidates across three completed campaigns, for
+**66 generated cells**. A candidate can use one model across the workflow or
 split stages between models; for example,
 `sol-plan->grok-exec-sol-review` uses Sol to plan and review and Grok to
 execute.
@@ -35,7 +35,7 @@ powered planning through `/ce-plan`. Implementation then used Hive's normal
 plan-driven development stage; it did not invoke `/ce-work`.
 Hive opened a benchmark-local pull request and ran its production review,
 courageous triage, and fix loop for at most two passes and two hours. No review
-CI command or browser test was configured for this campaign.
+CI command or browser test was configured for these campaigns.
 
 The production reviewers below were part of the candidate workflow and could
 change the diff before scoring. They are separate from the Fable and Sol judges,
@@ -57,6 +57,11 @@ which only evaluated the finished artifact afterward.
       <td><code>codex-ce-code-review</code> using Sol xhigh</td>
     </tr>
     <tr>
+      <th scope="row">Sol plan &rarr; Sol execute &rarr; Sol + Grok review</th>
+      <td>Plan: Sol xhigh;<br>Implement: Sol high;<br>PR, triage, fix: Sol xhigh</td>
+      <td><code>codex-ce-code-review</code> using Sol xhigh and <code>grok-ce-code-review</code> using Grok 4.5 xhigh</td>
+    </tr>
+    <tr>
       <th scope="row">Sol plan &rarr; Grok execute &rarr; Sol review</th>
       <td>Plan, PR, triage, fix: Sol xhigh;<br>Implement: Grok 4.5 xhigh</td>
       <td><code>codex-ce-code-review</code> using Sol xhigh</td>
@@ -65,6 +70,11 @@ which only evaluated the finished artifact afterward.
       <th scope="row">Sol plan &rarr; Terra execute &rarr; Sol review</th>
       <td>Plan, PR, triage, fix: Sol xhigh;<br>Implement: Terra xhigh</td>
       <td><code>codex-ce-code-review</code> using Sol xhigh</td>
+    </tr>
+    <tr>
+      <th scope="row">Sol plan &rarr; Terra execute &rarr; Grok review</th>
+      <td>Plan: Sol xhigh;<br>Implement: Terra xhigh;<br>PR, triage, fix: Grok 4.5 xhigh</td>
+      <td><code>grok-ce-code-review</code> using Grok 4.5 xhigh</td>
     </tr>
     <tr>
       <th scope="row">Fable plan &rarr; Grok execute &rarr; Sol review</th>
@@ -100,40 +110,42 @@ which only evaluated the finished artifact afterward.
 </table>
 </div>
 
-The publication commit's harness defines the
+The original publication commit's harness defines the earlier
 [candidate stage assignments](https://github.com/ivankuznetsov/hive-bench/blob/122e6473971b6ccf7c3a24e1273fb7cffbbb7631/harness/profiles/candidates.rb)
 and [review-panel derivation](https://github.com/ivankuznetsov/hive-bench/blob/122e6473971b6ccf7c3a24e1273fb7cffbbb7631/harness/lib/hive_config.rb).
-The evidence bundle does not bind each result to that harness revision or
-contain its resolved `config.yml`, so the table documents the publication code,
-not independently serialized per-cell configuration provenance.
+The two production-panel rows come from a later pre-registered campaign. The
+evidence bundles do not bind every result to a harness revision or contain each
+resolved `config.yml`, so the table documents the publication records, not
+independently serialized per-cell configuration provenance.
 
 ## Current scoring
 
 Two judges independently score every final diff from 0–10 against the task and
 merged reference:
 
-- **Fable 5**, pinned to `xhigh` in both campaigns.
+- **Fable 5**, pinned to `xhigh` in all three campaigns.
 - **GPT-5.6 Sol**, pinned to `xhigh` for the original campaign and `ultra` for
-  the mixed-workflow follow-up.
+  both three-seed follow-ups.
 
 The merged PR tells a judge what the task ultimately required; candidates are
 not rewarded for textual or structural similarity. The original 36 cells have
-one score sample per judge; the 18 mixed-workflow cells have three samples per
-judge. The bold independent score for the original rows and independent
-three-sample mean for the follow-up rows remain the leaderboard's primary
+one score sample per judge; the 30 cells in the two later campaigns have three
+samples per judge. The bold independent score for the original rows and
+independent three-sample mean for the later rows remain the leaderboard's
+primary
 evidence. The public summary table opens ordered by the paired discussion-final
-mean, while the independent scores remain visible and sortable. All 54 cells
+mean, while the independent scores remain visible and sortable. All 66 cells
 then received an adversarial deliberation pass. The secondary **discussion
 final** is a separate one-shot diagnostic run with
 campaign-specific round-one provenance. The original campaign reused its exact
 published independent verdicts and rationales recovered from exact local
-provider sessions; the mixed-workflow follow-up freshly re-graded round one.
-In both campaigns, each judge then received the other judge's verdict
+provider sessions; both three-seed follow-ups freshly re-graded round one.
+In all three campaigns, each judge then received the other judge's verdict
 anonymously, argued the strongest evidence-based case that its own view was
 wrong, and held or revised. It is not an adjustment applied to the independent
 score or mean.
 
-The site publishes all 108 discussion-final judge decisions across all 54
+The site publishes all 132 discussion-final judge decisions across all 66
 cells. Reusing the original campaign's published initial verdicts means its
 round two did not rerun independent scoring. Sol's originally interrupted
 second-round decision for the Fable-plan/Grok-execute `daemon` follow-up cell
@@ -141,7 +153,7 @@ was also recovered by replaying only round two from the preserved pair of
 round-one verdicts, plan, diff, and reference.
 Discussion finals do not replace the independent leaderboard because exposing
 verdicts can add anchoring or convergence pressure even when it also surfaces
-genuine misses. The default **After discussion** sort orders all nine rows by
+genuine misses. The default **After discussion** sort orders all eleven rows by
 their paired final mean; choosing it as the presentation default does not
 rewrite the independent scores. The per-task board displays Fable before Sol
 for both layers.
@@ -160,10 +172,10 @@ published score data but are not used in the compact leaderboard ranking.
 
 ## Coverage and objective evidence
 
-All 54 candidate runs produced scoreable patches, with no pending or failed
-generation cells. All 54 exact final patches are public. The 18
-mixed-workflow rows also publish their complete score samples and intervals in
-the site snapshot. Every objective-gate
+All 66 candidate runs produced scoreable patches, with no pending or failed
+generation cells. All 66 exact final patches are public. The 30 cells across
+the two three-seed campaigns also publish their complete score samples and
+intervals in the site snapshot. Every objective-gate
 record is `no_gate`: the corpus does not yet have curated held-out tests
 suitable for a fair candidate-independent pass/fail claim. The current numbers
 are judge evidence, not test-pass rates.
@@ -172,16 +184,17 @@ The site links every score to a machine-readable record. For the original
 campaign, the manifest, complete merged `results.json`, exact candidate patches,
 and evidence directories are public in
 [hive-bench](https://github.com/ivankuznetsov/hive-bench/tree/main/runs/v2-ce).
-The follow-up's three-sample distributions are included in the site's
-[data snapshot]({{ '/bench/results.json' | relative_url }}), and every follow-up
+The two follow-ups' three-sample distributions are included in the site's
+[data snapshot]({{ '/bench/results.json' | relative_url }}), and every later
 cell links directly to its candidate patch. Raw provider streams, build logs,
 target clones, and auth material remain unpublished.
 
 ## Time, tokens, and cost
 
 Wall time is recorded per task where recoverable. The original campaign has 32
-timed cells; the mixed-workflow follow-up has 14. A displayed time mean uses
-only those recorded cells and always shows its sample count.
+timed cells; the first three-seed follow-up has 14, and the production-panel
+follow-up has all 12. A displayed time mean uses only those recorded cells and
+always shows its sample count.
 
 For the original campaign, generation tokens and API-equivalent costs are
 recomputed uniformly from per-event stage logs with `HiveBench::TokenReport`.
@@ -192,7 +205,7 @@ model ids provide the first attribution signal; stages provide the fallback for
 Codex events that do not carry a model id. Claude's internal Haiku utility calls
 remain a separate priced model instead of being charged at the Opus rate.
 
-The follow-up retains the per-event stage logs used by `HiveBench::TokenReport`.
+The first follow-up retains the per-event stage logs used by `HiveBench::TokenReport`.
 Five of the six Sol-plan/Terra-execute cells preserve complete Codex events, so
 the site publishes their normalized token splits and API-equivalent costs. The
 recovered `fix-review` artifact retains only aggregate inclusive-input usage;
@@ -202,7 +215,11 @@ rows therefore publish explicitly labeled **known-provider subtotals**, never
 complete workflow totals. Sol-plan/Grok-execute/Sol-review includes retained Sol
 plan/review usage for all six tasks. Fable-plan/Grok-execute/Sol-review includes
 Fable planning for all six tasks plus retained Sol review events where present.
-No Grok usage is imputed.
+The production-panel campaign retains comparable Sol/Terra events for all 12
+cells. Sol-plan/Terra-execute/Grok-review therefore publishes Sol plus Terra
+subtotals; the production-like Sol/Sol/Sol+Grok configuration publishes its Sol
+stage subtotal. Grok reviewer usage remains absent from both. No Grok usage is
+imputed.
 
 All displayed wall times come from the corresponding serialized
 `wall_clock_sec` values. The per-event source logs used to reconstruct normalized
@@ -227,7 +244,7 @@ wall time rather than only the mean.
 
 Costs use the versioned `2026-06-usual` price table and are descriptive
 API-equivalent estimates, not a billing claim. Judge usage is excluded. Grok's
-runner emits no usable token events, so workflows that execute with Grok keep
+runner emits no usable token events, so workflows that use Grok keep
 their complete-workflow token totals and cost fields **unknown**, not zero. The
 displayed known-provider token and cost subtotals are explicitly marked
 **partial** and are not used to claim a full-workflow price or cost-sort value.
@@ -238,8 +255,8 @@ No missing value is imputed from another provider or model.
 - **Small, single-project corpus.** Six Ruby/CLI tasks from one repository do
   not support a universal "best coding model" claim.
 - **Mixed sampling depth.** The original 36 cells have one sample per primary
-  judge; the 18 follow-up cells have three. Stability intervals therefore exist
-  only for the follow-up rows, and close gaps in the original cohort may reverse.
+  judge; the 30 later cells have three. Stability intervals therefore exist
+  only for the later rows, and close gaps in the original cohort may reverse.
 - **No objective gates.** Human-aligned judge scoring is the only current
   quality signal.
 - **Judge-family overlap.** Every follow-up candidate uses Sol for at least one

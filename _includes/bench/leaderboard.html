@@ -1,6 +1,6 @@
 {% assign b = site.data.bench %}
-{% assign ranked_candidate_ids = "all-codex-5.6-sol-xhigh,sol-plan->grok-exec-sol-review,sol-plan->terra-exec-sol-review,opus-plan->codex-exec-xhigh,fable-plan->grok-exec-sol-review,all-grok-4.5,all-opus-4.8,all-codex-xhigh,all-glm-5.2" | split: "," %}
-{% assign discussion_ranked_candidate_ids = "sol-plan->grok-exec-sol-review,sol-plan->terra-exec-sol-review,all-codex-5.6-sol-xhigh,fable-plan->grok-exec-sol-review,opus-plan->codex-exec-xhigh,all-opus-4.8,all-grok-4.5,all-glm-5.2,all-codex-xhigh" | split: "," %}
+{% assign ranked_candidate_ids = "all-codex-5.6-sol-xhigh,sol-plan@xhigh->exec@high+grok-review,sol-plan->grok-exec-sol-review,sol-plan->terra-exec-sol-review,opus-plan->codex-exec-xhigh,fable-plan->grok-exec-sol-review,all-grok-4.5,sol-plan->terra-exec-grok-review,all-opus-4.8,all-codex-xhigh,all-glm-5.2" | split: "," %}
+{% assign discussion_ranked_candidate_ids = "sol-plan@xhigh->exec@high+grok-review,sol-plan->grok-exec-sol-review,sol-plan->terra-exec-sol-review,all-codex-5.6-sol-xhigh,fable-plan->grok-exec-sol-review,sol-plan->terra-exec-grok-review,opus-plan->codex-exec-xhigh,all-opus-4.8,all-grok-4.5,all-glm-5.2,all-codex-xhigh" | split: "," %}
 {% assign sol_judge = b.primary_judges | where: "id", "gpt-5.6-sol" | first %}
 {% assign fable_judge = b.primary_judges | where: "id", "fable-5" | first %}
 <section class="bench-board">
@@ -111,12 +111,13 @@
     <p class="bench-meta bench-discussion-note">
       <strong>Discussion</strong> is a one-shot diagnostic with campaign-specific
       round one: the six original rows reused their exact published independent
-      verdicts and recovered rationales; the three mixed-workflow rows received
-      fresh round-one re-grades. In both campaigns, each judge then saw the other
-      anonymous verdict, challenged its own view, and held or revised it. All
-      nine rows ran this step across 54 paired cells. After discussion is the
-      default table sort using the paired final mean; the independent scores
-      remain visible, sortable, and the primary evidence.
+      verdicts and recovered rationales; the five rows across the two later
+      three-seed campaigns received fresh round-one re-grades. In all three
+      campaigns, each judge then saw the other anonymous verdict, challenged
+      its own view, and held or revised it. All eleven rows ran this step across
+      66 paired cells. After discussion is the default table sort using the
+      paired final mean; the independent scores remain visible, sortable, and
+      the primary evidence.
     </p>
     <p class="bench-meta">
       Combined is <code>(Fable + Sol) / 2</code> and is used only to provide one
@@ -188,9 +189,10 @@
     </div>
     <p class="bench-meta bench-telemetry-note">
       <strong>Known* values</strong> include only providers with preserved
-      telemetry. Current Grok workflows include Fable plan plus Sol review or
-      Sol plan/review, depending on the workflow; Grok telemetry is unavailable.
-      Use each token info button for its exact provider scope and token split.
+      telemetry. Depending on the workflow, that can include Fable planning,
+      Sol stages, or Sol planning plus Terra execution; Grok telemetry is
+      unavailable. Use each token info button for its exact provider scope and
+      token split.
     </p>
 
     <h2>Full board (per task)</h2>
@@ -268,7 +270,7 @@
     <h2>Audit the campaign</h2>
     <p>
       Every leaderboard score can be traced to a machine-readable record, and
-      all 54 exact final diffs are public. The published evidence lets you:
+      all 66 exact final diffs are public. The published evidence lets you:
     </p>
     <ul>
       <li>Read the <a href="{{ b.evidence.readme }}">publication notes</a> for
@@ -285,8 +287,8 @@
         layer, recorded time, normalized token values, and API-equivalent cost
         estimates.</li>
       <li>Read or compare the <a href="{{ b.evidence.cells }}">36 original
-        candidate patches</a> or follow the per-cell links above for all 18
-        mixed-workflow patches.</li>
+        candidate patches</a> or follow the per-cell links above for all 30
+        three-seed follow-up patches.</li>
     </ul>
     <p>
       These artifacts let you audit every score against the candidate code.

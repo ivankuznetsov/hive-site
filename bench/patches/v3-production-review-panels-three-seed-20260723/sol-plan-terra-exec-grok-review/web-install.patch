@@ -1,0 +1,3407 @@
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+index 39fa61fb..51e4a867 100644
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -30,6 +30,11 @@ jobs:
+         # (tebako/dwarfs/Boost) — the user provides Ruby 3.4 already
+         # because the rest of the toolchain needs it.
+         run: gem build hive.gemspec
++      - name: Build version-matched web bundle
++        run: |
++          version="${GITHUB_REF_NAME#v}"
++          tar -czf "hive-web-${version}.tar.gz" \
++            --transform "s,^web,hive-web-${version}," web
+       - name: Smoke test built gem
+         # Confirm the gemspec is well-formed and the `hive`/`hv`
+         # executables resolve before we attach the artifact to a
+@@ -49,7 +54,9 @@ jobs:
+       - uses: actions/upload-artifact@v7
+         with:
+           name: hive-cli-gem
+-          path: hive-cli-*.gem
++          path: |
++            hive-cli-*.gem
++            hive-web-*.tar.gz
+           if-no-files-found: error
+ 
+   install-gate:
+@@ -119,7 +126,7 @@ jobs:
+       - name: Build checksums
+         run: |
+           cd dist
+-          sha256sum hive-cli-*.gem > SHA256SUMS
++          sha256sum hive-cli-*.gem hive-web-*.tar.gz > SHA256SUMS
+       - name: Install cosign
+         uses: sigstore/cosign-installer@v3
+       - name: Sign checksums
+diff --git a/README.md b/README.md
+index 2fca3136..e8d61c15 100644
+--- a/README.md
++++ b/README.md
+@@ -47,6 +47,25 @@ Hive ships as a rubygem (`hive-cli`) attached to each GitHub Release, signed wit
+ 
+ Prerequisites: **Ruby 3.4** (the gem and its runtime deps install against this), git ≥ 2.40, authenticated `claude` ≥ 2.1.118, `codex` ≥ 0.125.0 for the default execute agent, authenticated `gh`, `tmux` ≥ 3.0 when the project uses the default `claude.mode: tmux`, and Node.js/npm for managed QMD install/repair. The bash installer reports its own installer-side prereqs (`curl`, `jq`, `gem`, checksum tool) on first run; if npm is missing, Hive still installs and `hive doctor` reports the QMD gap non-fatally.
+ 
++### Native local web
++
++From a Git repository, run the native setup once:
++
++```bash
++cd ~/Dev/your-project
++hive setup
++```
++
++It reports every prerequisite in a stable phase envelope, bootstraps only
++Hive-owned assets, registers the repository, enables daemon dispatch for it,
++and installs independent per-user daemon and web services. Open
++<http://127.0.0.1:4567> when it completes. `hive setup --no-service` leaves
++the assets and enrollment in place for `hive web` in the foreground;
++`hive web install|start|stop|restart|status` manages only the web service.
++Both surfaces use the same XDG state and real checkout—there is no native-mode
++sandbox. Non-loopback binds require the GitHub owner flow or the explicit,
++prominently unsafe `--unsafe-no-auth` escape hatch.
++
+ The vendored gems land under `${XDG_DATA_HOME:-~/.local/share}/hive/gems/` so the install is self-contained and uninstall is a clean `rm -rf`. Full install matrix, XDG paths, Apache Hive collision behavior (`hv` shim), update, uninstall, and autostart details live in [wiki/operating.md#install](wiki/operating.md#install) and [wiki/operating.md#autostart](wiki/operating.md#autostart).
+ 
+ ### From a development clone
+@@ -103,10 +122,10 @@ The normal Hive loop is simple: the daemon advances ready tasks, and the TUI is
+ 
+    ```bash
+    cd ~/Dev/your-project
+-   hive init .
++   hive setup
+    ```
+ 
+-   During `hive init`, choose the Claude launch mode and permission mode for the project. `tmux` is the default: Claude-backed stages run in attachable tmux sessions using your logged-in Claude session. With the upcoming Anthropic pricing changes this is the mode we now suggest for most users, but treat it as an **experimental workflow** for now — expect some rough edges. The recommended permission default is `bypassPermissions` so local dogfood runs do not pause on file-operation approvals; choose `auto` when you want Claude Code auto-mode rules. Pick `headless` for service-only hosts or CI-style runs that should use normal non-interactive CLI spawns.
++   `hive setup` runs the same project bootstrap non-interactively when needed and starts both local services. Use `hive init .` directly when you want to choose every project prompt yourself. The recommended permission default is `bypassPermissions` so local dogfood runs do not pause on file-operation approvals; choose `auto` when you want Claude Code auto-mode rules.
+ 
+    When `hive init` asks about the daemon, keep the project enabled. The service itself is already global autostart infrastructure; this prompt only controls whether this project is picked up. The daemon is the worker: it polls Hive, starts the next stage when a task is ready, and stops at human-input or recovery gates.
+ 
+diff --git a/docs/architecture.md b/docs/architecture.md
+index 2213d857..e3db10a0 100644
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -57,6 +57,18 @@ Default new-project setup uses `claude` for planning, `codex` for execute, a nor
+ 
+ Hive's prompts invoke skills inside the chosen agent. `hive doctor` checks the configured rows and reports missing installs.
+ 
++## Native local web
++
++`hive setup` is the native Linux/macOS composition boundary: it validates external
++tools without mutating them, provisions Hive-owned QMD/Rails assets, registers
++the current real repository, persists `daemon.enabled`, and installs separate
++systemd-user or launchd daemon and Rails web definitions. Both processes retain
++the same XDG state roots and exact invoking Hive wrapper. The Rails service is
++loopback-only by default at `127.0.0.1:4567`; its no-login behavior requires
++both an approved listener and an actual loopback peer, while normal CSRF and
++host checks remain active. Docker/hivebox continues to use its isolated `/data`
++model and owner authentication.
++
+ | Stage | Default invocation | Install for claude | Install for codex |
+ |---|---|---|---|
+ | `2-brainstorm` | `/ce-brainstorm` | `claude plugin install <every-marketplace>` (or any marketplace shipping `compound-engineering`) | `codex plugin install <compound-engineering-marketplace>` |
+diff --git a/docs/getting-started.md b/docs/getting-started.md
+index 104028df..3b468042 100644
+--- a/docs/getting-started.md
++++ b/docs/getting-started.md
+@@ -1,6 +1,6 @@
+ # Getting Started
+ 
+-This page gets you through the first operator-driven loop: install Hive, attach it to a real project, capture an idea, run brainstorm, and promote the task to plan. The full pipeline can take longer because agents do real work; five minutes is the active time you spend driving the first handoffs.
++This page gets you through the first operator-driven loop: install Hive, attach it to a real project with local web and daemon services, capture an idea, run brainstorm, and promote the task to plan. The full pipeline can take longer because agents do real work; five minutes is the active time you spend driving the first handoffs.
+ 
+ The example is xbookmark, a real Hive dogfood task that finished as [xbookmark PR #1](https://github.com/ivankuznetsov/xbookmark/pull/1). The original task lived in a local `.hive-state/` branch, so this guide quotes the idea text and links to the replay artefacts committed in this repo.
+ 
+@@ -18,17 +18,16 @@ If `~/.local/bin` is not on your `PATH`, put the symlink in a directory that is
+ 
+ ```bash
+ hive --version
+-hive daemon install
+ ```
+ 
+ ## Step 2 - Attach Hive To A Project
+ 
+ ```bash
+ cd ~/Dev/xbookmark
+-hive init .
++hive setup .
+ ```
+ 
+-`hive init` creates `.hive-state/` as a worktree of the orphan `hive/state` branch, registers the project in `~/Dev/hive/config.yml`, and scaffolds the stage folders. Read the storage details in [docs/architecture.md#storage-layout](architecture.md#storage-layout).
++`hive setup` validates the machine, creates `.hive-state/` as a worktree of the orphan `hive/state` branch when needed, registers the project, enables daemon dispatch, and starts independent daemon and loopback web services. Open `http://127.0.0.1:4567`; use `hive init .` instead if you want to answer the full interactive project questionnaire. Read the storage details in [docs/architecture.md#storage-layout](architecture.md#storage-layout).
+ 
+ ## Step 3 - Capture The Idea
+ 
+diff --git a/examples/launchd/hive-web.plist b/examples/launchd/hive-web.plist
+new file mode 100644
+index 00000000..f3af8fb5
+--- /dev/null
++++ b/examples/launchd/hive-web.plist
+@@ -0,0 +1,19 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
++<plist version="1.0"><dict>
++  <key>Label</key><string>local.hive-web</string>
++  <key>ProgramArguments</key><array>
++    <string>/bin/sh</string><string>-c</string><string>[ -x "$0" ] || exit 0; exec "$0" "$@"</string>
++    <string>/Users/YOU/.local/bin/hive</string>
++    <!-- HIVE_WEB_ARGUMENTS -->
++  </array>
++  <key>RunAtLoad</key><true/>
++  <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
++  <key>ThrottleInterval</key><integer>30</integer>
++  <key>StandardOutPath</key><string>/Users/YOU/Library/Logs/hive-web.out.log</string>
++  <key>StandardErrorPath</key><string>/Users/YOU/Library/Logs/hive-web.err.log</string>
++  <key>EnvironmentVariables</key><dict>
++    <key>PATH</key><string>/Users/YOU/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
++    <!-- HIVE_WEB_ENVIRONMENT -->
++  </dict>
++</dict></plist>
+diff --git a/examples/systemd/hive-web.service b/examples/systemd/hive-web.service
+new file mode 100644
+index 00000000..f8c600eb
+--- /dev/null
++++ b/examples/systemd/hive-web.service
+@@ -0,0 +1,16 @@
++[Unit]
++Description=Hive local web UI
++After=default.target
++StartLimitBurst=3
++StartLimitIntervalSec=300
++
++[Service]
++Type=simple
++Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
++# HIVE_WEB_ENVIRONMENT
++ExecStart=%h/.local/bin/hive web --bind 127.0.0.1 --port 4567
++Restart=on-failure
++RestartSec=10
++
++[Install]
++WantedBy=default.target
+diff --git a/install.md b/install.md
+index 8ad54e54..b35043a4 100644
+--- a/install.md
++++ b/install.md
+@@ -4,7 +4,7 @@ You are installing the `hive` CLI for the user. Treat this prompt as the source
+ 
+ ## Goal
+ 
+-Install the latest stable Hive release, install or repair the QMD wiki indexer, verify `hive --version`, set up daemon autostart, offer to run `hive init` in the current project, and report any missing runtime dependencies. Do not auto-install runtime dependencies such as `git`, `gh`, agent CLIs, or Node.js/npm; QMD is the exception once npm is already available because Hive's managed wiki refresh scripts use it. The bash installer reports its own installer prerequisites (Ruby 3.4, `curl`, `jq`, checksum tool) when that channel is used. Hive ships as a rubygem (`hive-cli`) attached to the GitHub Release; all three channels (Homebrew, AUR, install.sh) download the same signed `.gem` and run `gem install` against it. Daemon autostart is global install-time setup; project setup only decides whether that project is enrolled for daemon dispatch.
++Install the latest stable Hive release, verify `hive --version`, and, from a repository, run `hive setup` for the native local web path. Do not auto-install runtime dependencies such as `git`, `gh`, agent CLIs, or Node.js/npm. Setup reports exact remediation and bootstraps only Hive-owned QMD and web assets. Hive ships as a rubygem (`hive-cli`) attached to the GitHub Release; all three channels (Homebrew, AUR, install.sh) download the same signed `.gem` and run `gem install` against it.
+ 
+ ## Detect
+ 
+@@ -77,20 +77,10 @@ bash "$tmpdir/hive-install.sh"
+ 
+ ## Install / Repair QMD
+ 
+-The bash installer installs QMD automatically when npm is available. For Homebrew/AUR installs, or when `qmd --version` fails with a native module / `NODE_MODULE_VERSION` error, install or repair Hive's managed QMD copy:
++The bash installer delegates QMD bootstrap to the installed CLI. For Homebrew/AUR installs, or when `qmd --version` fails with a native module / `NODE_MODULE_VERSION` error, use the same owned component mode:
+ 
+ ```bash
+-if command -v npm >/dev/null 2>&1; then
+-  qmd_prefix="${XDG_DATA_HOME:-$HOME/.local/share}/hive/qmd"
+-  qmd_bin_home="${XDG_BIN_HOME:-$HOME/.local/bin}"
+-  mkdir -p "$qmd_bin_home"
+-  npm install --global --prefix "$qmd_prefix" --no-audit --no-fund "${HIVE_QMD_NPM_PACKAGE:-@tobilu/qmd}"
+-  npm rebuild --global --prefix "$qmd_prefix" better-sqlite3 >/dev/null 2>&1 || true
+-  ln -sfn "$qmd_prefix/bin/qmd" "$qmd_bin_home/qmd"
+-  "$qmd_prefix/bin/qmd" --version
+-else
+-  echo "qmd install skipped: npm is missing; install Node.js/npm and rerun this section" >&2
+-fi
++hive setup --only=qmd
+ ```
+ 
+ Two env knobs tune this step: `HIVE_QMD_BIN` is a runtime override pointing at an executable `qmd` (read by the generated wiki scripts and `hive doctor` when PATH or the managed install path is not enough), and `HIVE_QMD_NPM_PACKAGE` overrides the npm package spec used for the install (defaults to `@tobilu/qmd`).
+@@ -115,6 +105,22 @@ fi
+ 
+ If `hive` is shadowed by Apache Hive, try `hv --version` and tell the user to use `hv` or adjust PATH.
+ 
++## Native setup
++
++From a git repository, prefer one command over separate init/service steps:
++
++```bash
++cd /path/to/project
++"$hive_cmd" setup --json
++```
++
++It validates Ruby, git, tmux, GitHub and agent authentication, Node/npm,
++SQLite, QMD, and the Rails bundle; it does not install or authenticate the
++external tools. A successful run registers the real checkout, writes durable
++`daemon.enabled: true`, and starts separate per-user daemon and loopback web
++services. Open `http://127.0.0.1:4567`. Use `--no-service` for foreground
++`"$hive_cmd" web`; use `web status` and `daemon status --json` for recovery.
++
+ ## Daemon Autostart
+ 
+ Do not ask the user whether to initialize the daemon. Hive install includes the per-user daemon service by default. After version verification, run this once for every channel and report the outcome:
+@@ -127,14 +133,13 @@ The bash installer already runs the same command after installing the gem; rerun
+ 
+ ## Initialize Project
+ 
+-If the current directory is a git project and the user wants Hive enabled here, ask before running:
++If the current directory is a git project and the user wants the native local web experience, ask before running:
+ 
+ ```bash
+-"$hive_cmd" init .
+-"$hive_cmd" doctor || true
++"$hive_cmd" setup .
+ ```
+ 
+-During `hive init`, keep the user's prompt choices. The daemon prompt is per-project enrollment (`daemon.enabled`) only; the service autostart has already been installed globally. If init is non-interactive, Hive uses recommended defaults and enrolls the project. `hive doctor` runs AFTER `hive init` because it requires an initialized project root.
++Use `hive init .` instead when the operator explicitly wants the interactive project prompts. `hive doctor` remains available for project skill checks after setup.
+ 
+ ## Optional Skills
+ 
+diff --git a/install.sh b/install.sh
+index bd8f6e2d..3304bba6 100755
+--- a/install.sh
++++ b/install.sh
+@@ -304,76 +304,19 @@ qmd_install_enabled() {
+   esac
+ }
+ 
+-qmd_repair_hint() {
+-  local qmd_home_arg="$1"
+-  printf 'rerun hive update, or run: npm install --global --prefix %q %q' "$qmd_home_arg" "$QMD_NPM_PACKAGE"
+-}
+-
+-# Install the qmd CLI used by Hive-managed llm-wiki refresh scripts into
+-# Hive's own data prefix. This keeps the native better-sqlite3 build out
+-# of the user's global npm prefix while still making `qmd` available from
+-# the same bin directory as `hive`.
++# The installed CLI owns the qmd bootstrap. Keeping this shell wrapper thin
++# prevents installer/setup drift in prefix selection, native rebuild handling,
++# linking, and rollback behavior.
+ install_qmd() {
+-  local qmd_home qmd_bin qmd_link existing_qmd_link managed_qmd_link active_qmd active_qmd_canon managed_qmd_canon qmd_version
+-  qmd_home="${data_home}/qmd"
+-  qmd_bin="${qmd_home}/bin/qmd"
+-  qmd_link="${bin_home}/qmd"
+-
+   if ! qmd_install_enabled; then
+     log "qmd: skipped (HIVE_INSTALL_QMD=${INSTALL_QMD})"
+     return 0
+   fi
+ 
+-  if ! command -v npm >/dev/null 2>&1; then
+-    warn "missing wiki dependency 'npm'; qmd was not installed — install Node.js/npm and rerun hive update"
+-    return 0
+-  fi
+-
+-  log "qmd: installing ${QMD_NPM_PACKAGE} into ${qmd_home}"
+-  mkdir -p "$qmd_home"
+-  if ! npm install --global --prefix "$qmd_home" --no-audit --no-fund "$QMD_NPM_PACKAGE"; then
+-    warn "qmd install failed; $(qmd_repair_hint "$qmd_home")"
+-    return 0
+-  fi
+-
+-  # `npm install` may leave an existing native better-sqlite3 build in place
+-  # after a Node upgrade. Rebuild explicitly so `hive update` repairs the
+-  # NODE_MODULE_VERSION mismatch class of failures.
+-  npm rebuild --global --prefix "$qmd_home" better-sqlite3 >/dev/null 2>&1 || true
+-
+-  if [[ ! -x "$qmd_bin" ]]; then
+-    warn "qmd install completed but no executable was found at ${qmd_bin}; $(qmd_repair_hint "$qmd_home")"
+-    return 0
+-  fi
+-
+-  if ! "$qmd_bin" --version >/dev/null 2>&1; then
+-    warn "qmd installed at ${qmd_bin} but failed to start; $(qmd_repair_hint "$qmd_home")"
+-    return 0
+-  fi
+-
+-  if [[ -e "$qmd_link" || -L "$qmd_link" ]]; then
+-    existing_qmd_link="$(readlink -f "$qmd_link" 2>/dev/null || true)"
+-    managed_qmd_link="$(readlink -f "$qmd_bin" 2>/dev/null || echo "$qmd_bin")"
+-    if [[ "$existing_qmd_link" != "$managed_qmd_link" ]]; then
+-      warn "existing qmd at ${qmd_link}; leaving it unchanged (Hive-managed qmd is ${qmd_bin})"
+-    else
+-      ln -sfn "$qmd_bin" "$qmd_link"
+-    fi
+-  else
+-    ln -sfn "$qmd_bin" "$qmd_link"
+-  fi
+-
+-  active_qmd="$(command -v qmd 2>/dev/null || true)"
+-  if [[ -n "$active_qmd" ]]; then
+-    active_qmd_canon="$(readlink -f "$active_qmd" 2>/dev/null || true)"
+-    managed_qmd_canon="$(readlink -f "$qmd_bin" 2>/dev/null || echo "$qmd_bin")"
+-    if [[ -n "$active_qmd_canon" && "$active_qmd_canon" != "$managed_qmd_canon" ]]; then
+-      warn "PATH resolves qmd to ${active_qmd}, not Hive-managed ${qmd_bin}; wiki refreshes may use the earlier binary"
+-    fi
+-  fi
+-
+-  qmd_version="$("$qmd_bin" --version 2>/dev/null || true)"
+-  log "qmd: installed ${qmd_version:-${QMD_NPM_PACKAGE}}"
++  log "qmd: provisioning through hive setup --only=qmd"
++  HIVE_QMD_NPM_PACKAGE="$QMD_NPM_PACKAGE" \
++    XDG_DATA_HOME="$data_base" XDG_BIN_HOME="$bin_home" \
++    "$installed_bin" setup --only=qmd || die "qmd bootstrap failed; fix npm/Node and rerun hive update"
+ }
+ 
+ platform="$(detect_platform)"
+@@ -409,9 +352,7 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
+   log "dry run: would gem install --install-dir ${gem_home} ${gem_file}"
+   log "dry run: would run ${link_path} daemon install to enable daemon autostart"
+   if qmd_install_enabled; then
+-    log "dry run: would npm install --global --prefix ${data_home}/qmd ${QMD_NPM_PACKAGE}"
+-    log "dry run: would npm rebuild --global --prefix ${data_home}/qmd better-sqlite3"
+-    log "dry run: would link ${bin_home}/qmd"
++    log "dry run: would run ${installed_bin} setup --only=qmd"
+   else
+     log "dry run: would skip qmd install (HIVE_INSTALL_QMD=${INSTALL_QMD})"
+   fi
+diff --git a/lib/hive.rb b/lib/hive.rb
+index b22bfe0e..429c4f4d 100644
+--- a/lib/hive.rb
++++ b/lib/hive.rb
+@@ -30,6 +30,9 @@ module Hive
+       "hive-daemon-enroll" => 1,
+       "hive-daemon-reload" => 1,
+       "hive-daemon-install" => 1,
++      "hive-web-service-status" => 1,
++      "hive-web-service-action" => 1,
++      "hive-setup" => 1,
+       # Read-only inspection of the daemon's dispatch-request queue
+       # (`hive daemon queue [list|show|prune]`). See AN-1/2/3 and
+       # `Hive::Commands::Daemon#queue_command`.
+diff --git a/lib/hive/cli.rb b/lib/hive/cli.rb
+index cd809068..787e21a7 100644
+--- a/lib/hive/cli.rb
++++ b/lib/hive/cli.rb
+@@ -149,6 +149,23 @@ module Hive
+       ).call
+     end
+ 
++    desc "setup [PROJECT]", "Validate and provision native Hive web, project enrollment, and per-user services"
++    option :diagnose_only, type: :boolean, default: false, desc: "report prerequisites without writing files or starting services"
++    option :force, type: :boolean, default: false, desc: "repair drifted service definitions (backs up customized units)"
++    option :service, type: :boolean, default: true, desc: "install and start managed daemon and web services"
++    option :only, type: :string, desc: "provision one Hive-owned component (qmd)"
++    def setup(project_path = Dir.pwd)
++      require "hive/commands/setup"
++      exit Hive::Commands::Setup.new(
++        project_path,
++        diagnose_only: options[:diagnose_only],
++        json: options[:json],
++        force: options[:force],
++        service: options[:service],
++        only: options[:only]
++      ).call
++    end
++
+     desc "forget NAME", "Remove a project from the global registry (inverse of `hive init`)"
+     long_desc <<~DESC
+       Drops the entry whose `name` matches NAME from the global registry
+@@ -1332,11 +1349,13 @@ module Hive
+       ).call
+     end
+ 
+-    desc "web", "Run the hivebox web UI"
++    desc "web [ACTION]", "Run the foreground web UI or manage its per-user service"
+     option :bind, type: :string, desc: "override web.bind"
+     option :port, type: :numeric, desc: "override web.port"
+-    def web
+-      if options[:json]
++    option :force, type: :boolean, default: false, desc: "overwrite a drifted managed service definition (install only)"
++    option :unsafe_no_auth, type: :boolean, default: false, desc: "allow a non-loopback listener without GitHub owner auth"
++    def web(action = nil)
++      if options[:json] && action.nil?
+         require "json"
+         message = "hive web has no JSON output (it runs a long-lived server). " \
+                   "Use 'hive status --json' for machine-readable task data."
+@@ -1355,7 +1374,9 @@ module Hive
+       end
+ 
+       require "hive/commands/web"
+-      Hive::Commands::Web.new(bind: options[:bind], port: options[:port]).call
++      kwargs = { bind: options[:bind], port: options[:port] }
++      kwargs.merge!(action: action, force: options[:force], unsafe_no_auth: options[:unsafe_no_auth], json: options[:json]) if action
++      Hive::Commands::Web.new(**kwargs).call
+     end
+ 
+     desc "tui", "Open the live, keystroke-driven dashboard for every active task"
+diff --git a/lib/hive/commands/daemon.rb b/lib/hive/commands/daemon.rb
+index 6c91610b..1a750406 100644
+--- a/lib/hive/commands/daemon.rb
++++ b/lib/hive/commands/daemon.rb
+@@ -1,6 +1,8 @@
+ require "fileutils"
+ require "json"
++require "open3"
+ require "time"
++require "timeout"
+ require "yaml"
+ require "hive/config"
+ require "hive/paths"
+@@ -99,6 +101,69 @@ module Hive
+         @log_file ||= File.join(@hive_home, "logs", "daemon.log")
+       end
+ 
++      # Structured, side-effect-free daemon health snapshot.  The CLI emits
++      # this object for `daemon status --json`; the Rails status card consumes
++      # the same return value rather than redirecting global stdout inside a
++      # multi-threaded Puma process.
++      def status_payload
++        running = false
++        pid = nil
++        uptime_sec = nil
++        payload = nil
++
++        if File.exist?(pid_file)
++          payload = read_pid_file_payload
++          pid = payload && payload["pid"]
++          if pid && pid > 0 && pid_alive?(pid) && pid_owned_by_us?(payload, pid)
++            running = true
++            stat = File.stat(pid_file)
++            uptime_sec = (Time.now - stat.mtime).to_i
++          end
++        end
++
++        service_state = probe_service_state
++        {
++          "schema" => "hive-daemon-status",
++          "schema_version" => Hive::Schemas::SCHEMA_VERSIONS.fetch("hive-daemon-status"),
++          "ok" => true,
++          "running" => running,
++          "pid" => running ? pid : nil,
++          "uptime_sec" => uptime_sec,
++          "pid_file" => pid_file,
++          "log_file" => log_file,
++          "service_installed" => service_state["service_installed"],
++          "service_enabled" => service_state["service_enabled"],
++          "unit_path" => service_state["unit_path"],
++          "configured_executable" => service_state["configured_executable"],
++          "current_executable" => current_binary_path,
++          "configured_version" => service_state["configured_version"],
++          "running_executable" => running ? payload&.fetch("executable", nil) : nil,
++          "running_version" => running ? payload&.fetch("version", nil) : nil,
++          "drift" => daemon_drift(service_state, payload, running),
++          "observed_at" => Time.now.utc.iso8601,
++          "recommended_action" => daemon_recommendation(service_state, payload, running),
++          # Version of the querying CLI, retained for backward compatibility.
++          "current_version" => Hive::VERSION,
++          "update_nudge" => update_nudge_payload
++        }
++      end
++
++      # Programmatic enrollment API used by setup. It shares the exact
++      # validation and surgical write path with `hive daemon enable`, but
++      # returns data instead of printing so a setup JSON envelope remains one
++      # document on stdout.
++      def enrollment_results(enabled:)
++        targets = resolve_enable_targets
++        preflight_targets(targets)
++        targets.map do |entry|
++          path = File.join(entry["hive_state_path"], "config.yml")
++          previous = current_daemon_enabled(path)
++          write_daemon_block(path, enabled)
++          { "name" => entry["name"], "path" => entry["path"],
++            "previous" => previous, "current" => enabled, "config_yml" => path }
++        end
++      end
++
+       private
+ 
+       def start_daemon
+@@ -141,7 +206,10 @@ module Hive
+         # Write the PID file as YAML with process_start_time so `stop`
+         # can detect PID reuse before sending TERM/KILL to a random
+         # process that happens to have the same PID. PR-40 review P2 #3.
+-        File.write(pid_file, pid_file_payload(Process.pid, own_start_time).to_yaml)
++        File.write(
++          pid_file,
++          pid_file_payload(Process.pid, own_start_time, executable: current_binary_path, version: Hive::VERSION).to_yaml
++        )
+ 
+         # Load the daemon block from ~/Dev/hive/config.yml so operator
+         # overrides (max_concurrent_runs, poll_interval_sec, log paths,
+@@ -355,46 +423,17 @@ module Hive
+       end
+ 
+       def status_daemon
+-        running = false
+-        pid = nil
+-        uptime_sec = nil
+-
+-        if File.exist?(pid_file)
+-          payload = read_pid_file_payload
+-          pid = payload && payload["pid"]
+-          if pid && pid > 0 && pid_alive?(pid) && pid_owned_by_us?(payload, pid)
+-            running = true
+-            stat = File.stat(pid_file)
+-            uptime_sec = (Time.now - stat.mtime).to_i
+-          end
+-        end
++        result = status_payload
+ 
+         if @json
+-          service_state = probe_service_state
+-          puts JSON.generate(
+-            "schema" => "hive-daemon-status",
+-            "schema_version" => Hive::Schemas::SCHEMA_VERSIONS.fetch("hive-daemon-status"),
+-            "ok" => true,
+-            "running" => running,
+-            "pid" => running ? pid : nil,
+-            "uptime_sec" => uptime_sec,
+-            "pid_file" => pid_file,
+-            "log_file" => log_file,
+-            "service_installed" => service_state["service_installed"],
+-            "service_enabled" => service_state["service_enabled"],
+-            "unit_path" => service_state["unit_path"],
+-            # Agent-native parity with the TUI footer / bot push: expose the
+-            # update nudge so a programmatic caller can detect "behind" too.
+-            "current_version" => Hive::VERSION,
+-            "update_nudge" => update_nudge_payload
+-          )
+-        elsif running
+-          puts "hive daemon: running (pid #{pid}, uptime #{uptime_sec}s)"
++          puts JSON.generate(result)
++        elsif result.fetch("running")
++          puts "hive daemon: running (pid #{result.fetch('pid')}, uptime #{result.fetch('uptime_sec')}s)"
+         else
+           puts "hive daemon: not running"
+         end
+         # Exit code: 0 for running, 1 for not running (per plan U8)
+-        raise Hive::Error, "daemon not running" unless running
++        raise Hive::Error, "daemon not running" unless result.fetch("running")
+       end
+ 
+       # Read-only autostart-state snapshot for the status envelope. A status
+@@ -404,9 +443,51 @@ module Hive
+       # out of the whole command.
+       def probe_service_state
+         require "hive/commands/daemon/service_installer"
+-        Hive::Commands::Daemon::ServiceInstaller.new.service_state
++        installer = Hive::Commands::Daemon::ServiceInstaller.new
++        state = installer.service_state
++        executable = installer.configured_executable if installer.respond_to?(:configured_executable)
++        state.merge(
++          "configured_executable" => executable,
++          "configured_version" => probe_binary_version(executable)
++        )
+       rescue StandardError
+-        { "service_installed" => nil, "service_enabled" => nil, "unit_path" => nil }
++        { "service_installed" => nil, "service_enabled" => nil, "unit_path" => nil,
++          "configured_executable" => nil, "configured_version" => nil }
++      end
++
++      def probe_binary_version(binary)
++        return nil if binary.to_s.empty?
++
++        out, _err, status = Timeout.timeout(5) { Open3.capture3(binary, "--version") }
++        return nil unless status.success?
++
++        out[/\d+\.\d+\.\d+/]
++      rescue StandardError
++        nil
++      end
++
++      def daemon_drift(service_state, payload, running)
++        return "not_applicable" if service_state["service_installed"] == false
++        configured = service_state["configured_executable"]
++        current = current_binary_path
++        return "unknown" if configured.to_s.empty? || current.to_s.empty?
++        return "path" unless File.expand_path(configured) == File.expand_path(current)
++        return "version" if service_state["configured_version"] && service_state["configured_version"] != Hive::VERSION
++        return "version" if running && payload&.fetch("version", nil) && payload["version"] != Hive::VERSION
++
++        "none"
++      rescue ArgumentError
++        "unparseable"
++      end
++
++      def daemon_recommendation(service_state, payload, running)
++        drift = daemon_drift(service_state, payload, running)
++        case drift
++        when "none" then nil
++        when "not_applicable" then "hive daemon install"
++        when "path", "version", "unparseable" then "hive daemon install --force"
++        else "hive daemon status --json"
++        end
+       end
+ 
+       # The daemon-written update nudge, as a plain Hash for the status
+@@ -713,17 +794,7 @@ module Hive
+       # mirrors Forget / Prune / Status / etc.
+       def do_call
+         enabled = (@subcommand == "enable")
+-        targets = resolve_enable_targets
+-        # Pre-flight: validate every target up front so `--all` can't
+-        # leave the registry half-flipped on a bad project mid-loop.
+-        preflight_targets(targets)
+-        results = targets.map do |entry|
+-          path = File.join(entry["hive_state_path"], "config.yml")
+-          previous = current_daemon_enabled(path)
+-          write_daemon_block(path, enabled)
+-          { "name" => entry["name"], "path" => entry["path"],
+-            "previous" => previous, "current" => enabled, "config_yml" => path }
+-        end
++        results = enrollment_results(enabled: enabled)
+ 
+         if @json
+           puts JSON.generate(
+diff --git a/lib/hive/commands/init.rb b/lib/hive/commands/init.rb
+index 7a13eb00..bd2166d9 100644
+--- a/lib/hive/commands/init.rb
++++ b/lib/hive/commands/init.rb
+@@ -75,7 +75,8 @@ module Hive
+       CUSTOM_WORKFLOW_HINT_MESSAGE = "custom workflows live in this project — author one with `#{CUSTOM_WORKFLOW_HINT_COMMAND}`".freeze
+ 
+       def initialize(project_path, force: false, json: false, prompts: nil,
+-                     workflow: nil, new_workflow: nil, workflow_input: $stdin, workflow_output: $stderr)
++                     workflow: nil, new_workflow: nil, workflow_input: $stdin, workflow_output: $stderr,
++                     install_daemon_service: true)
+         @project_path = File.expand_path(project_path)
+         @force = force
+         @json = json
+@@ -83,6 +84,7 @@ module Hive
+         @new_workflow = new_workflow
+         @workflow_input = workflow_input
+         @workflow_output = workflow_output
++        @install_daemon_service = install_daemon_service
+         # Optional Prompts instance for testability. Tests inject a
+         # pre-fed StringIO-backed instance to drive the interactive flow
+         # without touching $stdin. Production keeps this nil so the
+@@ -143,7 +145,7 @@ module Hive
+         else
+           print_summary(entry: entry, ops: ops, answers: answers, workflow: workflow_choice.descriptor.id)
+         end
+-        register_daemon_service!(autostart: answers.fetch("daemon_autostart", false))
++        register_daemon_service!(autostart: answers.fetch("daemon_autostart", false)) if @install_daemon_service
+         run_init_preflight!
+       rescue Hive::Commands::Init::Prompts::Aborted => e
+         # The interactive WORKFLOW prompt (resolve_workflow_choice, which runs
+@@ -183,7 +185,7 @@ module Hive
+         else
+           print_summary(entry: entry, ops: ops, answers: answers, workflow: id, scaffold_paths: paths)
+         end
+-        register_daemon_service!(autostart: answers.fetch("daemon_autostart", false))
++        register_daemon_service!(autostart: answers.fetch("daemon_autostart", false)) if @install_daemon_service
+         run_init_preflight!
+       end
+ 
+diff --git a/lib/hive/commands/service_installer/base.rb b/lib/hive/commands/service_installer/base.rb
+index 04f9ba76..ad699f2c 100644
+--- a/lib/hive/commands/service_installer/base.rb
++++ b/lib/hive/commands/service_installer/base.rb
+@@ -81,6 +81,76 @@ module Hive
+           }
+         end
+ 
++        # Best-effort identity read from a managed definition. This is a
++        # diagnostic only; lifecycle operations still resolve the current
++        # invoked binary instead of executing text parsed from a unit.
++        def configured_executable
++          return nil unless target_path && File.file?(target_path)
++
++          content = File.read(target_path)
++          raw = content[/^Environment=HIVE_BIN=([^\n]+)$/, 1] || content[/^ExecStart=([^\s]+)/, 1]
++          return Shellwords.shellsplit(raw).first if raw
++
++          # launchd has no ExecStart equivalent: its first
++          # ProgramArguments string is the invoked binary. Read only that
++          # narrowly scoped field and unescape XML rather than treating a
++          # plist as shell input.
++          arguments_xml = content[/<key>ProgramArguments<\/key>\s*<array>(.*?)<\/array>/m, 1]
++          arguments = arguments_xml.to_s.scan(%r{<string>([^<]+)</string>}).flatten.map { |value| CGI.unescapeHTML(value) }
++          # Hive's launchd definition wraps the target in `/bin/sh -c` to
++          # prevent an absent binary from creating a respawn storm. In that
++          # shape $0 (the fourth ProgramArguments entry) is the real Hive
++          # executable; ordinary launchd definitions use the first entry.
++          arguments[0] == "/bin/sh" && arguments[1] == "-c" ? arguments[3] : arguments.first
++        rescue ArgumentError, SystemCallError
++          nil
++        end
++
++        # Lifecycle controls deliberately remain separate from install: web
++        # and daemon are independent services, and status must never create or
++        # enable a unit as a side effect. Subclasses inherit these argv-only
++        # manager calls without teaching callers platform-specific commands.
++        def lifecycle_status
++          state = service_state
++          status =
++            if state["service_installed"] == false
++              "not_installed"
++            elsif service_running?
++              "running"
++            else
++              "stopped"
++            end
++          state.merge("status" => status)
++        rescue StandardError
++          { "platform" => envelope_platform, "unit_path" => target_path,
++            "service_installed" => nil, "service_enabled" => nil, "status" => "manager_unavailable" }
++        end
++
++        def control!(action)
++          action = action.to_s
++          raise ArgumentError, "unsupported service action #{action.inspect}" unless %w[start stop restart].include?(action)
++          return false unless target_path && File.exist?(target_path)
++
++          case platform
++          when :linux
++            return false unless systemctl_available?
++
++            !!@runner.call([ "systemctl", "--user", action, service_name ])
++          when :macos
++            return false unless launchctl_available?
++
++            if action == "restart"
++              !!@runner.call([ "launchctl", "unload", target_path ]) && !!@runner.call([ "launchctl", "load", target_path ])
++            elsif action == "start"
++              !!@runner.call([ "launchctl", "load", target_path ])
++            else
++              !!@runner.call([ "launchctl", "unload", target_path ])
++            end
++          else
++            false
++          end
++        end
++
+         # launchd plist Label for this service. Matches the `<key>Label</key>`
+         # value in the bundled plists (local.hive-daemon / local.hive-bot).
+         def launchd_label
+@@ -393,6 +463,17 @@ module Hive
+           end
+         end
+ 
++        def service_running?
++          case platform
++          when :linux
++            systemctl_available? && !!@runner.call([ "systemctl", "--user", "is-active", "--quiet", service_name ])
++          when :macos
++            launchctl_available? && !!@runner.call([ "launchctl", "list", launchd_label ])
++          else
++            false
++          end
++        end
++
+         # Mirror systemctl_available? for macOS: distinguish "launchctl
+         # missing" from "launchctl ran". launchd is effectively always
+         # present on macOS, but without this guard a probe that could not
+diff --git a/lib/hive/commands/setup.rb b/lib/hive/commands/setup.rb
+new file mode 100644
+index 00000000..fafa5355
+--- /dev/null
++++ b/lib/hive/commands/setup.rb
+@@ -0,0 +1,268 @@
++require "json"
++require "hive/config"
++require "hive/invoked_binary"
++require "hive/setup/diagnostics"
++require "hive/setup/qmd_installer"
++require "hive/web/app_bundle"
++require "hive/web/loopback"
++require "hive/commands/init"
++require "hive/commands/daemon"
++require "hive/commands/daemon/service_installer"
++require "hive/commands/web/service_installer"
++
++module Hive
++  module Commands
++    # Phase-oriented native install. It owns the orchestration boundary while
++    # leaving qmd, Rails bundle, enrollment, and each service installer as
++    # independently testable components.
++    class Setup
++      Phase = Data.define(:name, :status, :message, :detail) do
++        def ok?
++          %w[ok unchanged skipped].include?(status)
++        end
++
++        def to_h
++          { "name" => name, "status" => status, "message" => message, "detail" => detail }
++        end
++      end
++
++      VALID_ONLY = %w[qmd].freeze
++
++      def initialize(project_path = Dir.pwd, diagnose_only: false, json: false, force: false,
++                     service: true, only: nil, diagnostics: nil, qmd_installer: nil,
++                     app_bundle: nil, init_command: nil, daemon_installer: nil,
++                     web_installer: nil, stdout: $stdout, stderr: $stderr)
++        @project_path = File.expand_path(project_path)
++        @diagnose_only = diagnose_only
++        @json = json
++        @force = force
++        @service = service
++        @only = only
++        @diagnostics = diagnostics
++        @qmd_installer = qmd_installer
++        @app_bundle = app_bundle
++        @init_command = init_command
++        @daemon_installer = daemon_installer
++        @web_installer = web_installer
++        @stdout = stdout
++        @stderr = stderr
++        @phases = []
++      end
++
++      def call
++        validate_only!
++        return run_qmd_only if @only == "qmd"
++
++        report = diagnostics.call
++        diagnostics_ok = @diagnose_only ? report.healthy? : external_failures(report).empty?
++        add("diagnostics", diagnostics_ok ? "ok" : "failed", diagnostic_message(report), report.to_h)
++        if @diagnose_only
++          emit
++          return report.healthy? ? 0 : 1
++        end
++
++        if external_failures(report).any?
++          skip_remaining("external prerequisites are not healthy")
++          emit
++          return 1
++        end
++
++        ensure_qmd(report)
++        ensure_web_bundle
++        validate_owned_assets
++        unless @phases.all?(&:ok?)
++          skip_remaining("Hive-owned bootstrap did not complete")
++          emit
++          return 1
++        end
++
++        enroll_project
++        ensure_services if @service
++        add("services", "skipped", "service supervision disabled by --no-service", nil) unless @service
++        emit
++        @phases.all?(&:ok?) ? 0 : 1
++      rescue Hive::Error, ArgumentError => error
++        add("setup", "failed", error.message, nil)
++        emit
++        1
++      end
++
++      private
++
++      attr_reader :phases
++
++      def diagnostics
++        @diagnostics ||= Hive::Setup::Diagnostics.new(
++          rails_ready: -> { app_bundle.resolve },
++          sqlite_ready: -> { true }
++        )
++      end
++
++      def qmd_installer
++        @qmd_installer ||= Hive::Setup::QmdInstaller.new
++      end
++
++      def app_bundle
++        @app_bundle ||= Hive::Web::AppBundle.new
++      end
++
++      def validate_only!
++        return if @only.nil? || VALID_ONLY.include?(@only)
++
++        raise ArgumentError, "hive setup: unsupported --only=#{@only.inspect} (expected: #{VALID_ONLY.join(', ')})"
++      end
++
++      def run_qmd_only
++        result = qmd_installer.install
++        add("qmd", result.ok? ? (result.status == "unchanged" ? "unchanged" : "ok") : "failed", result.message, result.to_h)
++        emit
++        result.ok? ? 0 : 1
++      end
++
++      def external_failures(report)
++        report.results.reject(&:ok?).select { |result| result.ownership == "external" }
++      end
++
++      def diagnostic_message(report)
++        failed = report.results.reject(&:ok?)
++        return "all prerequisites are healthy" if failed.empty?
++
++        "#{failed.size} prerequisite#{failed.size == 1 ? '' : 's'} need attention"
++      end
++
++      def ensure_qmd(report)
++        check = report.fetch("qmd")
++        if check.ok?
++          add("qmd", "unchanged", "qmd is ready", check.to_h)
++          return
++        end
++
++        result = qmd_installer.install
++        add("qmd", result.ok? ? "ok" : "failed", result.message, result.to_h)
++      end
++
++      def ensure_web_bundle
++        if app_bundle.resolve
++          add("web_bundle", "unchanged", "matching Rails app is ready", { "path" => app_bundle.resolve })
++          return
++        end
++
++        archive = ENV["HIVE_WEB_ARCHIVE"]
++        digest = ENV["HIVE_WEB_ARCHIVE_SHA256"]
++        if archive.to_s.empty? || digest.to_s.empty?
++          add("web_bundle", "failed", "matching Rails bundle is absent; set HIVE_WEB_ARCHIVE and HIVE_WEB_ARCHIVE_SHA256 from the signed release manifest", nil)
++          return
++        end
++
++        result = app_bundle.install_from_archive!(archive, expected_sha256: digest)
++        add("web_bundle", result.ok? ? "ok" : "failed", result.message, result.to_h)
++      end
++
++      def validate_owned_assets
++        add("owned_validation", "ok", "Hive-owned dependencies were validated by their installers", nil)
++      end
++
++      def enroll_project
++        raise Hive::InvalidTaskPath, "hive setup: #{project_path} is not a git repository" unless git_repository?
++
++        enroll_project_state
++        enroll_daemon
++      rescue StandardError => error
++        add("project_enrollment", "failed", error.message, { "path" => project_path })
++      end
++
++      def enroll_project_state
++        if File.directory?(File.join(project_path, ".hive-state"))
++          Hive::Config.register_project(name: File.basename(project_path), path: project_path)
++          add("project_enrollment", "unchanged", "project is registered", { "path" => project_path })
++        else
++          command = @init_command || Hive::Commands::Init.new(project_path, force: @force, install_daemon_service: false)
++          command.call
++          add("project_enrollment", "ok", "project initialized and registered", { "path" => project_path })
++        end
++      end
++
++      def enroll_daemon
++        Hive::Commands::Daemon.new("enable", File.basename(project_path)).enrollment_results(enabled: true)
++        add("daemon_enrollment", "ok", "daemon.enabled is durable for this project", { "project" => File.basename(project_path) })
++      rescue StandardError => error
++        add("daemon_enrollment", "failed", error.message, { "project" => File.basename(project_path) })
++      end
++
++      def ensure_services
++        return unless phases.all?(&:ok?)
++
++        binary = Hive::InvokedBinary.path
++        if binary.to_s.empty?
++          add("services", "failed", "could not resolve the invoking Hive executable", nil)
++          return
++        end
++
++        daemon = @daemon_installer || Hive::Commands::Daemon::ServiceInstaller.new(binary_path: binary)
++        daemon_result = daemon.install!(autostart: true, force: @force)
++        daemon_message = daemon.messages.join("; ")
++        daemon_message = daemon_result.wire_outcome if daemon_message.empty?
++        add("daemon_service", daemon_result.success? ? "ok" : "failed", daemon_message,
++            { "path" => daemon.target_path, "outcome" => daemon_result.wire_outcome, "binary" => binary })
++
++        return unless daemon_result.success?
++
++        config = Hive::Config.load_global_web
++        bind = config.fetch("bind")
++        port = config.fetch("port")
++        policy = Hive::Web::Loopback.policy!(bind: bind, config: config)
++        web = @web_installer || Hive::Commands::Web::ServiceInstaller.new(
++          binary_path: binary, bind: bind, port: port, local_mode: policy.local_mode?, unsafe_no_auth: policy.unsafe?
++        )
++        web_result = web.install!(autostart: true, force: @force)
++        web_message = web.messages.join("; ")
++        web_message = web_result.wire_outcome if web_message.empty?
++        add("web_service", web_result.success? ? "ok" : "failed", web_message,
++            { "path" => web.target_path, "outcome" => web_result.wire_outcome, "binary" => binary })
++      rescue StandardError => error
++        add("services", "failed", error.message, nil)
++      end
++
++      def skip_remaining(message)
++        %w[qmd web_bundle owned_validation project_enrollment daemon_enrollment daemon_service web_service].each do |name|
++          next if phases.any? { |phase| phase.name == name }
++
++          add(name, "skipped", message, nil)
++        end
++      end
++
++      def add(name, status, message, detail)
++        return if phases.any? { |phase| phase.name == name && status == "skipped" }
++
++        phases << Phase.new(name, status, message, detail)
++      end
++
++      def emit
++        payload = {
++          "schema" => "hive-setup",
++          "schema_version" => Hive::Schemas::SCHEMA_VERSIONS.fetch("hive-setup"),
++          "ok" => phases.all?(&:ok?),
++          "project" => project_path,
++          "url" => "http://127.0.0.1:4567",
++          "phases" => phases.map(&:to_h)
++        }
++        if @json
++          @stdout.puts(JSON.generate(payload))
++        else
++          phases.each { |phase| @stdout.puts("hive setup: #{phase.name}: #{phase.status} — #{phase.message}") }
++          @stdout.puts("hive setup: open #{payload.fetch('url')}") if payload.fetch("ok") && @service
++        end
++      end
++
++      def project_path
++        @project_path
++      end
++
++      # A linked Git worktree has a `.git` file pointing at shared metadata;
++      # a primary checkout has a `.git` directory. Both are valid setup roots.
++      def git_repository?
++        File.exist?(File.join(project_path, ".git"))
++      end
++    end
++  end
++end
+diff --git a/lib/hive/commands/web.rb b/lib/hive/commands/web.rb
+index eb3cd40f..26e9b23f 100644
+--- a/lib/hive/commands/web.rb
++++ b/lib/hive/commands/web.rb
+@@ -1,87 +1,148 @@
++require "fileutils"
++require "json"
+ require "hive/config"
++require "hive/invoked_binary"
++require "hive/web/app_bundle"
++require "hive/web/loopback"
+ require "hive/web/session_secret"
+ 
+ module Hive
+   module Commands
+-    # Boots the hivebox web UI — a Rails app living in web/ at the repo root
+-    # (shipped in the Docker image at /app/web). hive itself stays a plain
+-    # CLI gem; the web tier is only supported where the Rails app and its
+-    # bundle exist: the hivebox container or a source checkout.
++    # Bare `hive web` deliberately stays attached to the terminal. Lifecycle
++    # verbs operate on a distinct per-user service rather than hiding a second
++    # foreground alias behind `start`.
+     class Web
+-      def initialize(bind: nil, port: nil)
++      VALID_ACTIONS = %w[install start stop restart status].freeze
++
++      def initialize(bind: nil, port: nil, action: nil, force: false, unsafe_no_auth: false, json: false)
+         @bind = bind
+         @port = port
++        @action = action
++        @force = force
++        @unsafe_no_auth = unsafe_no_auth
++        @json = json
+       end
+ 
+       def call
+-        cfg = Hive::Config.load_global_web
+-        bind = @bind || cfg.fetch("bind")
+-        port = (@port || cfg.fetch("port")).to_i
++        return lifecycle! if @action
++
++        foreground!
++      end
++
++      private
++
++      def foreground!
++        cfg, bind, port, policy = resolved_configuration
+         app_dir = rails_app_dir
+         unless app_dir
+-          warn "hive web: the hivebox web app (web/) was not found. " \
+-               "Run from the hivebox Docker image or a source checkout, " \
+-               "or point HIVEBOX_WEB_APP_DIR at the Rails app."
++          warn "hive web: the native web app was not found. Run `hive setup` to install the matching " \
++               "web bundle, use hivebox, or point HIVEBOX_WEB_APP_DIR at a Rails app."
+           exit 1
+         end
+ 
+-        warn_on_public_bind(bind, cfg)
+-
+-        env = {
+-          "RAILS_ENV" => ENV.fetch("RAILS_ENV", "production"),
+-          # Rails' secret_key_base derives from the same persisted secret the
+-          # session cookies used pre-Rails, so recreating the container keeps
+-          # sessions (the file lives on the /data mount).
+-          "SECRET_KEY_BASE" => ENV["SECRET_KEY_BASE"] ||
+-            Hive::Web::SessionSecret.load_or_create(cfg.fetch("session_secret_file")),
+-          "HIVEBOX_ORIGIN" => cfg.fetch("origin"),
+-          # The solid_cable/cache/queue sqlite files must survive image
+-          # upgrades — keep them in state_home (on /data in the container),
+-          # not in the app dir.
+-          "HIVEBOX_STORAGE_DIR" => ENV["HIVEBOX_STORAGE_DIR"] ||
+-            File.join(Hive::Paths.state_home, "web-storage"),
+-          "BUNDLE_GEMFILE" => File.join(app_dir, "Gemfile")
+-        }
++        warn_on_public_bind(bind, cfg, policy)
++        env = rails_environment(cfg, app_dir, bind, port, policy)
+         FileUtils.mkdir_p(env.fetch("HIVEBOX_STORAGE_DIR"))
+ 
+         Dir.chdir(app_dir) do
+-          # Idempotent: creates/migrates the solid-stack sqlite databases on
+-          # first boot, no-ops afterwards. Array form — no shell involved.
+-          # Typed error so a persistent failure surfaces as guidance, not a
+-          # raw backtrace looping every 5s under the container supervisor.
+           unless system(env, "bin/rails", "db:prepare")
+             raise Hive::Error,
+-                  "hive web: db:prepare failed — check that " \
+-                  "#{env.fetch("HIVEBOX_STORAGE_DIR")} is writable (the /data mount) " \
++                  "hive web: db:prepare failed — check that #{env.fetch("HIVEBOX_STORAGE_DIR")} is writable " \
+                   "and that the web bundle is installed (cd #{app_dir} && bundle install)"
+           end
+           puts "hive web: listening on http://#{bind}:#{port}"
+-          # Replace this process with the Rails server (array form, env hash;
+-          # Kernel#exec never touches a shell when given an argv list).
+           Kernel.exec env, "bin/rails", "server", "-b", bind, "-p", port.to_s
+         end
+       end
+ 
+-      private
++      def lifecycle!
++        raise Hive::InvalidTaskPath, "hive web: unknown action #{@action.inspect} (expected: #{VALID_ACTIONS.join(', ')})" unless VALID_ACTIONS.include?(@action)
++
++        cfg, bind, port, policy = resolved_configuration
++        require "hive/commands/web/service_installer"
++        installer = service_installer(bind, port, policy)
++
++        case @action
++        when "install"
++          outcome = installer.install!(autostart: false, force: @force)
++          emit_lifecycle(installer.lifecycle_status.merge("outcome" => outcome.wire_outcome, "messages" => installer.messages))
++          raise Hive::Error, "web service definition differs; re-run `hive web install --force`" if outcome.drifted?
++          raise Hive::Error, "web service installation failed" if outcome.failed?
++        when "status"
++          emit_lifecycle(installer.lifecycle_status)
++        else
++          unless installer.control!(@action)
++            raise Hive::Error, "hive web: could not #{@action} managed web service; install it first with `hive web install`"
++          end
++          emit_lifecycle(installer.lifecycle_status.merge("action" => @action))
++        end
++      end
++
++      def emit_lifecycle(payload)
++        if @json
++          puts JSON.generate(payload.merge("schema" => "hive-web-service-status", "schema_version" => 1, "ok" => true))
++        else
++          status = payload.fetch("status")
++          puts "hive web: #{status.tr('_', ' ')}"
++          Array(payload["messages"]).each { |message| warn "hive web: #{message}" }
++        end
++      end
++
++      def resolved_configuration
++        cfg = Hive::Config.load_global_web
++        bind = @bind || cfg.fetch("bind")
++        port = (@port || cfg.fetch("port")).to_i
++        policy = Hive::Web::Loopback.policy!(bind: bind, config: cfg, unsafe_no_auth: @unsafe_no_auth)
++        [ cfg, bind, port, policy ]
++      end
++
++      def rails_environment(cfg, app_dir, bind, port, policy)
++        {
++          "RAILS_ENV" => ENV.fetch("RAILS_ENV", "production"),
++          "SECRET_KEY_BASE" => ENV["SECRET_KEY_BASE"] || Hive::Web::SessionSecret.load_or_create(cfg.fetch("session_secret_file")),
++          "HIVEBOX_ORIGIN" => cfg.fetch("origin"),
++          "HIVEBOX_STORAGE_DIR" => ENV["HIVEBOX_STORAGE_DIR"] || File.join(Hive::Paths.state_home, "web-storage"),
++          "BUNDLE_GEMFILE" => File.join(app_dir, "Gemfile"),
++          "HIVE_WEB_LOCAL_LOOPBACK" => policy.local_mode? ? "1" : "0",
++          "HIVE_WEB_UNSAFE_NO_AUTH" => policy.unsafe? ? "1" : "0",
++          "HIVE_WEB_BIND" => bind,
++          "HIVE_WEB_PORT" => port.to_s,
++          # The Rails maintenance path must repair the daemon with the same
++          # stable wrapper that launched this web process, never by guessing
++          # `hive` from an arbitrary service-manager PATH.
++          "HIVE_INVOKED_BIN" => Hive::InvokedBinary.path || $PROGRAM_NAME,
++          # Hivebox retains its existing supervisor/queue topology. Native
++          # foreground and managed runs use Puma's supported local worker.
++          "SOLID_QUEUE_IN_PUMA" => ENV["HIVEBOX_WEB_APP_DIR"] == "/app/web" ? ENV.fetch("SOLID_QUEUE_IN_PUMA", "0") : "1"
++        }
++      end
++
++      def service_installer(bind, port, policy)
++        ServiceInstaller.new(
++          binary_path: Hive::InvokedBinary.path || $PROGRAM_NAME,
++          bind: bind,
++          port: port,
++          local_mode: policy.local_mode?,
++          unsafe_no_auth: policy.unsafe?
++        )
++      end
+ 
+       def rails_app_dir
+-        candidates = [
+-          ENV["HIVEBOX_WEB_APP_DIR"],
+-          File.expand_path("../../../web", __dir__)
+-        ].compact
+-        candidates.find { |dir| File.file?(File.join(dir, "config", "application.rb")) }
++        Hive::Web::AppBundle.new.resolve
+       end
+ 
+-      # Rails' production host authorization is inactive by default — the box
+-      # assumes a trusted reverse proxy validates Host, exactly like the
+-      # pre-Rails posture. Binding a public interface without that proxy
+-      # exposes the app to DNS-rebinding / Host-injection, so make it loud.
+-      def warn_on_public_bind(bind, cfg)
+-        return unless bind.to_s == "0.0.0.0"
+-        return if cfg["origin"].to_s.start_with?("https://")
++      # Retained as a small unit-test seam. The policy check itself is the
++      # enforcement point; this only makes an explicit unsafe escape hatch
++      # impossible to overlook in logs.
++      def warn_on_public_bind(bind, cfg, policy = nil)
++        return if Hive::Web::Loopback.listener?(bind)
++        if policy
++          return unless policy.unsafe?
+ 
+-        warn "hive web: WARNING binding 0.0.0.0 without an https origin — " \
+-             "ensure a trusted reverse proxy validates the Host header."
++          warn "hive web: WARNING binding #{bind} in unsafe no-auth mode; do not expose it beyond a trusted network"
++        elsif !cfg.fetch("origin", "").to_s.start_with?("https://")
++          warn "hive web: WARNING binding #{bind} without an https origin — ensure a trusted reverse proxy validates the Host header."
++        end
+       end
+     end
+   end
+diff --git a/lib/hive/commands/web/service_installer.rb b/lib/hive/commands/web/service_installer.rb
+new file mode 100644
+index 00000000..bb7513a5
+--- /dev/null
++++ b/lib/hive/commands/web/service_installer.rb
+@@ -0,0 +1,90 @@
++require "cgi"
++require "shellwords"
++require "hive/commands/service_installer/base"
++
++module Hive
++  module Commands
++    class Web
++      class ServiceInstaller < Hive::Commands::ServiceInstaller::Base
++        SAFE_ENV_KEYS = %w[HIVE_HOME XDG_CONFIG_HOME XDG_DATA_HOME XDG_STATE_HOME XDG_CACHE_HOME XDG_BIN_HOME].freeze
++
++        def initialize(bind:, port:, local_mode: true, unsafe_no_auth: false, environment: ENV, **kwargs)
++          super(**kwargs)
++          @bind = bind
++          @port = port.to_i
++          @local_mode = local_mode
++          @unsafe_no_auth = unsafe_no_auth
++          @environment = environment
++        end
++
++        def service_name = "hive-web"
++        def cli_label = "web"
++        def service_noun = "web service"
++        def unit_noun = "web unit"
++
++        def target_path
++          case platform
++          when :macos then File.join(@home, "Library/LaunchAgents/local.hive-web.plist")
++          when :linux then File.join(@home, ".config/systemd/user/hive-web.service")
++          end
++        end
++
++        private
++
++        def web_arguments
++          args = [ "web", "--bind", @bind, "--port", @port.to_s ]
++          args << "--unsafe-no-auth" if @unsafe_no_auth
++          args
++        end
++
++        def render_systemd
++          template = File.read(File.expand_path("../../../../examples/systemd/hive-web.service", __dir__))
++          command = ([ Shellwords.escape(resolved_binary) ] + web_arguments.map { |arg| Shellwords.escape(arg) }).join(" ")
++          environment = systemd_environment_lines
++          template
++            .sub(/^ExecStart=.*$/, "ExecStart=#{command}")
++            .sub(/^Environment=PATH=.*$/, build_path_line)
++            .sub("# HIVE_WEB_ENVIRONMENT", environment)
++        end
++
++        def render_launchd
++          template = File.read(File.expand_path("../../../../examples/launchd/hive-web.plist", __dir__))
++          binary = resolved_binary
++          args = web_arguments.map { |arg| "    <string>#{CGI.escapeHTML(arg)}</string>" }.join("\n")
++          template
++            .gsub(%r{<string>/Users/YOU/\.local/bin/hive</string>}, "<string>#{CGI.escapeHTML(binary)}</string>")
++            .gsub("    <!-- HIVE_WEB_ARGUMENTS -->", args)
++            .gsub("/Users/YOU/Library/Logs", "#{CGI.escapeHTML(@home)}/Library/Logs")
++            .gsub("/Users/YOU/.local/bin", CGI.escapeHTML(File.dirname(binary)))
++            .gsub("    <!-- HIVE_WEB_ENVIRONMENT -->", launchd_environment_lines)
++        end
++
++        def selected_environment
++          selected = @environment.each_with_object({}) do |(key, value), memo|
++            next unless SAFE_ENV_KEYS.include?(key)
++            next if value.to_s.empty?
++
++            memo[key] = value
++          end
++          # This path is selected by Hive itself (not copied from ambient
++          # environment) and is needed by Rails' typed daemon-repair action
++          # to preserve executable identity across a web-service restart.
++          selected["HIVE_INVOKED_BIN"] = resolved_binary
++          selected
++        end
++
++        def systemd_environment_lines
++          selected_environment.map do |key, value|
++            "Environment=#{key}=#{value.to_s.gsub("\\", "\\\\").gsub(" ", "\\x20")}"
++          end.join("\n")
++        end
++
++        def launchd_environment_lines
++          selected_environment.map do |key, value|
++            "    <key>#{CGI.escapeHTML(key)}</key>\n    <string>#{CGI.escapeHTML(value)}</string>"
++          end.join("\n")
++        end
++      end
++    end
++  end
++end
+diff --git a/lib/hive/paths.rb b/lib/hive/paths.rb
+index 752a5c7d..375d53ba 100644
+--- a/lib/hive/paths.rb
++++ b/lib/hive/paths.rb
+@@ -36,6 +36,14 @@ module Hive
+       File.expand_path(env_or_blank("XDG_BIN_HOME") || File.join(home, ".local/bin"))
+     end
+ 
++    # Versioned native Rails bundles live in data_home because they are
++    # immutable application assets, not mutable service state. Keeping them
++    # separate from state_home means a web upgrade never changes the daemon's
++    # queue, PID, or SQLite runtime databases.
++    def web_app_home
++      File.join(data_home, "web")
++    end
++
+     # True when HIVE_HOME collapses every XDG directory onto one path:
+     # state_home == config_home == data_home == cache_home. Uninstall uses
+     # this to refuse deletes like `rm_rf(config_home)`, which would also
+diff --git a/lib/hive/pid_file.rb b/lib/hive/pid_file.rb
+index 9c58113a..0c4d7c35 100644
+--- a/lib/hive/pid_file.rb
++++ b/lib/hive/pid_file.rb
+@@ -57,13 +57,16 @@ module Hive
+       nil
+     end
+ 
+-    def pid_file_payload(pid, start_time = nil)
++    def pid_file_payload(pid, start_time = nil, executable: nil, version: nil)
+       start_time ||= Hive::Lock.process_start_time(pid)
+-      {
++      payload = {
+         "pid" => pid,
+         "process_start_time" => start_time,
+         "started_at" => Time.now.utc.iso8601
+       }
++      payload["executable"] = executable if executable
++      payload["version"] = version if version
++      payload
+     end
+ 
+     def send_signal_safely(pid, signal)
+diff --git a/lib/hive/setup/diagnostics.rb b/lib/hive/setup/diagnostics.rb
+new file mode 100644
+index 00000000..6d32b9a5
+--- /dev/null
++++ b/lib/hive/setup/diagnostics.rb
+@@ -0,0 +1,187 @@
++require "open3"
++require "timeout"
++require "hive/agent_profiles"
++
++module Hive
++  module Setup
++    # Read-only prerequisite checks used by `hive setup`.  The report is
++    # intentionally a value object: callers can present it to humans or emit
++    # it as JSON without parsing command output or exposing shell details.
++    class Diagnostics
++      EVIDENCE_LIMIT = 240
++      Result = Data.define(:name, :status, :detected_version, :required_version,
++                           :ownership, :evidence, :fix_command) do
++        def ok?
++          status == "ok"
++        end
++
++        def to_h
++          {
++            "name" => name,
++            "status" => status,
++            "detected_version" => detected_version,
++            "required_version" => required_version,
++            "ownership" => ownership,
++            "evidence" => evidence,
++            "fix_command" => fix_command
++          }
++        end
++      end
++
++      Report = Data.define(:results) do
++        def healthy?
++          results.all?(&:ok?)
++        end
++
++        def fetch(name)
++          results.find { |result| result.name == name } || raise(KeyError, "unknown diagnostic #{name}")
++        end
++
++        def to_h
++          { "checks" => results.map(&:to_h), "ok" => healthy? }
++        end
++      end
++
++      def initialize(runner: nil, agent_logged_in: nil, rails_ready: nil, sqlite_ready: nil,
++                     platform: nil, timeout_sec: 10)
++        @runner = runner || method(:capture)
++        @agent_logged_in = agent_logged_in || ->(name) { Hive::AgentProfiles.logged_in?(name) }
++        @rails_ready = rails_ready || -> { false }
++        @sqlite_ready = sqlite_ready || method(:sqlite_available?)
++        @platform = platform || platform_from_host
++        @timeout_sec = timeout_sec
++      end
++
++      def call
++        return unsupported_report unless %i[linux macos].include?(@platform)
++
++        checks = [
++          command_check("ruby", [ "ruby", "--version" ], required_version: "3.4", ownership: "external"),
++          command_check("git", [ "git", "--version" ], ownership: "external"),
++          command_check("tmux", [ "tmux", "-V" ], ownership: "external"),
++          gh_check,
++          agent_check(:claude),
++          agent_check(:codex),
++          command_check("node", [ "node", "--version" ], ownership: "external"),
++          command_check("npm", [ "npm", "--version" ], ownership: "external"),
++          command_check("qmd", [ "qmd", "--version" ], ownership: "hive_owned"),
++          component_check("rails_bundle", @rails_ready, ownership: "hive_owned"),
++          component_check("sqlite", @sqlite_ready, ownership: "external")
++        ]
++        Report.new(checks)
++      end
++
++      private
++
++      def unsupported_report
++        Report.new([
++          Result.new("platform", "error", nil, nil, "external", "unsupported platform", "use Linux or macOS (systemd-user / launchd required)")
++        ])
++      end
++
++      def command_check(name, argv, required_version: nil, ownership:)
++        output, error, exit_code = run(argv)
++        evidence = redact([ output, error ].compact.join("\n"))
++        if exit_code == 127
++          return Result.new(name, "missing", nil, required_version, ownership, evidence, install_hint(name))
++        end
++        return Result.new(name, "error", nil, required_version, ownership, evidence, install_hint(name)) unless exit_code.zero?
++
++        version = extract_version(output)
++        if required_version && (!version || below?(version, required_version))
++          Result.new(name, "version_too_old", version, required_version, ownership, evidence, install_hint(name))
++        else
++          Result.new(name, "ok", version, required_version, ownership, evidence, nil)
++        end
++      end
++
++      def gh_check
++        base = command_check("gh", [ "gh", "--version" ], ownership: "external")
++        return base unless base.ok?
++
++        _out, error, exit_code = run([ "gh", "auth", "status" ])
++        return base if exit_code.zero?
++
++        Result.new("gh", "unauthenticated", base.detected_version, nil, "external", redact(error), "gh auth login")
++      end
++
++      def agent_check(name)
++        profile = Hive::AgentProfiles.lookup(name)
++        base = command_check(name.to_s, [ profile.bin, profile.version_flag ],
++                             required_version: profile.min_version, ownership: "external")
++        return base unless base.ok?
++        return base if @agent_logged_in.call(name)
++
++        Result.new(name.to_s, "unauthenticated", base.detected_version, base.required_version,
++                   "external", "credential artifact not found", "#{profile.bin} login")
++      rescue Hive::AgentProfiles::UnknownAgent => error
++        Result.new(name.to_s, "error", nil, nil, "external", redact(error.message), nil)
++      end
++
++      def component_check(name, probe, ownership:)
++        ok = probe.call
++        Result.new(name, ok ? "ok" : "missing", nil, nil, ownership,
++                   ok ? "ready" : "not ready", ok ? nil : component_fix(name))
++      rescue StandardError => error
++        Result.new(name, "error", nil, nil, ownership, redact(error.message), component_fix(name))
++      end
++
++      def component_fix(name)
++        case name
++        when "rails_bundle" then "hive setup --only=web"
++        when "sqlite" then install_hint("sqlite3")
++        end
++      end
++
++      def run(argv)
++        result = @runner.call(argv, timeout_sec: @timeout_sec)
++        return result if result.is_a?(Array) && result.length == 3
++
++        [ "", "invalid diagnostic runner result", 1 ]
++      rescue Errno::ENOENT, Errno::EACCES
++        [ "", "command not found", 127 ]
++      rescue Timeout::Error
++        [ "", "timed out after #{@timeout_sec}s", 1 ]
++      rescue StandardError => error
++        [ "", error.message, 1 ]
++      end
++
++      def capture(argv, timeout_sec:)
++        out, err, status = Timeout.timeout(timeout_sec) { Open3.capture3(*argv) }
++        [ out, err, status.exitstatus ]
++      end
++
++      def sqlite_available?
++        require "sqlite3"
++        !SQLite3::SQLITE_VERSION.to_s.empty?
++      rescue LoadError
++        false
++      end
++
++      def platform_from_host
++        case RUBY_PLATFORM
++        when /darwin/i then :macos
++        when /linux/i then :linux
++        else :unsupported
++        end
++      end
++
++      def install_hint(name)
++        package = { "ruby" => "ruby", "gh" => "gh", "sqlite3" => "sqlite", "node" => "node", "npm" => "node" }.fetch(name, name)
++        @platform == :macos ? "brew install #{package}" : "sudo apt install #{package}"
++      end
++
++      def extract_version(value)
++        value.to_s[/\d+(?:\.\d+){0,2}/]
++      end
++
++      def below?(actual, required)
++        (actual.split(".").map(&:to_i) <=> required.split(".").map(&:to_i)).negative?
++      end
++
++      def redact(value)
++        value.to_s.gsub(/(?:token|secret|password|api[_-]?key)\s*[=:]\s*\S+/i, "[REDACTED]")[0, EVIDENCE_LIMIT]
++      end
++    end
++  end
++end
+diff --git a/lib/hive/setup/qmd_installer.rb b/lib/hive/setup/qmd_installer.rb
+new file mode 100644
+index 00000000..93799a05
+--- /dev/null
++++ b/lib/hive/setup/qmd_installer.rb
+@@ -0,0 +1,134 @@
++require "fileutils"
++require "open3"
++require "timeout"
++require "hive/paths"
++
++module Hive
++  module Setup
++    # Owns the only mutable third-party bootstrap in native setup.  qmd is
++    # installed below Hive data, never into the user's global npm prefix.
++    class QmdInstaller
++      PACKAGE = "@tobilu/qmd".freeze
++      Result = Data.define(:status, :prefix, :executable, :message) do
++        def ok?
++          %w[installed unchanged linked].include?(status)
++        end
++
++        def to_h
++          { "status" => status, "prefix" => prefix, "executable" => executable, "message" => message }
++        end
++      end
++
++      def self.default_prefix
++        File.join(Hive::Paths.data_home, "qmd")
++      end
++
++      def initialize(prefix: self.class.default_prefix, link_path: File.join(Hive::Paths.bin_home, "qmd"),
++                     package: ENV.fetch("HIVE_QMD_NPM_PACKAGE", PACKAGE), runner: nil, timeout_sec: 120)
++        @prefix = File.expand_path(prefix)
++        @link_path = File.expand_path(link_path)
++        @package = package
++        @runner = runner || method(:capture)
++        @timeout_sec = timeout_sec
++      end
++
++      def install
++        return Result.new("missing_npm", @prefix, executable, "npm is required; install Node.js/npm and re-run hive setup") unless npm_available?
++
++        return link_existing if healthy?
++
++        staging = "#{@prefix}.tmp.#{Process.pid}.#{rand(1_000_000)}"
++        FileUtils.rm_rf(staging)
++        _out, err, status = run([ "npm", "install", "--global", "--prefix", staging, "--no-audit", "--no-fund", @package ])
++        return Result.new("install_failed", @prefix, executable, bounded(err)) unless status.zero?
++
++        _out, err, status = run([ "npm", "rebuild", "--global", "--prefix", staging, "better-sqlite3" ])
++        return Result.new("rebuild_failed", @prefix, executable, bounded(err)) unless status.zero?
++
++        staged_bin = File.join(staging, "bin", "qmd")
++        unless executable_healthy?(staged_bin)
++          return Result.new("invalid_install", @prefix, executable, "qmd install did not produce a runnable executable")
++        end
++
++        previous = "#{@prefix}.previous"
++        FileUtils.rm_rf(previous)
++        FileUtils.mv(@prefix, previous) if File.exist?(@prefix)
++        FileUtils.mv(staging, @prefix)
++        link_result = install_link
++        return link_result unless link_result.ok?
++
++        FileUtils.rm_rf(previous)
++        Result.new("installed", @prefix, executable, "qmd installed")
++      ensure
++        FileUtils.rm_rf(staging) if defined?(staging) && staging && File.exist?(staging)
++      end
++
++      private
++
++      def executable
++        File.join(@prefix, "bin", "qmd")
++      end
++
++      def npm_available?
++        _out, _err, status = run([ "npm", "--version" ])
++        status.zero?
++      end
++
++      def healthy?
++        executable_healthy?(executable)
++      end
++
++      def executable_healthy?(path)
++        return false unless File.file?(path) && File.executable?(path)
++
++        _out, _err, status = run([ path, "--version" ])
++        status.zero?
++      end
++
++      def link_existing
++        result = install_link
++        return result unless result.ok?
++
++        Result.new("unchanged", @prefix, executable, "qmd already installed")
++      end
++
++      def install_link
++        FileUtils.mkdir_p(File.dirname(@link_path))
++        if File.exist?(@link_path) || File.symlink?(@link_path)
++          target = File.realpath(@link_path) rescue nil
++          managed = File.realpath(executable) rescue executable
++          unless target == managed
++            return Result.new("link_collision", @prefix, executable,
++                              "existing qmd at #{@link_path} belongs to another installation; leaving it unchanged")
++          end
++        end
++        tmp = "#{@link_path}.tmp.#{Process.pid}.#{rand(1_000_000)}"
++        File.symlink(executable, tmp)
++        File.rename(tmp, @link_path)
++        Result.new("linked", @prefix, executable, "qmd linked")
++      ensure
++        File.unlink(tmp) if defined?(tmp) && tmp && File.symlink?(tmp)
++      end
++
++      def run(argv)
++        result = @runner.call(argv, timeout_sec: @timeout_sec)
++        result.is_a?(Array) && result.length == 3 ? result : [ "", "invalid qmd runner result", 1 ]
++      rescue Errno::ENOENT, Errno::EACCES
++        [ "", "command not found", 127 ]
++      rescue Timeout::Error
++        [ "", "timed out", 1 ]
++      rescue StandardError => error
++        [ "", error.message, 1 ]
++      end
++
++      def capture(argv, timeout_sec:)
++        out, err, status = Timeout.timeout(timeout_sec) { Open3.capture3(*argv) }
++        [ out, err, status.exitstatus ]
++      end
++
++      def bounded(value)
++        value.to_s.gsub(/(?:token|secret|password|api[_-]?key)\s*[=:]\s*\S+/i, "[REDACTED]")[0, 240]
++      end
++    end
++  end
++end
+diff --git a/lib/hive/web/app_bundle.rb b/lib/hive/web/app_bundle.rb
+new file mode 100644
+index 00000000..28c2dd75
+--- /dev/null
++++ b/lib/hive/web/app_bundle.rb
+@@ -0,0 +1,197 @@
++require "digest"
++require "fileutils"
++require "json"
++require "rubygems/package"
++require "securerandom"
++require "zlib"
++require "hive/paths"
++
++module Hive
++  module Web
++    # Locates source web assets for contributors and manages immutable XDG
++    # bundles for installed gems. Archive extraction deliberately implements a
++    # small allowlist instead of delegating to tar so an untrusted release
++    # archive cannot escape the staging directory through links or traversal.
++    class AppBundle
++      READY_FILE = ".hive-web-ready.json".freeze
++      Result = Data.define(:status, :path, :message) do
++        def ok?
++          %w[installed unchanged].include?(status)
++        end
++
++        def to_h
++          { "status" => status, "path" => path, "message" => message }
++        end
++      end
++
++      def initialize(version: Hive::VERSION, root: Hive::Paths.web_app_home, source_dir: nil,
++                     bundle_runner: nil)
++        @version = version.to_s
++        @root = File.expand_path(root)
++        @source_dir = source_dir || File.expand_path("../../../web", __dir__)
++        @bundle_runner = bundle_runner || method(:install_dependencies)
++      end
++
++      attr_reader :version
++
++      def current_path
++        File.join(@root, "current")
++      end
++
++      def current_dir
++        File.realpath(current_path)
++      rescue Errno::ENOENT, Errno::EINVAL
++        nil
++      end
++
++      # Explicit test/development overrides retain the old escape hatch. A
++      # source checkout comes next; an installed gem therefore falls through
++      # to its `current` immutable bundle without relying on cwd.
++      def resolve
++        override = ENV["HIVEBOX_WEB_APP_DIR"]
++        return File.expand_path(override) if app_candidate?(override)
++        return @source_dir if app_candidate?(@source_dir)
++
++        current = current_dir
++        current if valid_layout?(current) && ready?(current)
++      end
++
++      def ready?(dir = current_dir)
++        return false unless valid_layout?(dir)
++
++        stamp = File.join(dir, READY_FILE)
++        payload = JSON.parse(File.read(stamp))
++        payload["version"] == @version && payload["digest"].to_s.match?(/\A[0-9a-f]{64}\z/)
++      rescue Errno::ENOENT, JSON::ParserError
++        false
++      end
++
++      def install_from_archive!(archive, expected_sha256: nil)
++        archive = File.expand_path(archive)
++        return Result.new("missing_archive", nil, "web archive not found") unless File.file?(archive)
++
++        # `Hive::Digest` is an application namespace; spell the stdlib
++        # constant absolutely so archive verification remains correct after
++        # digest-reporting code has been loaded in the same process.
++        digest = ::Digest::SHA256.file(archive).hexdigest
++        if expected_sha256 && !secure_equal?(digest, expected_sha256.to_s.downcase)
++          return Result.new("digest_mismatch", nil, "web archive digest did not match the signed manifest")
++        end
++        return Result.new("unchanged", current_dir, "matching web bundle is already active") if ready?(current_dir) && current_dir.include?(digest)
++
++        staging = File.join(@root, ".staging-#{Process.pid}-#{SecureRandom.hex(6)}")
++        target = File.join(@root, "versions", "#{@version}-#{digest}")
++        FileUtils.mkdir_p(staging)
++        extract_safely!(archive, staging)
++        return Result.new("invalid_layout", nil, "web archive does not contain a Rails application") unless valid_layout?(staging)
++
++        unless @bundle_runner.call(staging)
++          return Result.new("bundle_failed", nil, "bundle install failed; prior web bundle remains active")
++        end
++
++        write_ready_stamp(staging, digest)
++        FileUtils.mkdir_p(File.dirname(target))
++        FileUtils.rm_rf(target) if File.exist?(target)
++        File.rename(staging, target)
++        activate!(target)
++        Result.new("installed", target, "web bundle activated")
++      rescue UnsafeArchive => error
++        Result.new("unsafe_archive", nil, error.message)
++      rescue Zlib::GzipFile::Error, Gem::Package::TarInvalidError => error
++        Result.new("invalid_archive", nil, "invalid web archive: #{error.message}")
++      ensure
++        FileUtils.rm_rf(staging) if defined?(staging) && staging && File.exist?(staging)
++      end
++
++      private
++
++      class UnsafeArchive < StandardError; end
++
++      def extract_safely!(archive, destination)
++        seen = []
++        Zlib::GzipReader.open(archive) do |gzip|
++          Gem::Package::TarReader.new(gzip) do |tar|
++            tar.each do |entry|
++              name = entry.full_name.to_s
++              validate_entry!(entry, name)
++              relative = normalized_relative(name)
++              next if relative.empty?
++
++              destination_path = File.join(destination, relative)
++              raise UnsafeArchive, "duplicate archive path #{name.inspect}" if seen.include?(relative)
++
++              seen << relative
++              if entry.directory?
++                FileUtils.mkdir_p(destination_path, mode: 0o755)
++              else
++                FileUtils.mkdir_p(File.dirname(destination_path))
++                File.open(destination_path, "wb", 0o644) { |file| IO.copy_stream(entry, file) }
++              end
++            end
++          end
++        end
++      end
++
++      def validate_entry!(entry, name)
++        raise UnsafeArchive, "absolute archive path #{name.inspect}" if name.start_with?("/", "\\")
++        raise UnsafeArchive, "path traversal in archive entry #{name.inspect}" if name.split("/").include?("..")
++        raise UnsafeArchive, "unsafe archive mode for #{name.inspect}" if (entry.header.mode & 0o022) != 0
++        return if entry.file? || entry.directory?
++
++        raise UnsafeArchive, "archive links and special files are not accepted (#{name.inspect})"
++      end
++
++      def normalized_relative(name)
++        relative = name.delete_prefix("./").sub(%r{/\z}, "")
++        root = "hive-web-#{@version}"
++        if relative == root
++          ""
++        elsif relative.start_with?("#{root}/")
++          relative.delete_prefix("#{root}/")
++        elsif relative.start_with?("hive-web-")
++          raise UnsafeArchive, "web archive version does not match #{@version}"
++        else
++          relative
++        end
++      end
++
++      def valid_layout?(dir)
++        dir && File.file?(File.join(dir, "config", "application.rb")) &&
++          File.file?(File.join(dir, "Gemfile")) && File.file?(File.join(dir, "bin", "rails"))
++      end
++
++      # The legacy override remains intentionally permissive: container and
++      # test callers have long supplied only the Rails application marker and
++      # may provide their own `bin/rails` at execution time. Immutable release
++      # bundles use the stricter layout gate above before activation.
++      def app_candidate?(dir)
++        dir && File.file?(File.join(dir, "config", "application.rb"))
++      end
++
++      def write_ready_stamp(dir, digest)
++        File.write(File.join(dir, READY_FILE), JSON.generate({ "version" => @version, "digest" => digest }) + "\n")
++      end
++
++      def activate!(target)
++        FileUtils.mkdir_p(@root)
++        tmp = "#{current_path}.tmp.#{Process.pid}.#{SecureRandom.hex(4)}"
++        File.symlink(target, tmp)
++        File.rename(tmp, current_path)
++      ensure
++        File.unlink(tmp) if defined?(tmp) && tmp && File.symlink?(tmp)
++      end
++
++      def install_dependencies(dir)
++        Dir.chdir(dir) { system({ "BUNDLE_GEMFILE" => File.join(dir, "Gemfile") }, "bundle", "install", "--deployment") }
++      end
++
++      # Same-length digest comparison avoids accidentally turning a manifest
++      # check into a timing oracle when an app embeds this primitive remotely.
++      def secure_equal?(left, right)
++        return false unless left.bytesize == right.bytesize
++
++        left.bytes.zip(right.bytes).reduce(0) { |memo, (a, b)| memo | (a ^ b) }.zero?
++      end
++    end
++  end
++end
+diff --git a/lib/hive/web/daemon_control.rb b/lib/hive/web/daemon_control.rb
+new file mode 100644
+index 00000000..ddbd0827
+--- /dev/null
++++ b/lib/hive/web/daemon_control.rb
+@@ -0,0 +1,43 @@
++require "hive/commands/daemon"
++require "hive/commands/daemon/service_installer"
++require "hive/invoked_binary"
++
++module Hive
++  module Web
++    # Narrow bridge shared by Rails maintenance jobs and CLI-adjacent web
++    # callers. It deliberately has a closed action set and never accepts
++    # command text, project paths, or arbitrary manager arguments.
++    class DaemonControl
++      ACTIONS = %w[start restart repair].freeze
++
++      def initialize(binary_path: Hive::InvokedBinary.path)
++        @binary_path = binary_path
++      end
++
++      def status
++        Hive::Commands::Daemon.new("status").status_payload
++      end
++
++      def perform!(action)
++        action = action.to_s
++        raise ArgumentError, "unsupported daemon maintenance action #{action.inspect}" unless ACTIONS.include?(action)
++        raise Hive::Error, "cannot resolve the current Hive executable for daemon maintenance" if @binary_path.to_s.empty?
++
++        installer = Hive::Commands::Daemon::ServiceInstaller.new(binary_path: @binary_path)
++        case action
++        when "repair"
++          outcome = installer.install!(autostart: true, force: true)
++          raise Hive::Error, "daemon service repair failed" if outcome.failed? || outcome.drifted?
++        else
++          raise Hive::Error, "daemon service is not installed" unless installer.control!(action)
++        end
++
++        {
++          "action" => action,
++          "service" => installer.lifecycle_status,
++          "daemon" => status
++        }
++      end
++    end
++  end
++end
+diff --git a/lib/hive/web/loopback.rb b/lib/hive/web/loopback.rb
+new file mode 100644
+index 00000000..1b4960ad
+--- /dev/null
++++ b/lib/hive/web/loopback.rb
+@@ -0,0 +1,66 @@
++require "ipaddr"
++require "socket"
++
++module Hive
++  module Web
++    # Listener policy is decided before Rails starts; request trust is checked
++    # again in Rails using the socket peer and Host. Neither half alone grants
++    # the local no-login mode.
++    module Loopback
++      Policy = Data.define(:bind, :local_mode, :unsafe) do
++        def local_mode?
++          local_mode
++        end
++
++        def unsafe?
++          unsafe
++        end
++      end
++
++      module_function
++
++      def listener?(bind, resolver: method(:resolve))
++        value = bind.to_s.strip
++        return loopback_ip?(value) unless value.casecmp?("localhost")
++
++        addresses = Array(resolver.call(value))
++        !addresses.empty? && addresses.all? { |address| loopback_ip?(address) }
++      rescue SocketError, ArgumentError
++        false
++      end
++
++      def policy!(bind:, config:, unsafe_no_auth: false, resolver: method(:resolve))
++        return Policy.new(bind.to_s, true, false) if listener?(bind, resolver: resolver)
++        return Policy.new(bind.to_s, false, true) if unsafe_no_auth
++        return Policy.new(bind.to_s, false, false) if github_auth_usable?(config)
++
++        raise Hive::ConfigError,
++              "hive web: refusing non-loopback bind #{bind.inspect} without GitHub owner/claim auth; " \
++              "configure web.github.client_id or pass --unsafe-no-auth"
++      end
++
++      def trusted_request?(enabled:, remote_ip:, host:)
++        enabled && loopback_ip?(remote_ip) && allowed_host?(host)
++      end
++
++      def allowed_host?(host)
++        value = host.to_s.downcase.sub(/\A\[(.*)\]\z/, '\\1')
++        %w[localhost 127.0.0.1 ::1].include?(value)
++      end
++
++      def loopback_ip?(value)
++        IPAddr.new(value.to_s).loopback?
++      rescue IPAddr::InvalidAddressError
++        false
++      end
++
++      def github_auth_usable?(config)
++        !config.dig("github", "client_id").to_s.strip.empty?
++      end
++
++      def resolve(name)
++        Addrinfo.getaddrinfo(name, nil, nil, Socket::SOCK_STREAM).map(&:ip_address).uniq
++      end
++    end
++  end
++end
+diff --git a/openclaw/skills/hive/SKILL.md b/openclaw/skills/hive/SKILL.md
+index 4eecc409..b54a8103 100644
+--- a/openclaw/skills/hive/SKILL.md
++++ b/openclaw/skills/hive/SKILL.md
+@@ -23,7 +23,7 @@ metadata:
+ 
+ Hive turns a repository into a folder-based coding-agent pipeline: ideas become tasks, tasks move through brainstorm, plan, develop, review, artifacts, and finalize stages, and the daemon keeps enrolled projects moving in the background.
+ 
+-Use this skill when the user wants to install Hive from OpenClaw, initialize the current project, create a task, inspect status, move a task through plan/develop/review, run diagnostics, start the Hivebox web UI, compile wiki changelog fragments, or administer Hive's daemon, bot, markers, metrics, and task registry.
++Use this skill when the user wants to install Hive from OpenClaw, provision the current project for native local web, create a task, inspect status, move a task through plan/develop/review, run diagnostics, compile wiki changelog fragments, or administer Hive's daemon, bot, markers, metrics, and task registry.
+ 
+ ## Install From ClawHub
+ 
+@@ -41,11 +41,11 @@ That listing installs the `/hive` slash command. First run should normally be:
+ 
+ ## Common Paths
+ 
+-- `/hive setup` installs or verifies the Hive CLI, enables the per-user daemon service, and optionally initializes the current repository.
++- `/hive setup` installs or verifies the Hive CLI, then runs `hive setup` in the repository to validate prerequisites, enroll it, and start the independent daemon and loopback web services.
+ - `/hive status --json` shows the task board and next actions.
+ - `/hive new . "build this feature"` creates a new Hive task in the current project.
+ - `/hive plan <task-slug>`, `/hive develop <task-slug>`, and `/hive review <task-slug>` advance a task through the main coding workflow.
+-- `/hive web` starts the Hivebox browser surface when a user wants the local web UI.
++- `/hive web` runs the native web UI in the foreground; `/hive web status` reports its independent managed service.
+ - `/hive wiki compile-log --check` verifies that `wiki/log.md` matches the fragments in `wiki/log.d/`.
+ - `/hive doctor` checks local runtime and skill configuration.
+ 
+@@ -63,7 +63,7 @@ else
+ fi
+ ```
+ 
+-If `hive_cmd` is empty, start guided setup instead of failing. Restate that setup will install the Hive CLI, verify it, install or enable the per-user daemon service, and optionally run `hive init` for the current project. Get explicit user confirmation before running installers.
++If `hive_cmd` is empty, start guided setup instead of failing. Restate that setup will install the Hive CLI, verify it, then provision the current repository's managed daemon and local web service. Get explicit user confirmation before running installers.
+ 
+ ## Guided Setup
+ 
+@@ -81,7 +81,7 @@ curl -fsSL https://raw.githubusercontent.com/ivankuznetsov/hive/v0.2.0/install.s
+ bash "$tmpdir/hive-install.sh"
+ ```
+ 
+-After install, run the strict `hive` / `hv` version check again. If neither command prints a bare `X.Y.Z` version, stop and report that setup failed or Apache Hive may be shadowing the command. If verification succeeds, run `"${hive_cmd}" daemon install` once. Then ask whether to initialize the current project; if yes, run `"${hive_cmd}" init . --json </dev/null`, followed by `"${hive_cmd}" doctor` non-fatally. Summarize the installed version, daemon setup result, project initialization result, and any missing runtime dependencies.
++After install, run the strict `hive` / `hv` version check again. If neither command prints a bare `X.Y.Z` version, stop and report that setup failed or Apache Hive may be shadowing the command. Then ask whether to provision the current git repository; if yes, run `"${hive_cmd}" setup . --json`. Read its phase envelope rather than scraping service prose. Summarize the installed version, setup phase results, local URL, and missing external prerequisites.
+ 
+ ## Dispatch Rules
+ 
+diff --git a/schemas/hive-daemon-status.v1.json b/schemas/hive-daemon-status.v1.json
+index 1ee77d0d..69d213b1 100644
+--- a/schemas/hive-daemon-status.v1.json
++++ b/schemas/hive-daemon-status.v1.json
+@@ -61,9 +61,42 @@
+           "type": ["string", "null"],
+           "description": "Absolute path of the autostart unit file; null on unsupported platforms or if the probe could not run."
+         },
++        "configured_executable": {
++          "type": ["string", "null"],
++          "description": "Executable recorded in the installed service definition, if it can be read safely."
++        },
++        "current_executable": {
++          "type": ["string", "null"],
++          "description": "Resolved executable for the CLI producing this status."
++        },
++        "configured_version": {
++          "type": ["string", "null"],
++          "description": "Version reported by the configured service executable, using a bounded probe."
++        },
++        "running_executable": {
++          "type": ["string", "null"],
++          "description": "Executable self-reported in the live daemon PID record."
++        },
++        "running_version": {
++          "type": ["string", "null"],
++          "description": "Version self-reported in the live daemon PID record."
++        },
++        "drift": {
++          "enum": ["none", "path", "version", "unparseable", "unknown", "not_applicable"],
++          "description": "Best-effort comparison of the installed/running daemon identity with this CLI."
++        },
++        "observed_at": {
++          "type": "string",
++          "format": "date-time",
++          "description": "UTC timestamp at which daemon identity was observed."
++        },
++        "recommended_action": {
++          "type": ["string", "null"],
++          "description": "Narrow CLI action suggested by the observed drift state."
++        },
+         "current_version": {
+           "type": "string",
+-          "description": "The running hive version, so a caller can compare against update_nudge.latest itself."
++          "description": "Version of the querying Hive CLI, so a caller can compare against update_nudge.latest itself."
+         },
+         "update_nudge": {
+           "type": ["object", "null"],
+diff --git a/schemas/hive-setup.v1.json b/schemas/hive-setup.v1.json
+new file mode 100644
+index 00000000..090c7dbf
+--- /dev/null
++++ b/schemas/hive-setup.v1.json
+@@ -0,0 +1,29 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://github.com/ivankuznetsov/hive/blob/main/schemas/hive-setup.v1.json",
++  "title": "hive setup output (v1)",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["schema", "schema_version", "ok", "project", "url", "phases"],
++  "properties": {
++    "schema": { "const": "hive-setup" },
++    "schema_version": { "const": 1 },
++    "ok": { "type": "boolean" },
++    "project": { "type": "string" },
++    "url": { "const": "http://127.0.0.1:4567" },
++    "phases": {
++      "type": "array",
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": ["name", "status", "message", "detail"],
++        "properties": {
++          "name": { "type": "string" },
++          "status": { "enum": ["ok", "unchanged", "skipped", "failed"] },
++          "message": { "type": "string" },
++          "detail": { "type": ["object", "array", "string", "null"] }
++        }
++      }
++    }
++  }
++}
+diff --git a/schemas/hive-web-service-action.v1.json b/schemas/hive-web-service-action.v1.json
+new file mode 100644
+index 00000000..5f60d504
+--- /dev/null
++++ b/schemas/hive-web-service-action.v1.json
+@@ -0,0 +1,9 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://github.com/ivankuznetsov/hive/blob/main/schemas/hive-web-service-action.v1.json",
++  "title": "hive web managed-service action (v1)",
++  "type": "object",
++  "required": ["action"],
++  "properties": { "action": { "enum": ["install", "start", "stop", "restart", "status"] } },
++  "additionalProperties": false
++}
+diff --git a/schemas/hive-web-service-status.v1.json b/schemas/hive-web-service-status.v1.json
+new file mode 100644
+index 00000000..4d44eef3
+--- /dev/null
++++ b/schemas/hive-web-service-status.v1.json
+@@ -0,0 +1,21 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://github.com/ivankuznetsov/hive/blob/main/schemas/hive-web-service-status.v1.json",
++  "title": "hive web managed-service status (v1)",
++  "type": "object",
++  "required": ["schema", "schema_version", "ok", "status", "service_installed", "service_enabled", "unit_path", "platform"],
++  "properties": {
++    "schema": { "const": "hive-web-service-status" },
++    "schema_version": { "const": 1 },
++    "ok": { "type": "boolean" },
++    "status": { "enum": ["not_installed", "running", "stopped", "manager_unavailable"] },
++    "service_installed": { "type": ["boolean", "null"] },
++    "service_enabled": { "type": ["boolean", "null"] },
++    "unit_path": { "type": ["string", "null"] },
++    "platform": { "enum": ["linux", "macos", "unsupported"] },
++    "outcome": { "type": "string" },
++    "action": { "enum": ["start", "stop", "restart"] },
++    "messages": { "type": "array", "items": { "type": "string" } }
++  },
++  "additionalProperties": false
++}
+diff --git a/test/unit/cli_test.rb b/test/unit/cli_test.rb
+index dafa1c29..1c3af951 100644
+--- a/test/unit/cli_test.rb
++++ b/test/unit/cli_test.rb
+@@ -27,6 +27,7 @@ require "hive/commands/markers"
+ require "hive/commands/daemon"
+ require "hive/commands/bot"
+ require "hive/commands/metrics"
++require "hive/commands/setup"
+ 
+ class HiveCliTest < Minitest::Test
+   include HiveTestHelper
+@@ -125,6 +126,21 @@ class HiveCliTest < Minitest::Test
+     end
+   end
+ 
++  def test_setup_wires_native_options_and_returns_its_phase_exit_code
++    with_command_new_stub(Hive::Commands::Setup, return_value: 0) do |calls|
++      _out, _err, status = with_captured_exit do
++        Hive::CLI.start([ "setup", "/tmp/project", "--diagnose-only", "--json", "--force", "--no-service", "--only", "qmd" ])
++      end
++
++      assert_equal 0, status
++      assert_equal [ "/tmp/project" ], calls.first.fetch(:args)
++      assert_equal(
++        { diagnose_only: true, json: true, force: true, service: false, only: "qmd" },
++        calls.first.fetch(:kwargs)
++      )
++    end
++  end
++
+   def test_doctor_loads_project_config_and_exits_with_command_status
+     loaded = []
+     with_replaced_singleton_method(Hive::Config, :load, lambda { |path|
+diff --git a/test/unit/commands/daemon_test.rb b/test/unit/commands/daemon_test.rb
+index f87b788e..53445fb2 100644
+--- a/test/unit/commands/daemon_test.rb
++++ b/test/unit/commands/daemon_test.rb
+@@ -345,6 +345,7 @@ class HiveCommandsDaemonTest < Minitest::Test
+     }
+     fake = Struct.new(:state) do
+       def service_state = state
++      def configured_executable = "/opt/hive/bin/hive"
+     end.new(state)
+     require "hive/commands/daemon/service_installer"
+     out, _err = with_replaced_singleton_method(
+@@ -356,6 +357,8 @@ class HiveCommandsDaemonTest < Minitest::Test
+     assert_equal true, doc.fetch("service_installed")
+     assert_equal true, doc.fetch("service_enabled")
+     assert_equal "/home/u/.config/systemd/user/hive-daemon.service", doc.fetch("unit_path")
++    assert_equal "/opt/hive/bin/hive", doc.fetch("configured_executable")
++    assert_equal "unknown", doc.fetch("drift")
+     # Existing fields must survive the merge.
+     assert_equal true, doc.fetch("running")
+     assert_equal 1234, doc.fetch("pid")
+@@ -365,6 +368,30 @@ class HiveCommandsDaemonTest < Minitest::Test
+     assert_empty schema.validate(doc).map { |error| error["error"] }
+   end
+ 
++  def test_status_json_reports_path_drift_and_exact_repair_command
++    command = daemon("status", json: true)
++    command.define_singleton_method(:current_binary_path) { "/new/bin/hive" }
++    write_pid_payload(pid: 1234)
++    command.define_singleton_method(:pid_alive?) { |pid| pid == 1234 }
++    command.define_singleton_method(:pid_owned_by_us?) { |_payload, pid| pid == 1234 }
++    state = {
++      "platform" => "linux",
++      "unit_path" => "/home/u/.config/systemd/user/hive-daemon.service",
++      "service_installed" => true,
++      "service_enabled" => true,
++      "configured_executable" => "/old/bin/hive",
++      "configured_version" => Hive::VERSION
++    }
++    command.define_singleton_method(:probe_service_state) { state }
++
++    out, _err = capture_io { command.call }
++    doc = JSON.parse(out)
++
++    assert_equal "path", doc.fetch("drift")
++    assert_equal "hive daemon install --force", doc.fetch("recommended_action")
++    assert_equal "/new/bin/hive", doc.fetch("current_executable")
++  end
++
+   def test_status_json_degrades_service_fields_to_null_when_probe_raises
+     command = daemon("status", json: true)
+     write_pid_payload(pid: 1234)
+@@ -950,9 +977,11 @@ class HiveCommandsDaemonTest < Minitest::Test
+     File.write(command.pid_file, "not yaml")
+     assert_nil command.send(:read_pid_file_payload)
+ 
+-    payload = command.send(:pid_file_payload, 456, "supplied")
++    payload = command.send(:pid_file_payload, 456, "supplied", executable: "/opt/hive/bin/hive", version: "1.2.3")
+     assert_equal 456, payload.fetch("pid")
+     assert_equal "supplied", payload.fetch("process_start_time")
++    assert_equal "/opt/hive/bin/hive", payload.fetch("executable")
++    assert_equal "1.2.3", payload.fetch("version")
+   end
+ 
+   def test_read_live_pid_requires_alive_pid_owned_by_this_daemon
+diff --git a/test/unit/commands/service_installer/base_test.rb b/test/unit/commands/service_installer/base_test.rb
+index 09980af6..817d713c 100644
+--- a/test/unit/commands/service_installer/base_test.rb
++++ b/test/unit/commands/service_installer/base_test.rb
+@@ -249,6 +249,23 @@ class ServiceInstallerBaseTest < Minitest::Test
+     end
+   end
+ 
++  def test_configured_executable_reads_systemd_and_launchd_definitions_without_execution
++    with_tmp_dir do |dir|
++      linux = TestInstaller.new(host_os: "linux", home: dir, systemctl_available: false)
++      FileUtils.mkdir_p(File.dirname(linux.target_path))
++      File.write(linux.target_path, "Environment=HIVE_BIN=/opt/Hive\\ Bin/hive\nExecStart=/ignored/hive daemon start\n")
++      assert_equal "/opt/Hive Bin/hive", linux.configured_executable,
++                   "systemd's HIVE_BIN is shell-split exactly as the unit parser would"
++
++      mac = TestInstaller.new(host_os: "darwin", home: dir, launchctl_available: false)
++      FileUtils.mkdir_p(File.dirname(mac.target_path))
++      File.write(mac.target_path, <<~PLIST)
++        <plist><dict><key>ProgramArguments</key><array><string>/Applications/Hive &amp; Tools/hive</string><string>daemon</string></array></dict></plist>
++      PLIST
++      assert_equal "/Applications/Hive & Tools/hive", mac.configured_executable
++    end
++  end
++
+   def test_service_state_linux_disabled_when_systemctl_unavailable
+     with_tmp_dir do |dir|
+       # systemctl missing → enabled must be false and the runner must
+diff --git a/test/unit/commands/setup/orchestrator_test.rb b/test/unit/commands/setup/orchestrator_test.rb
+new file mode 100644
+index 00000000..d05a4a72
+--- /dev/null
++++ b/test/unit/commands/setup/orchestrator_test.rb
+@@ -0,0 +1,83 @@
++require "test_helper"
++require "hive/commands/setup"
++require "json_schemer"
++
++class HiveCommandsSetupOrchestratorTest < Minitest::Test
++  include HiveTestHelper
++
++  Result = Hive::Setup::Diagnostics::Result
++
++  def report(*results)
++    Hive::Setup::Diagnostics::Report.new(results)
++  end
++
++  def result(name, status: "ok", ownership: "external")
++    Result.new(name, status, nil, nil, ownership, "evidence", "fix #{name}")
++  end
++
++  def test_qmd_component_mode_performs_no_project_or_service_mutation
++    qmd = Struct.new(:calls) do
++      def install
++        self.calls += 1
++        Hive::Setup::QmdInstaller::Result.new("installed", "/tmp/qmd", "/tmp/qmd/bin/qmd", "qmd installed")
++      end
++    end.new(0)
++    out = StringIO.new
++
++    status = Hive::Commands::Setup.new(
++      "/not-a-project", only: "qmd", json: true, qmd_installer: qmd, stdout: out
++    ).call
++
++    assert_equal 0, status
++    assert_equal 1, qmd.calls
++    payload = JSON.parse(out.string)
++    assert_equal [ "qmd" ], payload.fetch("phases").map { |phase| phase.fetch("name") }
++    schema = JSONSchemer.schema(JSON.parse(File.read(Hive::Schemas.schema_path("hive-setup"))))
++    assert_empty schema.validate(payload).to_a
++  end
++
++  def test_external_diagnostic_failures_stop_all_mutations_but_report_every_phase
++    qmd = Object.new
++    qmd.define_singleton_method(:install) { raise "qmd bootstrap must not run before external prerequisites are fixed" }
++    diagnostics = Object.new
++    failed_report = report(result("git", status: "missing"), result("qmd", status: "missing", ownership: "hive_owned"))
++    diagnostics.define_singleton_method(:call) { failed_report }
++    out = StringIO.new
++
++    status = Hive::Commands::Setup.new(
++      "/not-a-project", json: true, diagnostics: diagnostics, qmd_installer: qmd, stdout: out
++    ).call
++
++    assert_equal 1, status
++    payload = JSON.parse(out.string)
++    assert_equal false, payload.fetch("ok")
++    phases = payload.fetch("phases")
++    assert_equal "failed", phases.find { |phase| phase.fetch("name") == "diagnostics" }.fetch("status")
++    assert_equal "skipped", phases.find { |phase| phase.fetch("name") == "project_enrollment" }.fetch("status")
++  end
++
++  def test_diagnose_only_never_calls_owned_bootstrap
++    diagnostics = Object.new
++    diagnostic_report = report(result("git"), result("qmd", status: "missing", ownership: "hive_owned"))
++    diagnostics.define_singleton_method(:call) { diagnostic_report }
++    qmd = Object.new
++    qmd.define_singleton_method(:install) { raise "diagnose-only must not write owned assets" }
++
++    out = StringIO.new
++    status = Hive::Commands::Setup.new(
++      "/not-a-project", diagnose_only: true, json: true, diagnostics: diagnostics, qmd_installer: qmd, stdout: out
++    ).call
++
++    assert_equal 1, status
++    assert_equal false, JSON.parse(out.string).fetch("ok")
++  end
++
++  def test_accepts_a_linked_git_worktree_metadata_file
++    with_tmp_dir do |dir|
++      File.write(File.join(dir, ".git"), "gitdir: /tmp/shared-worktree\n")
++      command = Hive::Commands::Setup.new(dir, diagnostics: Object.new, stdout: StringIO.new)
++
++      assert command.send(:git_repository?)
++    end
++  end
++end
+diff --git a/test/unit/commands/web/service_installer_test.rb b/test/unit/commands/web/service_installer_test.rb
+new file mode 100644
+index 00000000..1adbac18
+--- /dev/null
++++ b/test/unit/commands/web/service_installer_test.rb
+@@ -0,0 +1,44 @@
++require "test_helper"
++require "hive/commands/web/service_installer"
++
++class WebServiceInstallerTest < Minitest::Test
++  include HiveTestHelper
++
++  def test_linux_service_is_independent_and_serializes_only_safe_environment
++    with_tmp_dir do |dir|
++      hive = File.join(dir, "bin with spaces", "hive")
++      FileUtils.mkdir_p(File.dirname(hive))
++      File.write(hive, "#!/bin/sh\n")
++      FileUtils.chmod(0o755, hive)
++      installer = Hive::Commands::Web::ServiceInstaller.new(
++        host_os: "linux", home: dir, binary_path: hive, systemctl_available: false,
++        bind: "127.0.0.1", port: 4567,
++        environment: { "HIVE_HOME" => "/tmp/hive state", "GH_TOKEN" => "secret", "HIVE_CLAUDE_BIN" => "claude" }
++      )
++
++      result = installer.install!(autostart: false)
++      body = File.read(File.join(dir, ".config/systemd/user/hive-web.service"))
++
++      assert result.success?
++      assert_includes body, "ExecStart=#{Shellwords.escape(hive)} web --bind 127.0.0.1 --port 4567"
++      assert_includes body, "Environment=HIVE_HOME=/tmp/hive\\x20state"
++      refute_includes body, "GH_TOKEN"
++      refute_includes body, "HIVE_CLAUDE_BIN"
++      refute_includes body, "hive-daemon.service"
++    end
++  end
++
++  def test_status_distinguishes_not_installed_and_running
++    with_tmp_dir do |dir|
++      installer = Hive::Commands::Web::ServiceInstaller.new(
++        host_os: "linux", home: dir, binary_path: "/tmp/hive", systemctl_available: true,
++        runner: ->(argv) { argv.include?("is-active") }, bind: "127.0.0.1", port: 4567
++      )
++      assert_equal "not_installed", installer.lifecycle_status.fetch("status")
++
++      FileUtils.mkdir_p(File.dirname(installer.target_path))
++      File.write(installer.target_path, "unit")
++      assert_equal "running", installer.lifecycle_status.fetch("status")
++    end
++  end
++end
+diff --git a/test/unit/commands/web_bind_policy_test.rb b/test/unit/commands/web_bind_policy_test.rb
+new file mode 100644
+index 00000000..121046e2
+--- /dev/null
++++ b/test/unit/commands/web_bind_policy_test.rb
+@@ -0,0 +1,42 @@
++require "test_helper"
++require "hive/web/loopback"
++
++class WebBindPolicyTest < Minitest::Test
++  def test_recognizes_only_real_ipv4_and_ipv6_loopback_listeners
++    assert Hive::Web::Loopback.listener?("127.0.0.1")
++    assert Hive::Web::Loopback.listener?("::1")
++    refute Hive::Web::Loopback.listener?("0.0.0.0")
++    refute Hive::Web::Loopback.listener?("192.168.1.10")
++  end
++
++  def test_localhost_requires_every_resolved_address_to_be_loopback
++    resolver = ->(_name) { [ "127.0.0.1", "::1" ] }
++    assert Hive::Web::Loopback.listener?("localhost", resolver: resolver)
++    refute Hive::Web::Loopback.listener?("localhost", resolver: ->(_name) { [ "127.0.0.1", "10.0.0.1" ] })
++    refute Hive::Web::Loopback.listener?("localhost", resolver: ->(_name) { [] })
++  end
++
++  def test_public_bind_requires_github_claim_flow_or_explicit_unsafe_override
++    local = Hive::Web::Loopback.policy!(bind: "127.0.0.1", config: {})
++    assert local.local_mode?
++
++    assert_raises(Hive::ConfigError) do
++      Hive::Web::Loopback.policy!(bind: "0.0.0.0", config: { "github" => { "client_id" => "" } })
++    end
++
++    owner = Hive::Web::Loopback.policy!(bind: "0.0.0.0", config: { "github" => { "client_id" => "client" } })
++    refute owner.local_mode?
++    refute owner.unsafe?
++
++    unsafe = Hive::Web::Loopback.policy!(bind: "0.0.0.0", config: {}, unsafe_no_auth: true)
++    assert unsafe.unsafe?
++  end
++
++  def test_local_trust_requires_signal_peer_and_authorized_host
++    assert Hive::Web::Loopback.trusted_request?(enabled: true, remote_ip: "127.0.0.1", host: "localhost")
++    assert Hive::Web::Loopback.trusted_request?(enabled: true, remote_ip: "::1", host: "[::1]")
++    refute Hive::Web::Loopback.trusted_request?(enabled: true, remote_ip: "10.0.0.2", host: "localhost")
++    refute Hive::Web::Loopback.trusted_request?(enabled: true, remote_ip: "127.0.0.1", host: "attacker.test")
++    refute Hive::Web::Loopback.trusted_request?(enabled: false, remote_ip: "127.0.0.1", host: "localhost")
++  end
++end
+diff --git a/test/unit/gemspec_test.rb b/test/unit/gemspec_test.rb
+index a4ddfc6e..d5c30de9 100644
+--- a/test/unit/gemspec_test.rb
++++ b/test/unit/gemspec_test.rb
+@@ -25,9 +25,8 @@ class GemspecTest < Minitest::Test
+     assert_includes spec.files, "bin/hv"
+   end
+ 
+-  # The web tier is a Rails app under web/, supported only in the Docker
+-  # image or a source checkout — the gem must stay a lean CLI and not
+-  # package the app or its old Sinatra-era assets.
++  # The web tier is a separately signed release archive — the gem stays a
++  # lean CLI and never embeds Rails or its old Sinatra-era assets.
+   def test_gem_package_excludes_the_rails_web_app
+     spec = Gem::Specification.load(GEMSPEC_PATH)
+ 
+diff --git a/test/unit/install_script_test.rb b/test/unit/install_script_test.rb
+index 22515c88..01496dd5 100644
+--- a/test/unit/install_script_test.rb
++++ b/test/unit/install_script_test.rb
+@@ -18,4 +18,11 @@ class InstallScriptTest < Minitest::Test
+ 
+     refute_includes script, 'mv "${gem_home}/bin/hv" "${gem_home}/shims/hv"'
+   end
++
++  def test_installer_delegates_qmd_bootstrap_to_the_installed_cli
++    script = File.read(INSTALL_SCRIPT)
++
++    assert_includes script, '"$installed_bin" setup --only=qmd'
++    refute_includes script, 'npm rebuild --global --prefix "$qmd_home" better-sqlite3'
++  end
+ end
+diff --git a/test/unit/openclaw_skills_test.rb b/test/unit/openclaw_skills_test.rb
+index eb700e97..be724f94 100644
+--- a/test/unit/openclaw_skills_test.rb
++++ b/test/unit/openclaw_skills_test.rb
+@@ -36,7 +36,7 @@ class OpenClawSkillsTest < Minitest::Test
+     assert_equal [ "hive" ], installer.fetch("bins")
+   end
+ 
+-  def test_umbrella_skill_guides_install_init_and_cli_dispatch
++  def test_umbrella_skill_guides_install_native_setup_and_cli_dispatch
+     _metadata, body = read_skill("hive")
+ 
+     assert_includes body, "/hive setup"
+@@ -55,8 +55,8 @@ class OpenClawSkillsTest < Minitest::Test
+     assert_includes body, "brew install ivankuznetsov/hive/hive"
+     assert_includes body, "yay -S --noconfirm --needed hive-bin"
+     assert_includes body, "v0.2.0/install.sh"
+-    assert_includes body, "daemon install"
+-    assert_includes body, "init . --json </dev/null"
++    assert_includes body, '"${hive_cmd}" setup . --json'
++    assert_includes body, "phase envelope"
+     assert_includes body, "slash-command text after `/hive` as arguments for `hive_cmd`"
+     assert_includes body, '"${hive_cmd}" --help'
+     assert_includes body, "Pass arguments safely"
+diff --git a/test/unit/setup/diagnostics_test.rb b/test/unit/setup/diagnostics_test.rb
+new file mode 100644
+index 00000000..305f0239
+--- /dev/null
++++ b/test/unit/setup/diagnostics_test.rb
+@@ -0,0 +1,78 @@
++require "test_helper"
++require "hive/setup/diagnostics"
++
++class SetupDiagnosticsTest < Minitest::Test
++  def test_reports_machine_readable_external_and_hive_owned_checks
++    runner = lambda do |argv, **_kwargs|
++      case argv
++      when [ "ruby", "--version" ] then [ "ruby 3.4.2", "", 0 ]
++      when [ "git", "--version" ] then [ "git version 2.46.0", "", 0 ]
++      when [ "tmux", "-V" ] then [ "tmux 3.4", "", 0 ]
++      when [ "gh", "--version" ] then [ "gh version 2.60.0", "", 0 ]
++      when [ "gh", "auth", "status" ] then [ "", "Logged in", 0 ]
++      when [ "claude", "--version" ] then [ "2.2.0", "", 0 ]
++      when [ "codex", "--version" ] then [ "codex 0.126.0", "", 0 ]
++      when [ "node", "--version" ] then [ "v22.1.0", "", 0 ]
++      when [ "npm", "--version" ] then [ "10.9.0", "", 0 ]
++      when [ "qmd", "--version" ] then [ "qmd 1.2.0", "", 0 ]
++      else [ "", "", 127 ]
++      end
++    end
++
++    report = Hive::Setup::Diagnostics.new(
++      runner: runner,
++      agent_logged_in: ->(_name) { true },
++      rails_ready: -> { true },
++      sqlite_ready: -> { true },
++      platform: :linux
++    ).call
++
++    assert report.healthy?
++    assert_equal %w[claude codex gh git node npm qmd rails_bundle ruby sqlite tmux],
++                 report.results.map(&:name).sort
++    assert_equal "external", report.fetch("git").ownership
++    assert_equal "hive_owned", report.fetch("qmd").ownership
++    assert_equal "hive_owned", report.fetch("rails_bundle").ownership
++    assert_equal "ok", report.fetch("ruby").status
++    assert_equal report.to_h.fetch("checks").map { |row| row.fetch("status") },
++                 report.results.map(&:status)
++  end
++
++  def test_redacts_bounded_probe_evidence_and_keeps_fix_command
++    runner = lambda do |argv, **_kwargs|
++      case argv.first
++      when "gh" then [ "", "token=super-secret-value", 127 ]
++      when "claude" then [ "2.2.0", "", 0 ]
++      when "codex" then [ "0.126.0", "", 0 ]
++      else [ "", "token=super-secret-value", 1 ]
++      end
++    end
++    report = Hive::Setup::Diagnostics.new(
++      runner: runner,
++      agent_logged_in: ->(_name) { false },
++      rails_ready: -> { false },
++      sqlite_ready: -> { false },
++      platform: :macos
++    ).call
++
++    gh = report.fetch("gh")
++    assert_equal "missing", gh.status
++    assert_match(/brew install gh/, gh.fix_command)
++    refute_match(/super-secret-value/, gh.evidence)
++    assert_operator gh.evidence.bytesize, :<=, Hive::Setup::Diagnostics::EVIDENCE_LIMIT
++    assert_equal "unauthenticated", report.fetch("claude").status
++  end
++
++  def test_unknown_platform_is_an_actionable_error_without_running_probes
++    calls = []
++    report = Hive::Setup::Diagnostics.new(
++      runner: ->(argv, **_kwargs) { calls << argv; [ "", "", 0 ] },
++      platform: :unsupported
++    ).call
++
++    refute report.healthy?
++    assert_equal [], calls
++    assert_equal "error", report.fetch("platform").status
++    assert_match(/Linux or macOS/, report.fetch("platform").fix_command)
++  end
++end
+diff --git a/test/unit/setup/qmd_installer_test.rb b/test/unit/setup/qmd_installer_test.rb
+new file mode 100644
+index 00000000..0e450ad0
+--- /dev/null
++++ b/test/unit/setup/qmd_installer_test.rb
+@@ -0,0 +1,56 @@
++require "test_helper"
++require "hive/setup/qmd_installer"
++
++class SetupQmdInstallerTest < Minitest::Test
++  include HiveTestHelper
++
++  def test_installs_rebuilds_validates_and_links_hive_owned_qmd
++    with_xdg_home do
++      calls = []
++      runner = lambda do |argv, **_kwargs|
++        calls << argv
++        if argv.include?("install")
++          prefix = argv[argv.index("--prefix") + 1]
++          bin = File.join(prefix, "bin", "qmd")
++          FileUtils.mkdir_p(File.dirname(bin))
++          File.write(bin, "#!/bin/sh\necho qmd 1.0.0\n")
++          FileUtils.chmod(0o755, bin)
++        end
++        [ "qmd 1.0.0", "", 0 ]
++      end
++
++      result = Hive::Setup::QmdInstaller.new(runner: runner).install
++
++      assert result.ok?
++      assert_equal "installed", result.status
++      assert calls.any? { |argv| argv.values_at(0, 1, 2, 3, 5) == [ "npm", "rebuild", "--global", "--prefix", "better-sqlite3" ] },
++             "the native module must be rebuilt in the staged Hive-owned prefix"
++      assert File.symlink?(File.join(Hive::Paths.bin_home, "qmd"))
++    end
++  end
++
++  def test_never_overwrites_a_foreign_qmd_link
++    with_xdg_home do |dir|
++      foreign = File.join(dir, "foreign-qmd")
++      File.write(foreign, "#!/bin/sh\n")
++      FileUtils.chmod(0o755, foreign)
++      FileUtils.mkdir_p(Hive::Paths.bin_home)
++      File.symlink(foreign, File.join(Hive::Paths.bin_home, "qmd"))
++
++      result = Hive::Setup::QmdInstaller.new(runner: ->(_argv, **_kwargs) { [ "", "", 1 ] }).install
++
++      refute result.ok?
++      assert_equal foreign, File.readlink(File.join(Hive::Paths.bin_home, "qmd"))
++    end
++  end
++
++  def test_reports_missing_npm_without_mutating_the_filesystem
++    with_xdg_home do
++      result = Hive::Setup::QmdInstaller.new(runner: ->(_argv, **_kwargs) { [ "", "", 127 ] }).install
++
++      refute result.ok?
++      assert_equal "missing_npm", result.status
++      refute File.exist?(Hive::Setup::QmdInstaller.default_prefix)
++    end
++  end
++end
+diff --git a/test/unit/web/app_bundle_test.rb b/test/unit/web/app_bundle_test.rb
+new file mode 100644
+index 00000000..9fc0b161
+--- /dev/null
++++ b/test/unit/web/app_bundle_test.rb
+@@ -0,0 +1,104 @@
++require "test_helper"
++require "digest"
++require "rubygems/package"
++require "zlib"
++require "hive/web/app_bundle"
++
++class WebAppBundleTest < Minitest::Test
++  include HiveTestHelper
++
++  def with_archive(entries)
++    with_tmp_dir do |dir|
++      archive = File.join(dir, "web.tar.gz")
++      Zlib::GzipWriter.open(archive) do |gzip|
++        Gem::Package::TarWriter.new(gzip) do |tar|
++          entries.each do |name, content|
++            if name.end_with?("/")
++              tar.mkdir(name, 0o755)
++            else
++              tar.add_file_simple(name, 0o644, content.bytesize) { |io| io.write(content) }
++            end
++          end
++        end
++      end
++      yield archive
++    end
++  end
++
++  def app_entries
++    {
++      "config/" => "",
++      "bin/" => "",
++      "config/application.rb" => "Rails.application\n",
++      "Gemfile" => "source 'https://rubygems.org'\n",
++      "bin/rails" => "#!/bin/sh\nexit 0\n"
++    }
++  end
++
++  def test_activates_a_valid_versioned_archive_atomically
++    with_xdg_home do
++      with_archive(app_entries) do |archive|
++        bundle = Hive::Web::AppBundle.new(
++          version: "9.9.9", source_dir: File.join(Hive::Paths.data_home, "no-source"), bundle_runner: ->(_dir) { true }
++        )
++        result = bundle.install_from_archive!(archive, expected_sha256: Digest::SHA256.file(archive).hexdigest)
++
++        assert result.ok?
++        assert_equal "installed", result.status
++        assert File.symlink?(bundle.current_path)
++        assert_equal bundle.current_dir, bundle.resolve
++        assert File.exist?(File.join(bundle.current_dir, Hive::Web::AppBundle::READY_FILE))
++      end
++    end
++  end
++
++  def test_rejects_traversal_before_touching_the_current_bundle
++    with_xdg_home do
++      bundle = Hive::Web::AppBundle.new(
++        version: "9.9.9", source_dir: File.join(Hive::Paths.data_home, "no-source"), bundle_runner: ->(_dir) { true }
++      )
++      FileUtils.mkdir_p(File.dirname(bundle.current_path))
++      stable = File.join(File.dirname(bundle.current_path), "stable")
++      FileUtils.mkdir_p(stable)
++      File.symlink(stable, bundle.current_path)
++
++      with_archive(app_entries.merge("../outside" => "nope")) do |archive|
++        result = bundle.install_from_archive!(archive, expected_sha256: Digest::SHA256.file(archive).hexdigest)
++
++        refute result.ok?
++        assert_equal "unsafe_archive", result.status
++        assert_equal stable, File.realpath(bundle.current_path)
++      end
++    end
++  end
++
++  def test_digest_mismatch_does_not_extract_or_switch_current
++    with_xdg_home do
++      with_archive(app_entries) do |archive|
++        bundle = Hive::Web::AppBundle.new(
++          version: "9.9.9", source_dir: File.join(Hive::Paths.data_home, "no-source"), bundle_runner: ->(_dir) { true }
++        )
++        result = bundle.install_from_archive!(archive, expected_sha256: "0" * 64)
++
++        refute result.ok?
++        assert_equal "digest_mismatch", result.status
++        refute File.exist?(bundle.current_path)
++      end
++    end
++  end
++
++  def test_source_tree_and_explicit_override_take_precedence
++    with_tmp_dir do |dir|
++      source = File.join(dir, "source")
++      FileUtils.mkdir_p(File.join(source, "config"))
++      File.write(File.join(source, "config/application.rb"), "Rails.application\n")
++      File.write(File.join(source, "Gemfile"), "source 'https://rubygems.org'\n")
++      FileUtils.mkdir_p(File.join(source, "bin"))
++      File.write(File.join(source, "bin/rails"), "#!/bin/sh\n")
++
++      bundle = Hive::Web::AppBundle.new(source_dir: source)
++      assert_equal source, bundle.resolve
++      with_env("HIVEBOX_WEB_APP_DIR" => source) { assert_equal source, bundle.resolve }
++    end
++  end
++end
+diff --git a/test/unit/web/daemon_control_test.rb b/test/unit/web/daemon_control_test.rb
+new file mode 100644
+index 00000000..0e0a74aa
+--- /dev/null
++++ b/test/unit/web/daemon_control_test.rb
+@@ -0,0 +1,51 @@
++require "test_helper"
++require "hive/web/daemon_control"
++
++class HiveWebDaemonControlTest < Minitest::Test
++  include HiveTestHelper
++
++  FakeInstaller = Struct.new(:actions, :outcome) do
++    def control!(action)
++      actions << action
++      true
++    end
++
++    def lifecycle_status
++      { "status" => "running" }
++    end
++
++    def service_state
++      { "service_installed" => true, "service_enabled" => true, "unit_path" => "/tmp/hive-daemon" }
++    end
++
++    def configured_executable
++      "/opt/hive/bin/hive"
++    end
++
++    def install!(**_kwargs)
++      outcome
++    end
++  end
++
++  def test_start_uses_closed_action_set_and_preserves_current_binary
++    actions = []
++    binaries = []
++    fake = FakeInstaller.new(actions, nil)
++    with_replaced_singleton_method(Hive::Commands::Daemon::ServiceInstaller, :new, lambda { |**kwargs|
++      binaries << kwargs[:binary_path] if kwargs[:binary_path]
++      fake
++    }) do
++      result = Hive::Web::DaemonControl.new(binary_path: "/opt/hive/bin/hive").perform!("start")
++      assert_equal [ "start" ], actions
++      assert_equal "start", result.fetch("action")
++    end
++    assert_equal [ "/opt/hive/bin/hive" ], binaries
++  end
++
++  def test_rejects_command_text
++    error = assert_raises(ArgumentError) do
++      Hive::Web::DaemonControl.new(binary_path: "/opt/hive/bin/hive").perform!("restart; rm -rf /")
++    end
++    assert_match(/unsupported daemon maintenance action/, error.message)
++  end
++end
+diff --git a/web/Gemfile b/web/Gemfile
+index 53710d90..1e822c58 100644
+--- a/web/Gemfile
++++ b/web/Gemfile
+@@ -70,4 +70,11 @@ end
+ # The hive control plane: status payloads, gate approval, daemon dispatch,
+ # the GitHub device-flow gate, the agent OAuth relay, and Telegram
+ # validation all come from the gem — the web tier adds no pipeline logic.
+-gem "hive-cli", path: ".."
++# A source checkout uses the parent gem for contributor iteration. The
++# release archive intentionally has no parent checkout, so it resolves the
++# already-installed version-matched hive-cli gem instead.
++if File.file?(File.expand_path("../hive.gemspec", __dir__))
++  gem "hive-cli", path: ".."
++else
++  gem "hive-cli", ENV.fetch("HIVE_WEB_HIVE_VERSION", ">= 0")
++end
+diff --git a/web/app/controllers/application_controller.rb b/web/app/controllers/application_controller.rb
+index 2a1e5e28..81ef6757 100644
+--- a/web/app/controllers/application_controller.rb
++++ b/web/app/controllers/application_controller.rb
+@@ -1,4 +1,5 @@
+ class ApplicationController < ActionController::Base
++  require "hive/web/loopback"
+   # Rails 8 enables forgery protection by default; explicit so static
+   # scanners (and readers) see the contract without chasing framework
+   # defaults.
+@@ -50,6 +51,15 @@ class ApplicationController < ActionController::Base
+   end
+ 
+   def require_login
++    return if Hive::Web::Loopback.trusted_request?(
++      enabled: ENV["HIVE_WEB_LOCAL_LOOPBACK"] == "1",
++      # REMOTE_ADDR is the socket peer supplied by Rack. Do not use
++      # `request.remote_ip` here: that convenience accessor intentionally
++      # considers X-Forwarded-For and would turn a spoofed header into an
++      # authentication input for a no-login local service.
++      remote_ip: request.get_header("REMOTE_ADDR"),
++      host: request.host
++    )
+     return redirect_to login_path unless current_login
+ 
+     # Sessions must track the CURRENT owner, not the owner at sign-in time:
+diff --git a/web/app/controllers/daemon_controller.rb b/web/app/controllers/daemon_controller.rb
+new file mode 100644
+index 00000000..a4989664
+--- /dev/null
++++ b/web/app/controllers/daemon_controller.rb
+@@ -0,0 +1,39 @@
++require "digest"
++require "hive/web/daemon_control"
++
++class DaemonController < ApplicationController
++  def create
++    action = params.require(:action).to_s
++    unless MaintenanceOperation::ACTIONS.include?(action)
++      render json: { ok: false, error: "unsupported maintenance action" }, status: :unprocessable_entity
++      return
++    end
++
++    key = request.headers["Idempotency-Key"].presence || Digest::SHA256.hexdigest("#{current_login}:#{action}")
++    operation = MaintenanceOperation.find_or_create_by!(idempotency_key: key) do |record|
++      record.action = action
++      record.status = "queued"
++      record.requested_at = Time.current
++    end
++    DaemonMaintenanceJob.perform_later(operation.id) if operation.queued?
++
++    render json: operation_payload(operation), status: :accepted
++  end
++
++  def show
++    operation = MaintenanceOperation.find(params[:id])
++    render json: operation_payload(operation).merge("daemon" => Hive::Web::DaemonControl.new.status)
++  end
++
++  private
++
++  def operation_payload(operation)
++    {
++      ok: true,
++      operation_id: operation.id,
++      action: operation.action,
++      status: operation.status,
++      result: operation.result
++    }
++  end
++end
+diff --git a/web/app/controllers/status_controller.rb b/web/app/controllers/status_controller.rb
+index c44440a8..1e3ed530 100644
+--- a/web/app/controllers/status_controller.rb
++++ b/web/app/controllers/status_controller.rb
+@@ -2,5 +2,6 @@ class StatusController < ApplicationController
+   def index
+     @payload = StatusBroadcaster.snapshot
+     @projects = @payload.fetch("projects", [])
++    @daemon_status = Hive::Web::DaemonControl.new.status
+   end
+ end
+diff --git a/web/app/jobs/daemon_maintenance_job.rb b/web/app/jobs/daemon_maintenance_job.rb
+new file mode 100644
+index 00000000..fb37030d
+--- /dev/null
++++ b/web/app/jobs/daemon_maintenance_job.rb
+@@ -0,0 +1,49 @@
++require "fileutils"
++require "hive/paths"
++require "hive/web/daemon_control"
++require "json"
++
++# Runs only a typed DaemonControl operation. The row provides durable progress
++# across web restarts; the process-wide lock prevents two accepted repairs from
++# racing to rewrite the same per-user service definition.
++class DaemonMaintenanceJob < ApplicationJob
++  def perform(operation_id)
++    operation = MaintenanceOperation.find(operation_id)
++    return unless operation.queued?
++
++    operation.with_lock do
++      return unless operation.queued?
++
++      operation.update!(status: "running", started_at: Time.current)
++    end
++
++    result = nil
++    with_maintenance_lock do
++      result = Hive::Web::DaemonControl.new.perform!(operation.action)
++    end
++    operation.update!(status: "succeeded", finished_at: Time.current, result: redact(result))
++  rescue StandardError => error
++    operation&.update(status: "failed", finished_at: Time.current,
++                      result: { "error" => "#{error.class}: #{error.message.to_s[0, 240]}" })
++  end
++
++  private
++
++  def redact(value)
++    JSON.parse(JSON.generate(value).gsub(/(?:token|secret|password|api[_-]?key)\s*[=:]\s*[^\s,}]+/i, "[REDACTED]"))
++  end
++
++  def with_maintenance_lock
++    FileUtils.mkdir_p(Hive::Paths.state_home)
++    path = File.join(Hive::Paths.state_home, ".daemon-maintenance.lock")
++    File.open(path, File::RDWR | File::CREAT, 0o600) do |file|
++      deadline = Time.now + 30
++      until file.flock(File::LOCK_EX | File::LOCK_NB)
++        raise Hive::ConcurrentRunError.new("daemon maintenance lock timed out", lock_path: path) if Time.now >= deadline
++
++        sleep 0.1
++      end
++      yield
++    end
++  end
++end
+diff --git a/web/app/models/maintenance_operation.rb b/web/app/models/maintenance_operation.rb
+new file mode 100644
+index 00000000..c53034d3
+--- /dev/null
++++ b/web/app/models/maintenance_operation.rb
+@@ -0,0 +1,12 @@
++class MaintenanceOperation < ApplicationRecord
++  ACTIONS = %w[start restart repair].freeze
++  STATUSES = %w[queued running succeeded failed].freeze
++
++  validates :action, inclusion: { in: ACTIONS }
++  validates :status, inclusion: { in: STATUSES }
++  validates :idempotency_key, presence: true, uniqueness: true
++
++  def queued?
++    status == "queued"
++  end
++end
+diff --git a/web/app/views/status/_daemon.html.erb b/web/app/views/status/_daemon.html.erb
+new file mode 100644
+index 00000000..e4c32caa
+--- /dev/null
++++ b/web/app/views/status/_daemon.html.erb
+@@ -0,0 +1,15 @@
++<section class="daemon-status" aria-label="Daemon health">
++  <h2>Daemon</h2>
++  <p>
++    <strong><%= daemon.fetch("running") ? "running" : "stopped" %></strong>
++    <% if daemon["drift"] && daemon["drift"] != "none" %>
++      — <%= daemon.fetch("drift") %> drift
++    <% end %>
++  </p>
++  <% if daemon["recommended_action"] %>
++    <p><code><%= daemon.fetch("recommended_action") %></code></p>
++  <% end %>
++  <%= button_to "Start", daemon_maintenance_path, params: { action: "start" }, form: { data: { turbo: true } } unless daemon.fetch("running") %>
++  <%= button_to "Restart", daemon_maintenance_path, params: { action: "restart" }, form: { data: { turbo: true } } if daemon.fetch("running") %>
++  <%= button_to "Repair service", daemon_maintenance_path, params: { action: "repair" }, form: { data: { turbo: true } } if %w[path version unparseable].include?(daemon["drift"]) %>
++</section>
+diff --git a/web/app/views/status/index.html.erb b/web/app/views/status/index.html.erb
+index 25bcdf79..87b076dc 100644
+--- a/web/app/views/status/index.html.erb
++++ b/web/app/views/status/index.html.erb
+@@ -66,6 +66,8 @@
+   </div>
+ <% end %>
+ 
++<%= render "status/daemon", daemon: @daemon_status %>
++
+ <%= render "status/projects", projects: @projects %>
+   </div>
+ </div>
+diff --git a/web/config/environments/production.rb b/web/config/environments/production.rb
+index b991b661..07fb7196 100644
+--- a/web/config/environments/production.rb
++++ b/web/config/environments/production.rb
+@@ -89,7 +89,10 @@ Rails.application.configure do
+   # ]
+   #
+   # Skip DNS rebinding protection for the default health check endpoint.
+-  # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
++  if ENV["HIVE_WEB_LOCAL_LOOPBACK"] == "1"
++    config.hosts = [ "localhost", "127.0.0.1", "::1" ]
++  end
++  config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+ 
+   # Turbo Streams connect over Action Cable. Same-origin-as-host covers the
+   # normal case with ZERO config — browse the box at any address and the
+diff --git a/web/config/initializers/hive.rb b/web/config/initializers/hive.rb
+index f2792b55..64e6e3f1 100644
+--- a/web/config/initializers/hive.rb
++++ b/web/config/initializers/hive.rb
+@@ -8,5 +8,6 @@ require "hive/web/dispatcher"
+ require "hive/web/agents_auth"
+ require "hive/web/telegram_validator"
+ require "hive/web/telegram_tester"
++require "hive/web/daemon_control"
+ require "hive/commands/init"
+ require "hive/commands/approve"
+diff --git a/web/config/routes.rb b/web/config/routes.rb
+index 659576df..dfa015c2 100644
+--- a/web/config/routes.rb
++++ b/web/config/routes.rb
+@@ -17,6 +17,9 @@ Rails.application.routes.draw do
+ 
+   root "status#index"
+ 
++  post "daemon/maintenance" => "daemon#create", as: :daemon_maintenance
++  get "daemon/maintenance/:id" => "daemon#show", as: :daemon_maintenance_operation
++
+   post "ideas" => "ideas#create", as: :ideas
+ 
+   # Task pages are addressed by project name + task slug, mirroring the CLI.
+diff --git a/web/db/migrate/20260723000000_create_maintenance_operations.rb b/web/db/migrate/20260723000000_create_maintenance_operations.rb
+new file mode 100644
+index 00000000..f7606df9
+--- /dev/null
++++ b/web/db/migrate/20260723000000_create_maintenance_operations.rb
+@@ -0,0 +1,15 @@
++class CreateMaintenanceOperations < ActiveRecord::Migration[8.1]
++  def change
++    create_table :maintenance_operations do |t|
++      t.string :action, null: false
++      t.string :status, null: false
++      t.string :idempotency_key, null: false
++      t.json :result
++      t.datetime :requested_at, null: false
++      t.datetime :started_at
++      t.datetime :finished_at
++      t.timestamps
++    end
++    add_index :maintenance_operations, :idempotency_key, unique: true
++  end
++end
+diff --git a/web/test/integration/daemon_maintenance_test.rb b/web/test/integration/daemon_maintenance_test.rb
+new file mode 100644
+index 00000000..4a07dab7
+--- /dev/null
++++ b/web/test/integration/daemon_maintenance_test.rb
+@@ -0,0 +1,12 @@
++require "test_helper"
++
++class DaemonMaintenanceTest < ActionDispatch::IntegrationTest
++  test "rejects arbitrary service command text before creating an operation" do
++    sign_in!
++
++    post daemon_maintenance_path, params: { action: "restart; rm -rf /" }
++
++    assert_response :unprocessable_entity
++    assert_equal "unsupported maintenance action", JSON.parse(response.body).fetch("error")
++  end
++end
+diff --git a/web/test/integration/local_loopback_auth_test.rb b/web/test/integration/local_loopback_auth_test.rb
+new file mode 100644
+index 00000000..247d8487
+--- /dev/null
++++ b/web/test/integration/local_loopback_auth_test.rb
+@@ -0,0 +1,28 @@
++require "test_helper"
++
++class LocalLoopbackAuthTest < ActionDispatch::IntegrationTest
++  around do |test|
++    previous = ENV["HIVE_WEB_LOCAL_LOOPBACK"]
++    ENV["HIVE_WEB_LOCAL_LOOPBACK"] = "1"
++    test.call
++  ensure
++    previous.nil? ? ENV.delete("HIVE_WEB_LOCAL_LOOPBACK") : ENV["HIVE_WEB_LOCAL_LOOPBACK"] = previous
++  end
++
++  test "loopback peer with a loopback Host bypasses GitHub login" do
++    host! "localhost"
++    get "/", headers: { "REMOTE_ADDR" => "127.0.0.1" }
++
++    assert_response :success
++  end
++
++  test "remote peer and hostile Host never gain local trust" do
++    host! "localhost"
++    get "/", headers: { "REMOTE_ADDR" => "10.0.0.9", "HTTP_X_FORWARDED_FOR" => "127.0.0.1" }
++    assert_redirected_to login_path
++
++    host! "attacker.test"
++    get "/", headers: { "REMOTE_ADDR" => "127.0.0.1" }
++    assert_redirected_to login_path
++  end
++end
+diff --git a/wiki/commands/daemon.md b/wiki/commands/daemon.md
+index c84cb08e..c4b5fcc2 100644
+--- a/wiki/commands/daemon.md
++++ b/wiki/commands/daemon.md
+@@ -40,7 +40,7 @@ hive daemon queue   [list | show <id> | prune]  [--json]
+ |-----------|----------|
+ | `start`    | Acquires the PID file (`~/Dev/hive/.daemon.pid`); without `--detach` runs in the foreground. With `--detach` calls `Process.daemon(true, true)` and the parent returns immediately. With `--dry-run` logs every dispatch decision but does NOT spawn child `hive ...` processes. Refuses with exit `75 (TEMPFAIL)` if a live daemon already holds the PID file. |
+ | `stop`     | Sends `SIGTERM` to the running daemon's PID. Waits up to `daemon.shutdown_grace_sec` (default 600s) for the daemon to exit, then escalates to `SIGKILL`. Idempotent: `stop` with no PID file exits 0 with `daemon not running` on stderr; a stale PID file (process gone) is removed and the call exits 0. With `--json`, emits a `hive-daemon-stop` envelope (fields: `running`, `was_running`, `stale_pid?`, `reason?` — `pid_reused` / `unverified` for safety bailouts). |
+-| `status`   | Reports running / not running. Exit code 0 if running, 1 if not. With `--json`, emits a `hive-daemon-status` envelope with `running`, `pid`, `uptime_sec`, `pid_file`, `log_file`, plus the autostart-service state `service_installed`, `service_enabled`, and `unit_path` (read-only probe) so an agent can tell whether `hive daemon install` has run without a mutating call. |
++| `status`   | Reports running / not running. Exit code 0 if running, 1 if not. With `--json`, emits a `hive-daemon-status` envelope with `running`, `pid`, `uptime_sec`, `pid_file`, `log_file`, autostart-service state, and bounded configured/current/running executable/version evidence. `drift` is `none`, `path`, `version`, `unparseable`, `unknown`, or `not_applicable`; `recommended_action` gives the narrow repair command. Rails consumes the same return-value payload without scraping CLI output. |
+ | `reload`   | Sends `SIGHUP` to the running daemon's PID, which triggers config reload at the next tick boundary. In-flight children continue uninterrupted. Exit 1 if no daemon running. With `--json`, emits a `hive-daemon-reload` envelope (`ok`, `reason`, `pid`, `message`). |
+ | `tail`     | `tail -F` semantics on `~/Dev/hive/logs/daemon.log` (self-implemented; doesn't shell out to the `tail` binary). Exit 1 if the log file doesn't exist. |
+ | `install`  | (Re)writes the platform-native unit file (`~/.config/systemd/user/hive-daemon.service` on Linux, `~/Library/LaunchAgents/local.hive-daemon.plist` on macOS) and starts/enables the service. Installers and agent-assisted setup run this by default so daemon autostart is global install-time infrastructure, independent of any project. Without `--force`, refuses to overwrite a pre-existing unit (preserving operator hand-edits); exit `64` (USAGE) with a message pointing at `--force` so automation can branch without clobbering local changes. With `--force`, saves the previous content to a timestamped `<path>.bak-YYYYMMDDTHHMMSSZ` (rotated, never overwritten) via atomic write, then — only when an existing unit was actually overwritten (the `upgraded` outcome) — restarts the running daemon on Linux / unloads-then-loads on macOS so new `Environment=` lines take effect (a first-time `--force` install with no prior unit just starts/enables, no restart). A service-manager failure (systemctl reload/enable, or launchctl load rejecting the unit) exits `70` (SOFTWARE). A host with no systemd-user manager at all is different: the unit is still written, but autostart cannot be enabled, so it exits `0` with the `unsupported` outcome (and `target_path` set to the written unit) — a known-platform limitation, not a failure. With `--json`, every outcome (success and error) emits a `hive-daemon-install.v1` envelope. Units point at the user-facing wrapper path when installers provide it, so bash/Homebrew installs preserve the GEM_HOME/GEM_PATH wrapper across login/reboot; `hv` invocations remain valid when Apache Hive shadows `hive`. Use this after upgrading hive when the unit template has changed or when autostart needs repair. |
+diff --git a/wiki/commands/web.md b/wiki/commands/web.md
+index f6f25373..74971a73 100644
+--- a/wiki/commands/web.md
++++ b/wiki/commands/web.md
+@@ -22,17 +22,28 @@ path with separate gates.
+ 
+ ## CLI
+ 
+-`hive web [--bind] [--port]` (defaults from the `web:` config block). The
+-command locates the Rails app (`HIVEBOX_WEB_APP_DIR` override, else `web/`
+-next to `lib/`), exports `SECRET_KEY_BASE` (derived from the same persisted
++`hive web [--bind] [--port]` (defaults from the `web:` config block) runs the
++foreground server. `hive web install|start|stop|restart|status` manages a
++separate `hive-web` per-user systemd-user/launchd service; it is independent
++from `hive-daemon`. The command locates the Rails app (`HIVEBOX_WEB_APP_DIR`
++override, source `web/`, then the version-matched XDG bundle), exports `SECRET_KEY_BASE` (derived from the same persisted
+ `Hive::Web::SessionSecret` file as before — sessions survive container
+ recreation), `HIVEBOX_ORIGIN` (extra Action Cable origin allow; same-origin
+ host traffic is accepted without config), and
+ `HIVEBOX_STORAGE_DIR` (the solid-stack sqlite files, under
+ `Hive::Paths.state_home/web-storage` so they live on the `/data` mount), runs
+-`bin/rails db:prepare`, then execs `bin/rails server`. Outside the container
+-or a source checkout the command exits 1 with guidance — the gem itself does
+-not package the Rails app (`test/unit/gemspec_test.rb` pins that).
++`bin/rails db:prepare`, then execs `bin/rails server`. Native
++foreground/managed mode enables the supported in-Puma Solid Queue worker;
++hivebox retains its existing supervisor topology.
++
++## Native local trust
++
++The default `127.0.0.1:4567` listener sets no-login mode only after the CLI
++accepts a real IPv4/IPv6 loopback listener. Rails independently requires the
++actual `REMOTE_ADDR` socket peer and a loopback Host; it does not trust
++`X-Forwarded-For`. Wildcard/private/public listeners require the configured
++GitHub owner/claim flow or an explicit `--unsafe-no-auth` flag, which is
++rendered into the managed service arguments and warns loudly at startup.
+ 
+ ## Auth
+ 
+diff --git a/wiki/index.md b/wiki/index.md
+index d59b93e3..d53e268c 100644
+--- a/wiki/index.md
++++ b/wiki/index.md
+@@ -79,6 +79,7 @@ Folder-as-agent workflow engine: a Ruby 3.4 / Thor CLI control plane where descr
+ - [[modules/rebase]] — `wiki/modules/rebase.md`
+ - [[modules/reviewers]] — `wiki/modules/reviewers.md`
+ - [[modules/secret_patterns]] — `wiki/modules/secret_patterns.md`
++- [[modules/setup]] — `wiki/modules/setup.md`
+ - [[modules/stages]] — `wiki/modules/stages.md`
+ - [[modules/task]] — `wiki/modules/task.md`
+ - [[modules/task_action]] — `wiki/modules/task_action.md`
+diff --git a/wiki/log.d/20260723-000001-native-setup-primitives.md b/wiki/log.d/20260723-000001-native-setup-primitives.md
+new file mode 100644
+index 00000000..31d66f3a
+--- /dev/null
++++ b/wiki/log.d/20260723-000001-native-setup-primitives.md
+@@ -0,0 +1,6 @@
++---
++date: 2026-07-23
++---
++
++Added the native setup diagnostic and qmd bootstrap primitives. qmd activation
++uses a staged XDG-data installation and preserves unrelated user links.
+diff --git a/wiki/log.d/20260723-000002-native-web-bundle.md b/wiki/log.d/20260723-000002-native-web-bundle.md
+new file mode 100644
+index 00000000..780bb869
+--- /dev/null
++++ b/wiki/log.d/20260723-000002-native-web-bundle.md
+@@ -0,0 +1,7 @@
++---
++date: 2026-07-23
++---
++
++Added versioned native Rails bundle activation. Release archives are a separate
++asset from the lean CLI gem and are safely staged under XDG data before the
++active pointer changes.
+diff --git a/wiki/log.d/20260723-000003-native-web-lifecycle-loopback.md b/wiki/log.d/20260723-000003-native-web-lifecycle-loopback.md
+new file mode 100644
+index 00000000..19ec1705
+--- /dev/null
++++ b/wiki/log.d/20260723-000003-native-web-lifecycle-loopback.md
+@@ -0,0 +1,7 @@
++---
++date: 2026-07-23
++---
++
++Added the independent native `hive-web` lifecycle service and two-sided local
++trust policy. A loopback listener alone is insufficient: Rails requires an
++actual loopback peer plus an approved Host and ignores forwarded-for headers.
+diff --git a/wiki/log.d/20260723-000004-native-setup-orchestration.md b/wiki/log.d/20260723-000004-native-setup-orchestration.md
+new file mode 100644
+index 00000000..ab152100
+--- /dev/null
++++ b/wiki/log.d/20260723-000004-native-setup-orchestration.md
+@@ -0,0 +1,11 @@
++---
++date: 2026-07-23
++summary: Added native setup orchestration, daemon identity drift, and typed web maintenance.
++---
++
++`hive setup` now coordinates the existing project registry, durable daemon
++enrollment, Hive-owned QMD bootstrap, and distinct per-user daemon/web service
++installers through a JSON-safe phase envelope. Daemon status carries structured
++identity/drift fields, while the Rails status card can enqueue only typed
++start/restart/repair maintenance operations. See [[modules/setup]],
++[[commands/daemon]], and [[commands/web]].
+diff --git a/wiki/log.d/20260723-000005-web-bundle-stdlib-digest.md b/wiki/log.d/20260723-000005-web-bundle-stdlib-digest.md
+new file mode 100644
+index 00000000..faa5f9c9
+--- /dev/null
++++ b/wiki/log.d/20260723-000005-web-bundle-stdlib-digest.md
+@@ -0,0 +1,9 @@
++---
++date: 2026-07-23
++summary: Hardened native web bundle digest verification against Hive::Digest constant shadowing.
++---
++
++`Hive::Web::AppBundle` explicitly resolves the Ruby standard-library digest
++constant as `::Digest`. This keeps archive verification correct when the
++application's [[modules/digest]] namespace has already been loaded in the
++same CLI process.
+diff --git a/wiki/modules/setup.md b/wiki/modules/setup.md
+new file mode 100644
+index 00000000..774e1fcc
+--- /dev/null
++++ b/wiki/modules/setup.md
+@@ -0,0 +1,35 @@
++---
++title: Native setup primitives
++type: module
++source: lib/hive/setup/diagnostics.rb, lib/hive/setup/qmd_installer.rb
++created: 2026-07-23
++tags: [setup, diagnostics, qmd, xdg]
++---
++
++`Hive::Setup::Diagnostics` is the read-only prerequisite report consumed by
++native setup. Each result has stable name/status/version/ownership/evidence/fix
++fields; probe output is bounded and redacted. External dependencies are never
++installed or authenticated by a diagnostic run.
++
++`Hive::Setup::QmdInstaller` is the sole mutable bootstrap for the
++Hive-owned qmd dependency. It stages npm installation under
++`Hive::Paths.data_home/qmd`, rebuilds `better-sqlite3`, validates the staged
++binary, then atomically activates it and links it in `Hive::Paths.bin_home`.
++An unrelated pre-existing `qmd` link is retained.
++
++`Hive::Web::AppBundle` stores release Rails bundles at
++`Hive::Paths.web_app_home`. Archive installation verifies an expected digest,
++rejects traversal, links, special files, and unsafe modes, stages dependencies,
++then atomically switches a `current` symlink only after writing a matching
++version/readiness stamp. A source checkout or explicit `HIVEBOX_WEB_APP_DIR`
++continues to take precedence for development and hivebox.
++
++See [[commands/web]] for the native web consumer and [[commands/daemon]] for
++the independent service setup path.
++
++`Hive::Commands::Setup` composes these primitives as `hive setup [PROJECT]`.
++It emits a stable `hive-setup.v1` phase envelope, stops all mutations after
++external prerequisite failures, registers/enrolls the real repository, and
++uses the resolved invoked binary for independent daemon and web service
++definitions. `--no-service` retains foreground `hive web`; `--only=qmd` is the
++installer-safe component mode used by `install.sh`.
