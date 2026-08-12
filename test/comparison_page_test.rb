@@ -155,7 +155,7 @@ class ComparisonPageTest < Minitest::Test
       assert_includes page, "{% include comparison/#{partial}.html %}"
     end
 
-    html, = build_site
+    html, = rendered_site
 
     assert_equal 1, html.scan(/<h1\b/).length
     assert_includes html, @data.dig("page", "heading")
@@ -171,7 +171,7 @@ class ComparisonPageTest < Minitest::Test
   end
 
   def test_rendered_summary_and_matrix_use_every_data_claim_with_dated_evidence
-    html, = build_site
+    html, = rendered_site
 
     @data.fetch("products").each do |product|
       assert_includes html, product.fetch("name")
@@ -203,7 +203,7 @@ class ComparisonPageTest < Minitest::Test
   end
 
   def test_rendered_matrix_legend_unknowns_and_actions_are_semantic_and_fair
-    html, = build_site
+    html, = rendered_site
 
     assert_match(/<div[^>]+class="[^"]*comparison-table-region[^"]*"[^>]+role="region"[^>]+tabindex="0"/, html)
     assert_match(/<table[^>]+class="[^"]*comparison-table[^"]*"/, html)
@@ -232,6 +232,21 @@ class ComparisonPageTest < Minitest::Test
       end
     end
     assert_match(/class="[^"]*btn--primary[^"]*"[^>]+href="https:\/\/hivecli\.sh\/docs\/getting-started\/"/, html)
+  end
+
+  def test_comparison_styles_cover_focus_reflow_wrapping_targets_and_reduced_motion
+    styles = File.read(File.join(ROOT, "assets", "css", "landing.scss"))
+
+    assert_includes styles, ".comparison-table-region:focus-visible"
+    assert_includes styles, "scroll-margin-top"
+    assert_includes styles, "overflow-wrap: anywhere"
+    assert_match(/\.comparison-cta-links \.btn\s*\{[^}]*min-height:\s*44px/m, styles)
+    assert_match(/@media \(max-width: 800px\).*\.comparison-table thead/m, styles)
+    assert_match(/@media \(max-width: 800px\).*\.comparison-table td::before/m, styles)
+    assert_match(/@media \(max-width: 800px\).*overflow-x:\s*visible/m, styles)
+    assert_match(/@media \(prefers-reduced-motion: reduce\).*scroll-behavior:\s*auto/m, styles)
+    assert_match(/@media \(prefers-reduced-motion: reduce\).*transition:\s*none/m, styles)
+    assert_match(/@media \(prefers-reduced-motion: reduce\).*transform:\s*none/m, styles)
   end
 
   private
@@ -266,17 +281,23 @@ class ComparisonPageTest < Minitest::Test
     assert official, "expected official #{product_id} URL, got #{value}"
   end
 
-  def build_site
-    Dir.mktmpdir do |directory|
+  def rendered_site
+    self.class.rendered_site
+  end
+
+  def self.rendered_site
+    @rendered_site ||= Dir.mktmpdir do |directory|
       destination = File.join(directory, "site")
       env = {"BUNDLE_GEMFILE" => File.join(ROOT, "Gemfile"), "JEKYLL_ENV" => "test"}
       command = [RbConfig.ruby, Gem.bin_path("jekyll", "jekyll"), "build",
                  "--source", ROOT, "--destination", destination, "--quiet"]
       stdout, stderr, status = Open3.capture3(env, *command)
-      assert status.success?, "Jekyll build failed:\n#{stdout}\n#{stderr}"
-      html = File.binread(File.join(destination, "compare", "index.html"))
-      sitemap = File.binread(File.join(destination, "sitemap.xml"))
-      [html, sitemap]
+      raise "Jekyll build failed:\n#{stdout}\n#{stderr}" unless status.success?
+
+      [
+        File.binread(File.join(destination, "compare", "index.html")),
+        File.binread(File.join(destination, "sitemap.xml"))
+      ]
     end
   end
 end
