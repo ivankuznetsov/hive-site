@@ -1,0 +1,29 @@
+{% assign comparison = site.data.comparison %}
+<section class="comparison-summary" aria-labelledby="comparison-summary-title">
+  <div class="wrap">
+    <h2 id="comparison-summary-title" class="section-title">{{ comparison.page.summary_heading }}</h2>
+    <div class="comparison-summary-grid">
+      {% for product in comparison.products %}
+        <article class="comparison-summary-card comparison-summary-card--{{ product.id }}">
+          <header>
+            <h3>{{ product.name }}</h3>
+            <p class="comparison-identity">{{ product.identity }}</p>
+            <p class="comparison-repository"><code>{{ product.repository_identity }}</code></p>
+          </header>
+
+          <div class="comparison-summary-claim">
+            <h4>Best fit</h4>
+            <p>{{ product.best_fit.text }}</p>
+            {% include comparison/claim-meta.html claim=product.best_fit %}
+          </div>
+
+          <div class="comparison-summary-claim comparison-summary-claim--tradeoff">
+            <h4>Material tradeoff</h4>
+            <p>{{ product.tradeoff.text }}</p>
+            {% include comparison/claim-meta.html claim=product.tradeoff %}
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
