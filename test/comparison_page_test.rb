@@ -9,6 +9,8 @@ require "yaml"
 require_relative "test_helper"
 
 class ComparisonPageTest < Minitest::Test
+  include StylesheetAssertions
+
   DATA_PATH = File.join(ROOT, "_data", "comparison.yml")
   PRODUCT_IDS = %w[hive agentico omnigent].freeze
   DIMENSION_IDS = %w[
@@ -269,17 +271,23 @@ class ComparisonPageTest < Minitest::Test
 
   def test_comparison_styles_cover_focus_reflow_wrapping_targets_and_reduced_motion
     styles = File.read(File.join(ROOT, "assets", "css", "landing.scss"))
+    responsive_styles = css_at_rule_contents(
+      styles,
+      "@media (max-width: 800px)",
+      after: "/* --- Evidence-linked orchestrator comparison /compare --- */"
+    )
+    reduced_motion_styles = css_at_rule_contents(styles, "@media (prefers-reduced-motion: reduce)")
 
     assert_includes styles, ".comparison-table-region:focus-visible"
     assert_includes styles, "scroll-margin-top"
     assert_includes styles, "overflow-wrap: anywhere"
     assert_match(/\.comparison-cta-links \.btn\s*\{[^}]*min-height:\s*44px/m, styles)
-    assert_match(/@media \(max-width: 800px\).*\.comparison-table thead/m, styles)
-    assert_match(/@media \(max-width: 800px\).*\.comparison-table td::before/m, styles)
-    assert_match(/@media \(max-width: 800px\).*overflow-x:\s*visible/m, styles)
-    assert_match(/@media \(prefers-reduced-motion: reduce\).*scroll-behavior:\s*auto/m, styles)
-    assert_match(/@media \(prefers-reduced-motion: reduce\).*transition:\s*none/m, styles)
-    assert_match(/@media \(prefers-reduced-motion: reduce\).*transform:\s*none/m, styles)
+    assert_match(/\.comparison-table thead\s*\{/, responsive_styles)
+    assert_match(/\.comparison-table td::before\s*\{/, responsive_styles)
+    assert_match(/\.comparison-table-region\s*\{[^}]*overflow-x:\s*visible/m, responsive_styles)
+    assert_match(/\bhtml\s*\{[^}]*scroll-behavior:\s*auto/m, reduced_motion_styles)
+    assert_match(/\.btn,\s*\.card\s*\{[^}]*transition:\s*none/m, reduced_motion_styles)
+    assert_match(/\.btn:hover,\s*\.card:hover\s*\{[^}]*transform:\s*none/m, reduced_motion_styles)
   end
 
   def test_compare_is_in_shared_navigation_and_install_link_is_root_qualified
