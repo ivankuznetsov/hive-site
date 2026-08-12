@@ -1,0 +1,22 @@
+{% assign comparison = site.data.comparison %}
+<section class="comparison-cta" aria-labelledby="comparison-cta-title">
+  <div class="wrap">
+    <h2 id="comparison-cta-title" class="section-title">{{ comparison.page.cta_heading }}</h2>
+    <p class="section-lead">{{ comparison.page.cta_introduction }}</p>
+    <div class="comparison-cta-grid">
+      {% for product in comparison.products %}
+        <article class="comparison-cta-card">
+          <h3>{{ product.name }}</h3>
+          <p>{{ product.identity }}</p>
+          <div class="comparison-cta-links">
+            {% for link_entry in product.links %}
+              {% assign link_key = link_entry[0] %}
+              {% assign link = link_entry[1] %}
+              <a class="btn {% if product.id == 'hive' and link_key == 'getting_started' %}btn--primary{% else %}btn--ghost{% endif %}" href="{{ link.url }}">{{ link.label }}</a>
+            {% endfor %}
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>

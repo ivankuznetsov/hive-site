@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require "date"
+require "cgi"
+require "open3"
 require "set"
 require "uri"
 require "yaml"
@@ -142,6 +144,96 @@ class ComparisonPageTest < Minitest::Test
                  @data.fetch("products").to_s + @data.fetch("cells").to_s)
   end
 
+  def test_page_is_declarative_and_renders_the_complete_decision_journey
+    page_path = File.join(ROOT, "compare", "index.md")
+    assert_path_exists page_path
+    page = File.read(page_path)
+
+    assert_includes page, "layout: home"
+    assert_includes page, "permalink: /compare/"
+    %w[intro summary matrix evidence cta].each do |partial|
+      assert_includes page, "{% include comparison/#{partial}.html %}"
+    end
+
+    html, = build_site
+
+    assert_equal 1, html.scan(/<h1\b/).length
+    assert_includes html, @data.dig("page", "heading")
+    assert_includes html, "Last reviewed"
+    assert_includes html, "datetime=\"#{@data.fetch("reviewed_on")}\""
+    assert_includes html, "does not name a generic winner"
+    assert_includes html, "Three distinct best fits"
+    assert_includes html, "Compare the decision dimensions"
+    assert_includes html, "How to read the evidence"
+    assert_includes html, "Official source register"
+    assert_includes html, "What this page does not compare"
+    assert_includes html, "Follow the boundary that fits"
+  end
+
+  def test_rendered_summary_and_matrix_use_every_data_claim_with_dated_evidence
+    html, = build_site
+
+    @data.fetch("products").each do |product|
+      assert_includes html, product.fetch("name")
+      assert_includes html, product.fetch("repository_identity")
+      assert_includes html, CGI.escapeHTML(product.dig("best_fit", "text"))
+      assert_includes html, CGI.escapeHTML(product.dig("tradeoff", "text"))
+    end
+
+    @data.fetch("dimensions").each do |dimension|
+      assert_equal 1, html.scan(%(id="comparison-dimension-#{dimension.fetch("id")}")).length
+      assert_includes html, dimension.fetch("label")
+    end
+
+    @data.fetch("cells").each do |cell|
+      key = "#{cell.fetch("dimension_id")}-#{cell.fetch("product_id")}"
+      assert_equal 1, html.scan(%(data-comparison-cell="#{key}")).length
+      if cell.fetch("support_status") == "not_documented"
+        sentence = "not documented in the reviewed official sources as of #{cell.fetch("reviewed_on")}"
+        assert_includes html, sentence
+      else
+        assert_includes html, CGI.escapeHTML(cell.fetch("claim"))
+        cell.fetch("source_ids").each do |source_id|
+          source = @data.fetch("sources").fetch(source_id)
+          assert_includes html, source.fetch("url")
+          assert_includes html, source.fetch("verified_on")
+        end
+      end
+    end
+  end
+
+  def test_rendered_matrix_legend_unknowns_and_actions_are_semantic_and_fair
+    html, = build_site
+
+    assert_match(/<div[^>]+class="[^"]*comparison-table-region[^"]*"[^>]+role="region"[^>]+tabindex="0"/, html)
+    assert_match(/<table[^>]+class="[^"]*comparison-table[^"]*"/, html)
+    assert_match(/<caption>\s*#{Regexp.escape(@data.dig("page", "matrix_caption"))}\s*<\/caption>/, html)
+    assert_equal 4, html.scan(/<th[^>]*scope="col"/).length
+    assert_equal 13, html.scan(/<th[^>]*scope="row"/).length
+
+    @data.fetch("claim_types").each_value do |claim_type|
+      assert_includes html, claim_type.fetch("label")
+      assert_includes html, claim_type.fetch("description")
+    end
+    assert_includes html, "Included workflow"
+    assert_includes html, "Hive coding workflow"
+    assert_includes html, "Omnigent Polly workflow"
+    assert_includes html, "Not documented"
+
+    @data.fetch("excluded_topics").each do |topic|
+      assert_includes html, topic.fetch("label")
+      assert_includes html, topic.fetch("reason")
+    end
+
+    @data.fetch("products").each do |product|
+      product.fetch("links").each_value do |link|
+        assert_includes html, %(href="#{link.fetch("url")}")
+        assert_includes html, link.fetch("label")
+      end
+    end
+    assert_match(/class="[^"]*btn--primary[^"]*"[^>]+href="https:\/\/hivecli\.sh\/docs\/getting-started\/"/, html)
+  end
+
   private
 
   def assert_valid_source_ids(source_ids, product_id, sources)
@@ -172,5 +264,19 @@ class ComparisonPageTest < Minitest::Test
                end
 
     assert official, "expected official #{product_id} URL, got #{value}"
+  end
+
+  def build_site
+    Dir.mktmpdir do |directory|
+      destination = File.join(directory, "site")
+      env = {"BUNDLE_GEMFILE" => File.join(ROOT, "Gemfile"), "JEKYLL_ENV" => "test"}
+      command = [RbConfig.ruby, Gem.bin_path("jekyll", "jekyll"), "build",
+                 "--source", ROOT, "--destination", destination, "--quiet"]
+      stdout, stderr, status = Open3.capture3(env, *command)
+      assert status.success?, "Jekyll build failed:\n#{stdout}\n#{stderr}"
+      html = File.binread(File.join(destination, "compare", "index.html"))
+      sitemap = File.binread(File.join(destination, "sitemap.xml"))
+      [html, sitemap]
+    end
   end
 end

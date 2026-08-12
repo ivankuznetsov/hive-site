@@ -1,0 +1,11 @@
+{% assign comparison = site.data.comparison %}
+<section class="comparison-intro" aria-labelledby="comparison-title">
+  <div class="wrap">
+    <p class="eyebrow">{{ comparison.page.eyebrow }}</p>
+    <h1 id="comparison-title" class="comparison-title">{{ comparison.page.heading }}</h1>
+    <p class="section-lead">{{ comparison.page.introduction }}</p>
+    <p class="comparison-reviewed">
+      Last reviewed <time datetime="{{ comparison.reviewed_on }}">{{ comparison.reviewed_on }}</time>
+    </p>
+  </div>
+</section>
