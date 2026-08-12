@@ -5,9 +5,10 @@
     <p class="section-lead">{{ comparison.page.cta_introduction }}</p>
     <div class="comparison-cta-grid">
       {% for product in comparison.products %}
-        <article class="comparison-cta-card">
+        <article class="comparison-cta-card" data-comparison-claim="cta-{{ product.id }}-identity">
           <h3>{{ product.name }}</h3>
-          <p>{{ product.identity }}</p>
+          <p>{{ product.identity.text }}</p>
+          {% include comparison/claim-meta.html claim=product.identity %}
           <div class="comparison-cta-links">
             {% for link_entry in product.links %}
               {% assign link_key = link_entry[0] %}

@@ -41,7 +41,11 @@ products:
     name: "Hive"
     short_name: "Hive"
     repository_identity: "ivankuznetsov/hive"
-    identity: "Durable, local-first workflow engine for AI agents"
+    identity:
+      text: "Durable, local-first workflow engine for AI agents"
+      claim_type: "fact"
+      scope: "product"
+      source_ids: ["hive_repo", "hive_concepts"]
     best_fit:
       text: "Best fit when durable, user-authorable workflows and inspectable filesystem state matter more than a coding-only lifecycle."
       claim_type: "positioning_interpretation"
@@ -50,7 +54,8 @@ products:
     tradeoff:
       text: "The file-first model deliberately produces more intermediate artifacts, and the bundled coding workflow uses a longer staged path than a single agent session."
       claim_type: "fact"
-      scope: "product"
+      scope: "included_workflow"
+      scope_label: "Hive coding workflow"
       source_ids: ["hive_concepts"]
     links:
       getting_started:
@@ -67,7 +72,11 @@ products:
     name: "DoorDash Agentic Orchestrator"
     short_name: "Agentico"
     repository_identity: "doordash-oss/agentic-orchestrator"
-    identity: "Feature-lifecycle orchestrator with a primary desktop workspace and the agentico CLI"
+    identity:
+      text: "Feature-lifecycle orchestrator with a primary desktop workspace and the agentico CLI"
+      claim_type: "fact"
+      scope: "product"
+      source_ids: ["agentico_repo", "agentico_announcement"]
     best_fit:
       text: "Best fit for a specialized end-to-end software-feature lifecycle that builds context, validates plans, implements in worktrees, reviews, and publishes pull requests."
       claim_type: "positioning_interpretation"
@@ -90,7 +99,11 @@ products:
     name: "Omnigent"
     short_name: "Omnigent"
     repository_identity: "omnigent-ai/omnigent"
-    identity: "Open-source AI agent framework and meta-harness"
+    identity:
+      text: "Open-source AI agent framework and meta-harness"
+      claim_type: "fact"
+      scope: "product"
+      source_ids: ["omnigent_repo", "omnigent_harnesses"]
     best_fit:
       text: "Best fit when cross-harness governance, shared policy, and real-time collaboration matter across several agent runtimes."
       claim_type: "positioning_interpretation"
@@ -319,7 +332,8 @@ cells:
     support_status: "documented"
     claim: "Project-local state retains the original request, stage artifacts, logs, review records, configuration, and feature-worktree pointer so later stages can read the trail directly."
     claim_type: "fact"
-    scope: "product"
+    scope: "included_workflow"
+    scope_label: "Hive coding workflow"
     source_ids: ["hive_concepts", "hive_configuration"]
   - dimension_id: "repository_context"
     product_id: "agentico"
@@ -389,10 +403,11 @@ cells:
     source_ids: ["hive_repo", "hive_configuration", "hive_operating"]
   - dimension_id: "policy_sandboxing"
     product_id: "agentico"
-    support_status: "not_documented"
+    support_status: "documented"
+    claim: "Agentico documents permission prompts and a --dangerously-skip-permissions option for bypassing them."
+    claim_type: "fact"
     scope: "product"
-    reviewed_on: "2026-08-12"
-    reviewed_source_ids: ["agentico_repo", "agentico_announcement"]
+    source_ids: ["agentico_repo"]
   - dimension_id: "policy_sandboxing"
     product_id: "omnigent"
     support_status: "documented"

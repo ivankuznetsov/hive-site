@@ -28,6 +28,11 @@ class ComparisonPageTest < Minitest::Test
   ].freeze
   CLAIM_TYPES = %w[fact positioning_interpretation hive_maintainer_inference].freeze
   SCOPES = %w[product included_workflow].freeze
+  REQUIRED_LINK_TYPES = {
+    "hive" => %w[getting_started documentation source],
+    "agentico" => %w[getting_started source],
+    "omnigent" => %w[getting_started documentation source]
+  }.freeze
 
   def setup
     assert_path_exists DATA_PATH
@@ -52,7 +57,7 @@ class ComparisonPageTest < Minitest::Test
     sources = @data.fetch("sources")
 
     @data.fetch("products").each do |product|
-      %w[best_fit tradeoff].each do |field|
+      %w[identity best_fit tradeoff].each do |field|
         claim = product.fetch(field)
         assert_includes CLAIM_TYPES, claim.fetch("claim_type")
         assert_includes SCOPES, claim.fetch("scope")
@@ -98,7 +103,7 @@ class ComparisonPageTest < Minitest::Test
     sources = @data.fetch("sources")
 
     cited_ids = @data.fetch("products").flat_map do |product|
-      %w[best_fit tradeoff].flat_map { |field| product.fetch(field).fetch("source_ids") }
+      %w[identity best_fit tradeoff].flat_map { |field| product.fetch(field).fetch("source_ids") }
     end
     cited_ids.concat(@data.fetch("cells").flat_map { |cell|
       cell["source_ids"] || cell.fetch("reviewed_source_ids")
@@ -127,9 +132,23 @@ class ComparisonPageTest < Minitest::Test
     end
 
     refute_empty hive_coding
+    assert_equal %w[planning_review repository_context isolation], hive_coding.map { |cell| cell.fetch("dimension_id") }
     assert hive_coding.all? { |cell| cell.fetch("scope_label").include?("Hive coding") }
+    hive_tradeoff = @data.fetch("products").find { |product| product.fetch("id") == "hive" }.fetch("tradeoff")
+    assert_equal "included_workflow", hive_tradeoff.fetch("scope")
+    assert_includes hive_tradeoff.fetch("scope_label"), "Hive coding"
     refute_empty omnigent_polly
     assert omnigent_polly.all? { |cell| cell.fetch("scope_label").include?("Polly") }
+  end
+
+  def test_agentico_permission_controls_are_documented_from_its_repository
+    cell = @data.fetch("cells").find do |candidate|
+      candidate.fetch("product_id") == "agentico" && candidate.fetch("dimension_id") == "policy_sandboxing"
+    end
+
+    assert_equal "documented", cell.fetch("support_status")
+    assert_equal ["agentico_repo"], cell.fetch("source_ids")
+    assert_includes cell.fetch("claim"), "--dangerously-skip-permissions"
   end
 
   def test_omnigent_identity_and_excluded_comparison_boundaries_are_explicit
@@ -142,6 +161,12 @@ class ComparisonPageTest < Minitest::Test
     assert_empty DIMENSION_IDS & @data.fetch("excluded_topics").map { |topic| topic.fetch("id") }
     refute_match(/overall winner|best overall|feature score|repository stars/i,
                  @data.fetch("products").to_s + @data.fetch("cells").to_s)
+  end
+
+  def test_official_repository_allowlist_rejects_sibling_repository_names
+    refute official_url?("hive", "https://github.com/ivankuznetsov/hive-spoof")
+    refute official_url?("agentico", "https://github.com/doordash-oss/agentic-orchestrator-fork")
+    refute official_url?("omnigent", "https://github.com/omnigent-ai/omnigent-tools")
   end
 
   def test_page_is_declarative_and_renders_the_complete_decision_journey
@@ -176,8 +201,14 @@ class ComparisonPageTest < Minitest::Test
     @data.fetch("products").each do |product|
       assert_includes html, product.fetch("name")
       assert_includes html, product.fetch("repository_identity")
-      assert_includes html, CGI.escapeHTML(product.dig("best_fit", "text"))
-      assert_includes html, CGI.escapeHTML(product.dig("tradeoff", "text"))
+      %w[identity best_fit tradeoff].each do |field|
+        claim = product.fetch(field)
+        region = rendered_element(html, "data-comparison-claim", "summary-#{product.fetch("id")}-#{field.tr("_", "-")}")
+        assert_rendered_claim region, claim
+      end
+
+      cta_region = rendered_element(html, "data-comparison-claim", "cta-#{product.fetch("id")}-identity")
+      assert_rendered_claim cta_region, product.fetch("identity")
     end
 
     @data.fetch("dimensions").each do |dimension|
@@ -188,16 +219,17 @@ class ComparisonPageTest < Minitest::Test
     @data.fetch("cells").each do |cell|
       key = "#{cell.fetch("dimension_id")}-#{cell.fetch("product_id")}"
       assert_equal 1, html.scan(%(data-comparison-cell="#{key}")).length
+      region = rendered_element(html, "data-comparison-cell", key)
       if cell.fetch("support_status") == "not_documented"
         sentence = "not documented in the reviewed official sources as of #{cell.fetch("reviewed_on")}"
-        assert_includes html, sentence
-      else
-        assert_includes html, CGI.escapeHTML(cell.fetch("claim"))
-        cell.fetch("source_ids").each do |source_id|
+        assert_includes region, sentence
+        cell.fetch("reviewed_source_ids").each do |source_id|
           source = @data.fetch("sources").fetch(source_id)
-          assert_includes html, source.fetch("url")
-          assert_includes html, source.fetch("verified_on")
+          assert_includes region, source.fetch("url")
+          assert_includes region, cell.fetch("reviewed_on")
         end
+      else
+        assert_rendered_claim region, cell
       end
     end
   end
@@ -226,6 +258,7 @@ class ComparisonPageTest < Minitest::Test
     end
 
     @data.fetch("products").each do |product|
+      assert_equal REQUIRED_LINK_TYPES.fetch(product.fetch("id")).to_set, product.fetch("links").keys.to_set
       product.fetch("links").each_value do |link|
         assert_includes html, %(href="#{link.fetch("url")}")
         assert_includes html, link.fetch("label")
@@ -278,23 +311,35 @@ class ComparisonPageTest < Minitest::Test
   end
 
   def test_rendered_page_has_no_broken_internal_targets_or_template_artifacts
-    html, _sitemap, built_paths, homepage = rendered_site
+    html, _sitemap, built_paths, homepage, built_html = rendered_site
     hrefs = html.scan(/href="([^"]+)"/).flatten
-    internal_paths = hrefs.filter_map do |href|
-      next unless href.start_with?("/")
+    internal_targets = hrefs.filter_map do |href|
+      next unless href.start_with?("/", "#")
 
-      href.split("#", 2).first
+      internal_target(href)
     end.uniq
 
-    internal_paths.each do |path|
+    internal_targets.each do |path, fragment|
       expected = path.end_with?("/") ? "#{path}index.html" : path
-      assert_includes built_paths, expected.delete_prefix("/")
+      expected = expected.delete_prefix("/")
+      assert_includes built_paths, expected
+      next unless fragment
+
+      target_html = built_html.fetch(expected)
+      assert fragment_id_present?(target_html, fragment),
+             "expected #{href_for(path, fragment)} to reference an existing id"
     end
 
     assert_includes homepage, 'id="install"'
     refute_match(/\{\{|\{%/, html)
     refute_match(/href=""|href="#"/, html)
     assert_empty html.scan(/id="([^"]+)"/).flatten.tally.select { |_id, count| count > 1 }
+  end
+
+  def test_internal_target_validation_preserves_and_checks_fragment_only_links
+    assert_equal ["/compare/", "missing-target"], internal_target("#missing-target")
+    refute fragment_id_present?('<main id="present-target"></main>', "missing-target")
+    assert fragment_id_present?('<main id="present-target"></main>', "present-target")
   end
 
   private
@@ -311,22 +356,74 @@ class ComparisonPageTest < Minitest::Test
   end
 
   def assert_official_url(product_id, value)
+    assert official_url?(product_id, value), "expected official #{product_id} URL, got #{value}"
+  end
+
+  def official_url?(product_id, value)
     uri = URI.parse(value)
-    assert_equal "https", uri.scheme
+    return false unless uri.scheme == "https"
 
-    official = case product_id
-               when "hive"
-                 uri.host == "hivecli.sh" ||
-                   (uri.host == "github.com" && uri.path.start_with?("/ivankuznetsov/hive"))
-               when "agentico"
-                 uri.host == "careersatdoordash.com" ||
-                   (uri.host == "github.com" && uri.path.start_with?("/doordash-oss/agentic-orchestrator"))
-               when "omnigent"
-                 uri.host == "omnigent.ai" ||
-                   (uri.host == "github.com" && uri.path.start_with?("/omnigent-ai/omnigent"))
-               end
+    case product_id
+    when "hive"
+      uri.host == "hivecli.sh" ||
+        (uri.host == "github.com" && repository_path?(uri.path, "/ivankuznetsov/hive"))
+    when "agentico"
+      uri.host == "careersatdoordash.com" ||
+        (uri.host == "github.com" && repository_path?(uri.path, "/doordash-oss/agentic-orchestrator"))
+    when "omnigent"
+      uri.host == "omnigent.ai" ||
+        (uri.host == "github.com" && repository_path?(uri.path, "/omnigent-ai/omnigent"))
+    else
+      false
+    end
+  end
 
-    assert official, "expected official #{product_id} URL, got #{value}"
+  def repository_path?(path, repository)
+    path == repository || path.start_with?("#{repository}/")
+  end
+
+  def assert_rendered_claim(region, claim)
+    assert_includes region, CGI.escapeHTML(claim.fetch("text", claim["claim"]))
+    assert_includes region, @data.dig("claim_types", claim.fetch("claim_type"), "label")
+    scope_label = claim["scope_label"] || @data.dig("scopes", claim.fetch("scope"), "label")
+    assert_includes region, scope_label
+    claim.fetch("source_ids").each do |source_id|
+      source = @data.fetch("sources").fetch(source_id)
+      assert_includes region, source.fetch("url")
+      assert_includes region, source.fetch("verified_on")
+    end
+  end
+
+  def rendered_element(html, attribute, value)
+    opening = html.match(/<(?<tag>[a-z][a-z0-9]*)\b[^>]*\b#{Regexp.escape(attribute)}="#{Regexp.escape(value)}"[^>]*>/i)
+    refute_nil opening, "expected rendered element with #{attribute}=#{value.inspect}"
+
+    tag = opening[:tag]
+    depth = 1
+    cursor = opening.end(0)
+    html.to_enum(:scan, /<\/?#{Regexp.escape(tag)}\b[^>]*>/i).each do
+      token = Regexp.last_match
+      next if token.begin(0) < cursor
+
+      depth += token[0].start_with?("</") ? -1 : 1
+      return html[opening.begin(0)...token.end(0)] if depth.zero?
+    end
+
+    flunk "expected closing </#{tag}> for #{attribute}=#{value.inspect}"
+  end
+
+  def href_for(path, fragment)
+    "#{path}##{fragment}"
+  end
+
+  def internal_target(href)
+    uri = URI.parse(href)
+    [uri.path.empty? ? "/compare/" : uri.path, uri.fragment]
+  end
+
+  def fragment_id_present?(html, fragment)
+    fragment_id = URI::DEFAULT_PARSER.unescape(fragment)
+    html.match?(/\bid=["']#{Regexp.escape(fragment_id)}["']/)
   end
 
   def rendered_site
@@ -342,13 +439,19 @@ class ComparisonPageTest < Minitest::Test
       stdout, stderr, status = Open3.capture3(env, *command)
       raise "Jekyll build failed:\n#{stdout}\n#{stderr}" unless status.success?
 
+      built_paths = Dir.glob("**/*", File::FNM_DOTMATCH, base: destination).select do |path|
+        File.file?(File.join(destination, path))
+      end
+      built_html = built_paths.grep(/\.html\z/).to_h do |path|
+        [path, File.binread(File.join(destination, path))]
+      end
+
       [
         File.binread(File.join(destination, "compare", "index.html")),
         File.binread(File.join(destination, "sitemap.xml")),
-        Dir.glob("**/*", File::FNM_DOTMATCH, base: destination).select do |path|
-          File.file?(File.join(destination, path))
-        end,
-        File.binread(File.join(destination, "index.html"))
+        built_paths,
+        File.binread(File.join(destination, "index.html")),
+        built_html
       ]
     end
   end
