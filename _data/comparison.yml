@@ -1,0 +1,532 @@
+schema: "hive-site-comparison/v1"
+reviewed_on: "2026-08-12"
+
+page:
+  eyebrow: "Agent orchestrator comparison"
+  heading: "Choose by product boundary, not a universal score"
+  introduction: "Hive, Agentico, and Omnigent address related orchestration problems from different starting points. This comparison maps their documented boundaries and tradeoffs so you can choose the approach that fits the work. It does not name a generic winner."
+  summary_heading: "Three distinct best fits"
+  matrix_heading: "Compare the decision dimensions"
+  matrix_introduction: "Read each cell with its claim type, scope, and dated official evidence. A narrower workflow label means the behavior is documented for that included workflow, not automatically for the whole product."
+  matrix_caption: "Hive, Agentico, and Omnigent across thirteen product and delivery dimensions"
+  evidence_heading: "How to read the evidence"
+  evidence_introduction: "The labels separate first-party documentation from this Hive-maintained page's interpretation. Verification dates say when the linked source was last checked; they are not release dates."
+  sources_heading: "Official source register"
+  excluded_heading: "What this page does not compare"
+  excluded_introduction: "These topics need equivalent definitions and first-party evidence across all three products. Until that exists, a blank score would be less honest than leaving the category out."
+  cta_heading: "Follow the boundary that fits"
+  cta_introduction: "Start with the maintained path for the product you choose. Every route below goes directly to that product's first-party material."
+
+claim_types:
+  fact:
+    label: "Sourced fact"
+    description: "A capability or boundary stated directly in the linked first-party material."
+  positioning_interpretation:
+    label: "Positioning interpretation"
+    description: "A best-fit or tradeoff conclusion drawn from the linked first-party material."
+  hive_maintainer_inference:
+    label: "Hive-maintainer inference"
+    description: "A narrow inference made by the Hive maintainers and kept distinct from a product's own wording."
+
+scopes:
+  product:
+    label: "Whole product"
+    description: "The source describes the product or its primary supported surface."
+  included_workflow:
+    label: "Included workflow"
+    description: "The source describes a named workflow bundled with the product, not every possible use of the platform."
+
+products:
+  - id: "hive"
+    name: "Hive"
+    short_name: "Hive"
+    repository_identity: "ivankuznetsov/hive"
+    identity: "Durable, local-first workflow engine for AI agents"
+    best_fit:
+      text: "Best fit when durable, user-authorable workflows and inspectable filesystem state matter more than a coding-only lifecycle."
+      claim_type: "positioning_interpretation"
+      scope: "product"
+      source_ids: ["hive_repo", "hive_concepts", "hive_custom_workflows"]
+    tradeoff:
+      text: "The file-first model deliberately produces more intermediate artifacts, and the bundled coding workflow uses a longer staged path than a single agent session."
+      claim_type: "fact"
+      scope: "product"
+      source_ids: ["hive_concepts"]
+    links:
+      getting_started:
+        label: "Get started with Hive"
+        url: "https://hivecli.sh/docs/getting-started/"
+      documentation:
+        label: "Read Hive docs"
+        url: "https://hivecli.sh/docs/"
+      source:
+        label: "View Hive source"
+        url: "https://github.com/ivankuznetsov/hive"
+
+  - id: "agentico"
+    name: "DoorDash Agentic Orchestrator"
+    short_name: "Agentico"
+    repository_identity: "doordash-oss/agentic-orchestrator"
+    identity: "Feature-lifecycle orchestrator with a primary desktop workspace and the agentico CLI"
+    best_fit:
+      text: "Best fit for a specialized end-to-end software-feature lifecycle that builds context, validates plans, implements in worktrees, reviews, and publishes pull requests."
+      claim_type: "positioning_interpretation"
+      scope: "product"
+      source_ids: ["agentico_repo", "agentico_announcement"]
+    tradeoff:
+      text: "Its documented center is the coding-feature lifecycle and a primary desktop workspace, rather than authoring arbitrary non-code workflow shapes."
+      claim_type: "positioning_interpretation"
+      scope: "product"
+      source_ids: ["agentico_repo", "agentico_announcement"]
+    links:
+      getting_started:
+        label: "Install Agentico"
+        url: "https://github.com/doordash-oss/agentic-orchestrator#quick-start"
+      source:
+        label: "View Agentico source"
+        url: "https://github.com/doordash-oss/agentic-orchestrator"
+
+  - id: "omnigent"
+    name: "Omnigent"
+    short_name: "Omnigent"
+    repository_identity: "omnigent-ai/omnigent"
+    identity: "Open-source AI agent framework and meta-harness"
+    best_fit:
+      text: "Best fit when cross-harness governance, shared policy, and real-time collaboration matter across several agent runtimes."
+      claim_type: "positioning_interpretation"
+      scope: "product"
+      source_ids: ["omnigent_repo", "omnigent_harnesses", "omnigent_policies", "omnigent_collaboration"]
+    tradeoff:
+      text: "The platform exposes a broader operator and configuration surface; its coding-specific delegation, worktree, and cross-review lifecycle belongs to Polly rather than every Omnigent agent."
+      claim_type: "positioning_interpretation"
+      scope: "product"
+      source_ids: ["omnigent_repo", "omnigent_harnesses", "omnigent_polly"]
+    links:
+      getting_started:
+        label: "Install Omnigent"
+        url: "https://github.com/omnigent-ai/omnigent#quick-start"
+      documentation:
+        label: "Read Omnigent docs"
+        url: "https://omnigent.ai/docs/"
+      source:
+        label: "View Omnigent source"
+        url: "https://github.com/omnigent-ai/omnigent"
+
+dimensions:
+  - id: "product_scope"
+    label: "Product scope"
+  - id: "workflow_state"
+    label: "Workflow and state"
+  - id: "harnesses_providers"
+    label: "Harnesses and providers"
+  - id: "planning_review"
+    label: "Planning and review"
+  - id: "repository_context"
+    label: "Repository context"
+  - id: "isolation"
+    label: "Isolation"
+  - id: "multi_repository_delivery"
+    label: "Multi-repository delivery"
+  - id: "policy_sandboxing"
+    label: "Policy and sandboxing"
+  - id: "collaboration_ui"
+    label: "Collaboration and UI"
+  - id: "durability_recovery"
+    label: "Durability and recovery"
+  - id: "extensibility"
+    label: "Extensibility"
+  - id: "deployment"
+    label: "Deployment"
+  - id: "ideal_use_cases"
+    label: "Ideal use cases"
+
+sources:
+  hive_repo:
+    product_id: "hive"
+    title: "Hive repository overview"
+    url: "https://github.com/ivankuznetsov/hive/blob/a3aa71293c372272af7de35b917a30db74b94e85/README.md"
+    verified_on: "2026-08-12"
+    source_revision: "a3aa71293c372272af7de35b917a30db74b94e85"
+  hive_concepts:
+    product_id: "hive"
+    title: "Hive concepts"
+    url: "https://hivecli.sh/docs/concepts/"
+    verified_on: "2026-08-12"
+  hive_custom_workflows:
+    product_id: "hive"
+    title: "Hive custom workflows"
+    url: "https://hivecli.sh/docs/custom-workflows/"
+    verified_on: "2026-08-12"
+  hive_configuration:
+    product_id: "hive"
+    title: "Hive configuration"
+    url: "https://hivecli.sh/docs/configuration/"
+    verified_on: "2026-08-12"
+  hive_operating:
+    product_id: "hive"
+    title: "Operating Hive"
+    url: "https://hivecli.sh/docs/operating/"
+    verified_on: "2026-08-12"
+
+  agentico_repo:
+    product_id: "agentico"
+    title: "Agentic Orchestrator repository overview"
+    url: "https://github.com/doordash-oss/agentic-orchestrator/blob/ba2b975ab2c1c7a0595812fa98d81626dd71b7f0/README.md"
+    verified_on: "2026-08-12"
+    source_revision: "ba2b975ab2c1c7a0595812fa98d81626dd71b7f0"
+  agentico_announcement:
+    product_id: "agentico"
+    title: "DoorDash: Inside one engineer's journey to master long-running agents"
+    url: "https://careersatdoordash.com/blog/engineers-journey-long-running-ai-agents/"
+    verified_on: "2026-08-12"
+  agentico_remote_servers:
+    product_id: "agentico"
+    title: "Agentico remote servers"
+    url: "https://github.com/doordash-oss/agentic-orchestrator/blob/ba2b975ab2c1c7a0595812fa98d81626dd71b7f0/docs/desktop/remote-servers.md"
+    verified_on: "2026-08-12"
+    source_revision: "ba2b975ab2c1c7a0595812fa98d81626dd71b7f0"
+
+  omnigent_repo:
+    product_id: "omnigent"
+    title: "Omnigent repository overview"
+    url: "https://github.com/omnigent-ai/omnigent/blob/0bea9873e6b697290e0a2d172eb879151839a2a6/README.md"
+    verified_on: "2026-08-12"
+    source_revision: "0bea9873e6b697290e0a2d172eb879151839a2a6"
+  omnigent_harnesses:
+    product_id: "omnigent"
+    title: "Omnigent harnesses"
+    url: "https://omnigent.ai/docs/build/harnesses"
+    verified_on: "2026-08-12"
+  omnigent_polly:
+    product_id: "omnigent"
+    title: "Omnigent Polly"
+    url: "https://omnigent.ai/docs/use/builtin-agents/polly"
+    verified_on: "2026-08-12"
+  omnigent_policies:
+    product_id: "omnigent"
+    title: "Omnigent builtin policies"
+    url: "https://omnigent.ai/docs/policies/builtin"
+    verified_on: "2026-08-12"
+  omnigent_os_sandbox:
+    product_id: "omnigent"
+    title: "Omnigent OS sandbox scope"
+    url: "https://omnigent.ai/docs/policies/os-sandbox"
+    verified_on: "2026-08-12"
+  omnigent_collaboration:
+    product_id: "omnigent"
+    title: "Omnigent pair programming"
+    url: "https://omnigent.ai/docs/collaborate"
+    verified_on: "2026-08-12"
+  omnigent_deployment:
+    product_id: "omnigent"
+    title: "Omnigent shared server deployment"
+    url: "https://omnigent.ai/docs/deploy/overview"
+    verified_on: "2026-08-12"
+
+cells:
+  - dimension_id: "product_scope"
+    product_id: "hive"
+    support_status: "documented"
+    claim: "A general-purpose, local-first workflow engine: coding is the flagship workflow, alongside content, benchmark, installed Honeycombs, and workflows users author themselves."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["hive_repo", "hive_custom_workflows"]
+  - dimension_id: "product_scope"
+    product_id: "agentico"
+    support_status: "documented"
+    claim: "An AI development workflow orchestrator designed to carry a software feature from a high-level request through research, planning, implementation, review, and pull request publication."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["agentico_repo", "agentico_announcement"]
+  - dimension_id: "product_scope"
+    product_id: "omnigent"
+    support_status: "documented"
+    claim: "An open-source AI agent framework and meta-harness that provides a common orchestration layer for coding agents and custom agents."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["omnigent_repo", "omnigent_harnesses"]
+
+  - dimension_id: "workflow_state"
+    product_id: "hive"
+    support_status: "documented"
+    claim: "A task is a directory, its stage-folder location is its state, and each stage writes durable artifacts and markers for the next transition."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["hive_concepts"]
+  - dimension_id: "workflow_state"
+    product_id: "agentico"
+    support_status: "documented"
+    claim: "Features move through a profile-dependent, checkpoint-driven lifecycle; structured artifacts, roadmap phases, and progress files carry context between sessions."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["agentico_repo", "agentico_announcement"]
+  - dimension_id: "workflow_state"
+    product_id: "omnigent"
+    support_status: "documented"
+    claim: "The server persists conversation, message, and tool-call history, while each harness keeps its native agent loop and Omnigent layers shared session controls around it."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["omnigent_harnesses", "omnigent_deployment"]
+
+  - dimension_id: "harnesses_providers"
+    product_id: "hive"
+    support_status: "documented"
+    claim: "Stages and reviewers can be assigned across Claude, Codex, Grok, and Pi, with project configuration recording the selected agents and models."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["hive_repo", "hive_configuration"]
+  - dimension_id: "harnesses_providers"
+    product_id: "agentico"
+    support_status: "documented"
+    claim: "Claude, Codex, and OpenCode are co-equal provider CLIs; one can run the workflow or roles can be split and overridden by phase."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["agentico_repo"]
+  - dimension_id: "harnesses_providers"
+    product_id: "omnigent"
+    support_status: "documented"
+    claim: "Direct and native harnesses cover multiple coding-agent runtimes; changing the harness preserves shared tools, policies, prompts, and models, and custom ACP agents can be registered."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["omnigent_harnesses"]
+
+  - dimension_id: "planning_review"
+    product_id: "hive"
+    support_status: "documented"
+    claim: "The bundled coding workflow moves through brainstorm, plan, execute, pull-request creation, autonomous multi-reviewer hardening, artifact capture, and finalize stages."
+    claim_type: "fact"
+    scope: "included_workflow"
+    scope_label: "Hive coding workflow"
+    source_ids: ["hive_repo", "hive_concepts"]
+  - dimension_id: "planning_review"
+    product_id: "agentico"
+    support_status: "documented"
+    claim: "Every profile plans roadmap phases and runs Final Review; deeper profiles add inquiry, research, design, plan critics, and implementation-time review gates."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["agentico_repo"]
+  - dimension_id: "planning_review"
+    product_id: "omnigent"
+    support_status: "documented"
+    claim: "Polly decomposes a coding goal into sub-tasks, delegates implementation, and sends the diff to a different-vendor reviewer with fix loops for blocking issues."
+    claim_type: "fact"
+    scope: "included_workflow"
+    scope_label: "Omnigent Polly workflow"
+    source_ids: ["omnigent_polly"]
+
+  - dimension_id: "repository_context"
+    product_id: "hive"
+    support_status: "documented"
+    claim: "Project-local state retains the original request, stage artifacts, logs, review records, configuration, and feature-worktree pointer so later stages can read the trail directly."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["hive_concepts", "hive_configuration"]
+  - dimension_id: "repository_context"
+    product_id: "agentico"
+    support_status: "documented"
+    claim: "A per-repository knowledge base records architecture, conventions, APIs, dependencies, and verification commands, then refreshes when repository HEAD changes."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["agentico_repo"]
+  - dimension_id: "repository_context"
+    product_id: "omnigent"
+    support_status: "documented"
+    claim: "Project and user configuration select harness behavior, while native and ACP harnesses retain their own agent loops, tools, credentials, and context windows inside Omnigent sessions."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["omnigent_harnesses"]
+
+  - dimension_id: "isolation"
+    product_id: "hive"
+    support_status: "documented"
+    claim: "Execute creates a feature worktree and records its pointer before implementation begins."
+    claim_type: "fact"
+    scope: "included_workflow"
+    scope_label: "Hive coding workflow"
+    source_ids: ["hive_concepts"]
+  - dimension_id: "isolation"
+    product_id: "agentico"
+    support_status: "documented"
+    claim: "Each feature receives isolated worktrees, branches, sessions, and artifacts; a multi-repository feature receives one worktree per target repository."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["agentico_repo", "agentico_announcement"]
+  - dimension_id: "isolation"
+    product_id: "omnigent"
+    support_status: "documented"
+    claim: "Each Polly implementation sub-task runs in its own harness and git worktree, with a worktree guard available to contain writes."
+    claim_type: "fact"
+    scope: "included_workflow"
+    scope_label: "Omnigent Polly workflow"
+    source_ids: ["omnigent_polly", "omnigent_policies"]
+
+  - dimension_id: "multi_repository_delivery"
+    product_id: "hive"
+    support_status: "not_documented"
+    scope: "product"
+    reviewed_on: "2026-08-12"
+    reviewed_source_ids: ["hive_repo", "hive_concepts", "hive_custom_workflows", "hive_configuration", "hive_operating"]
+  - dimension_id: "multi_repository_delivery"
+    product_id: "agentico"
+    support_status: "documented"
+    claim: "A feature can target several repositories, order implementation by cross-repository dependencies, and create cross-referenced pull requests."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["agentico_repo"]
+  - dimension_id: "multi_repository_delivery"
+    product_id: "omnigent"
+    support_status: "not_documented"
+    scope: "product"
+    reviewed_on: "2026-08-12"
+    reviewed_source_ids: ["omnigent_repo", "omnigent_harnesses", "omnigent_polly"]
+
+  - dimension_id: "policy_sandboxing"
+    product_id: "hive"
+    support_status: "documented"
+    claim: "Project settings choose agent permission modes; Hivebox is the documented container distribution for untrusted agents, reproducible hosts, or multiple isolated instances."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["hive_repo", "hive_configuration", "hive_operating"]
+  - dimension_id: "policy_sandboxing"
+    product_id: "agentico"
+    support_status: "not_documented"
+    scope: "product"
+    reviewed_on: "2026-08-12"
+    reviewed_source_ids: ["agentico_repo", "agentico_announcement"]
+  - dimension_id: "policy_sandboxing"
+    product_id: "omnigent"
+    support_status: "documented"
+    claim: "Contextual policies can allow, ask, or deny tool actions, and built-in policy can enforce OS sandbox read, write, and network limits within documented platform boundaries."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["omnigent_policies", "omnigent_os_sandbox"]
+
+  - dimension_id: "collaboration_ui"
+    product_id: "hive"
+    support_status: "documented"
+    claim: "A local TUI and native web dashboard expose the same registered projects and workflow state; optional Telegram control supports status, queue, and approvals."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["hive_repo", "hive_operating"]
+  - dimension_id: "collaboration_ui"
+    product_id: "agentico"
+    support_status: "documented"
+    claim: "The desktop app is the primary interface, with a dashboard for concurrent features, checkpoints, help requests, review, and publishing decisions."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["agentico_repo", "agentico_announcement"]
+  - dimension_id: "collaboration_ui"
+    product_id: "omnigent"
+    support_status: "documented"
+    claim: "Multi-user sessions work across terminal, web, mobile, and desktop; teammates can watch, co-drive, or fork a conversation with server-controlled sharing permissions."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["omnigent_repo", "omnigent_collaboration"]
+
+  - dimension_id: "durability_recovery"
+    product_id: "hive"
+    support_status: "documented"
+    claim: "Filesystem state, stage markers, locks, and retained artifacts let the daemon or an operator resume from an explicit task state after interruptions."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["hive_repo", "hive_concepts", "hive_operating"]
+  - dimension_id: "durability_recovery"
+    product_id: "agentico"
+    support_status: "documented"
+    claim: "The persisted state machine, progress files, session management, and crash recovery are designed to continue work across fresh agent contexts and process interruptions."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["agentico_repo", "agentico_announcement"]
+  - dimension_id: "durability_recovery"
+    product_id: "omnigent"
+    support_status: "documented"
+    claim: "The server persists conversations, messages, and tool calls in SQLite or Postgres so sessions can remain available across interfaces and deployed hosts."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["omnigent_repo", "omnigent_deployment"]
+
+  - dimension_id: "extensibility"
+    product_id: "hive"
+    support_status: "documented"
+    claim: "Users define ordered stages in YAML, author project-local workflows, or install reviewed Honeycomb workflow packages."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["hive_repo", "hive_custom_workflows"]
+  - dimension_id: "extensibility"
+    product_id: "agentico"
+    support_status: "documented"
+    claim: "Configuration selects pipeline depth, verification commands, provider availability, and per-phase models within the feature lifecycle."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["agentico_repo"]
+  - dimension_id: "extensibility"
+    product_id: "omnigent"
+    support_status: "documented"
+    claim: "Users can define agents in YAML, register custom ACP agents, install community harness plugins, and add custom policies."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["omnigent_repo", "omnigent_harnesses", "omnigent_policies"]
+
+  - dimension_id: "deployment"
+    product_id: "hive"
+    support_status: "documented"
+    claim: "Hive runs locally as a CLI with user services and a loopback web UI; Hivebox supplies a containerized server or NAS option."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["hive_repo", "hive_operating"]
+  - dimension_id: "deployment"
+    product_id: "agentico"
+    support_status: "documented"
+    claim: "The desktop app supervises a matched server locally; the CLI can run a headless server and the desktop app can attach to a remote server."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["agentico_repo", "agentico_remote_servers"]
+  - dimension_id: "deployment"
+    product_id: "omnigent"
+    support_status: "documented"
+    claim: "The server can run locally or through documented Docker Compose, cloud-platform, managed-service, and Kubernetes deployment paths."
+    claim_type: "fact"
+    scope: "product"
+    source_ids: ["omnigent_repo", "omnigent_deployment"]
+
+  - dimension_id: "ideal_use_cases"
+    product_id: "hive"
+    support_status: "documented"
+    claim: "Choose Hive for durable, inspectable workflows whose stages should remain editable and reusable across software delivery, writing, research, audits, or operations."
+    claim_type: "positioning_interpretation"
+    scope: "product"
+    source_ids: ["hive_repo", "hive_concepts", "hive_custom_workflows"]
+  - dimension_id: "ideal_use_cases"
+    product_id: "agentico"
+    support_status: "documented"
+    claim: "Choose Agentico for complex software features that benefit from a prescribed context-to-plan-to-review lifecycle, parallel feature isolation, and multi-repository pull-request delivery."
+    claim_type: "positioning_interpretation"
+    scope: "product"
+    source_ids: ["agentico_repo", "agentico_announcement"]
+  - dimension_id: "ideal_use_cases"
+    product_id: "omnigent"
+    support_status: "documented"
+    claim: "Choose Omnigent when several harnesses, shared governance, live collaboration, or deployable agent infrastructure matter more than one prescribed coding lifecycle."
+    claim_type: "positioning_interpretation"
+    scope: "product"
+    source_ids: ["omnigent_repo", "omnigent_harnesses", "omnigent_policies", "omnigent_collaboration", "omnigent_deployment"]
+
+excluded_topics:
+  - id: "pricing"
+    label: "Pricing"
+    reason: "Provider, subscription, and infrastructure costs are not defined on an equivalent basis."
+  - id: "performance_superiority"
+    label: "Performance superiority"
+    reason: "No shared first-party benchmark covers the same tasks, settings, and outcome measure."
+  - id: "popularity_adoption"
+    label: "Popularity or adoption"
+    reason: "Repository and social counts do not establish product fit."
+  - id: "security_quality"
+    label: "Security quality"
+    reason: "Documented controls are compared as product boundaries, not scored as assurance."
+  - id: "reliability"
+    label: "Reliability"
+    reason: "Recovery mechanisms are documented, but no equivalent operational reliability evidence is available."
+  - id: "roadmap"
+    label: "Roadmap"
+    reason: "Future intent is not treated as a shipped capability."
