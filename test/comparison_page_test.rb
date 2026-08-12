@@ -249,6 +249,54 @@ class ComparisonPageTest < Minitest::Test
     assert_match(/@media \(prefers-reduced-motion: reduce\).*transform:\s*none/m, styles)
   end
 
+  def test_compare_is_in_shared_navigation_and_install_link_is_root_qualified
+    layout = File.read(File.join(ROOT, "_layouts", "home.html"))
+    footer = File.read(File.join(ROOT, "_includes", "landing", "footer.html"))
+
+    assert_equal 1, layout.scan("'/compare/'").length
+    assert_equal 1, footer.scan("'/compare/'").length
+    assert_includes layout, "{{ '/' | relative_url }}#install"
+    refute_includes layout, 'href="#install"'
+
+    html, = rendered_site
+    assert_match(/<nav[^>]+aria-label="Primary".*href="\/compare\/"[^>]*>Compare<\/a>/m, html)
+    assert_match(/<nav[^>]+aria-label="Footer".*href="\/compare\/"[^>]*>Compare<\/a>/m, html)
+    assert_equal 2, html.scan('href="/compare/"').length
+    assert_includes html, 'href="/#install"'
+    refute_includes html, 'href="#install"'
+  end
+
+  def test_rendered_seo_metadata_and_sitemap_expose_one_canonical_compare_route
+    html, sitemap = rendered_site
+
+    assert_includes html, "<title>Compare Hive, Agentico, and Omnigent | Hive</title>"
+    assert_match(/<meta name="description" content="Compare Hive, DoorDash Agentic Orchestrator, and Omnigent by product scope,\s+workflow model, evidence-backed strengths, and material tradeoffs\." \/>/, html)
+    assert_includes html, '<link rel="canonical" href="https://hivecli.sh/compare/" />'
+    assert_includes html, '<meta property="og:url" content="https://hivecli.sh/compare/" />'
+    assert_includes html, '<meta property="og:image" content="https://hivecli.sh/assets/img/og-image.png" />'
+    assert_equal 1, sitemap.scan("<loc>https://hivecli.sh/compare/</loc>").length
+  end
+
+  def test_rendered_page_has_no_broken_internal_targets_or_template_artifacts
+    html, _sitemap, built_paths, homepage = rendered_site
+    hrefs = html.scan(/href="([^"]+)"/).flatten
+    internal_paths = hrefs.filter_map do |href|
+      next unless href.start_with?("/")
+
+      href.split("#", 2).first
+    end.uniq
+
+    internal_paths.each do |path|
+      expected = path.end_with?("/") ? "#{path}index.html" : path
+      assert_includes built_paths, expected.delete_prefix("/")
+    end
+
+    assert_includes homepage, 'id="install"'
+    refute_match(/\{\{|\{%/, html)
+    refute_match(/href=""|href="#"/, html)
+    assert_empty html.scan(/id="([^"]+)"/).flatten.tally.select { |_id, count| count > 1 }
+  end
+
   private
 
   def assert_valid_source_ids(source_ids, product_id, sources)
@@ -296,7 +344,11 @@ class ComparisonPageTest < Minitest::Test
 
       [
         File.binread(File.join(destination, "compare", "index.html")),
-        File.binread(File.join(destination, "sitemap.xml"))
+        File.binread(File.join(destination, "sitemap.xml")),
+        Dir.glob("**/*", File::FNM_DOTMATCH, base: destination).select do |path|
+          File.file?(File.join(destination, path))
+        end,
+        File.binread(File.join(destination, "index.html"))
       ]
     end
   end
