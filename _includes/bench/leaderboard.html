@@ -1,6 +1,6 @@
 {% assign b = site.data.bench %}
-{% assign ranked_candidate_ids = "all-codex-5.6-sol-xhigh,sol-plan@xhigh->exec@high+grok-review,sol-plan->grok-exec-sol-review,sol-plan->terra-exec-sol-review,opus-plan->codex-exec-xhigh,fable-plan->grok-exec-sol-review,all-grok-4.5,sol-plan->terra-exec-grok-review,all-opus-4.8,all-codex-xhigh,all-glm-5.2" | split: "," %}
-{% assign discussion_ranked_candidate_ids = "sol-plan@xhigh->exec@high+grok-review,sol-plan->grok-exec-sol-review,sol-plan->terra-exec-sol-review,all-codex-5.6-sol-xhigh,fable-plan->grok-exec-sol-review,sol-plan->terra-exec-grok-review,opus-plan->codex-exec-xhigh,all-opus-4.8,all-grok-4.5,all-glm-5.2,all-codex-xhigh" | split: "," %}
+{% assign ranked_candidate_ids = "all-codex-5.6-sol-xhigh,sol-plan@xhigh->exec@high+grok-review,sol-plan->grok-exec-sol-review,sol-plan->terra-exec-sol-review,all-deepseek-v4-pro-0813@xhigh,opus-plan->codex-exec-xhigh,fable-plan->grok-exec-sol-review,all-grok-4.5,sol-plan->terra-exec-grok-review,all-opus-4.8,deepseek-pro@xhigh->flash@xhigh-exec+pro-review,all-codex-xhigh,all-glm-5.2" | split: "," %}
+{% assign discussion_ranked_candidate_ids = "sol-plan@xhigh->exec@high+grok-review,sol-plan->grok-exec-sol-review,sol-plan->terra-exec-sol-review,all-codex-5.6-sol-xhigh,fable-plan->grok-exec-sol-review,all-deepseek-v4-pro-0813@xhigh,deepseek-pro@xhigh->flash@xhigh-exec+pro-review,sol-plan->terra-exec-grok-review,opus-plan->codex-exec-xhigh,all-opus-4.8,all-grok-4.5,all-glm-5.2,all-codex-xhigh" | split: "," %}
 {% assign sol_judge = b.primary_judges | where: "id", "gpt-5.6-sol" | first %}
 {% assign fable_judge = b.primary_judges | where: "id", "fable-5" | first %}
 <section class="bench-board">
@@ -111,11 +111,11 @@
     <p class="bench-meta bench-discussion-note">
       <strong>Discussion</strong> is a one-shot diagnostic with campaign-specific
       round one: the six original rows reused their exact published independent
-      verdicts and recovered rationales; the five rows across the two later
-      three-seed campaigns received fresh round-one re-grades. In all three
+      verdicts and recovered rationales; the seven rows across the three later
+      three-seed campaigns received fresh round-one re-grades. In all four
       campaigns, each judge then saw the other anonymous verdict, challenged
-      its own view, and held or revised it. All eleven rows ran this step across
-      66 paired cells. After discussion is the default table sort using the
+      its own view, and held or revised it. All thirteen rows ran this step across
+      78 paired cells. After discussion is the default table sort using the
       paired final mean; the independent scores remain visible, sortable, and
       the primary evidence.
     </p>
@@ -191,18 +191,19 @@
       <strong>Known* values</strong> include only providers with preserved
       telemetry. Depending on the workflow, that can include Fable planning,
       Sol stages, or Sol planning plus Terra execution; Grok telemetry is
-      unavailable. Use each token info button for its exact provider scope and
-      token split.
+      unavailable. DeepSeek's Pi/OpenRouter rows have complete provider scope
+      wherever a value is present. Use each token info button for its exact
+      provider scope and token split.
     </p>
 
     <h2>Full board (per task)</h2>
     <p class="bench-meta">
       Every cell shows <code>Fable 5 / GPT-5.6 Sol</code>. The original rows use
-      one score per judge; the mixed-workflow rows use three and display their
-      means. Mixed-workflow cells also show the complete, separate
+      one score per judge; the three later campaigns use three and display their
+      means. Later-campaign cells also show the complete, separate
       discussion-final pair. Click a score for its machine-readable record. Exact diffs are
       linked where the public raw-evidence bundle contains them. No task in
-      either campaign has an objective gate.
+      any campaign has an objective gate.
     </p>
     <div class="bench-table-scroll bench-table-scroll--responsive" role="region" aria-label="Quality scores by task and candidate" tabindex="0">
     <table class="bench-table bench-matrix bench-responsive-matrix bench-score-matrix">
@@ -270,7 +271,7 @@
     <h2>Audit the campaign</h2>
     <p>
       Every leaderboard score can be traced to a machine-readable record, and
-      all 66 exact final diffs are public. The published evidence lets you:
+      all {{ b.coverage.cells }} exact final diffs are public. The published evidence lets you:
     </p>
     <ul>
       <li>Read the <a href="{{ b.evidence.readme }}">publication notes</a> for
@@ -287,7 +288,7 @@
         layer, recorded time, normalized token values, and API-equivalent cost
         estimates.</li>
       <li>Read or compare the <a href="{{ b.evidence.cells }}">36 original
-        candidate patches</a> or follow the per-cell links above for all 30
+        candidate patches</a> or follow the per-cell links above for all 42
         three-seed follow-up patches.</li>
     </ul>
     <p>

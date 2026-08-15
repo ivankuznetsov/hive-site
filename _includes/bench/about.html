@@ -2,27 +2,21 @@
 {% assign original_campaign = b.campaigns | where: "id", "v2-ce" | first %}
 {% assign followup_campaign = b.campaigns | where: "id", "v3-mixed-workflows-three-seed-20260713" | first %}
 {% assign panel_campaign = b.campaigns | where: "id", "v3-production-review-panels-three-seed-20260723" | first %}
+{% assign deepseek_campaign = b.campaigns | where: "id", "v3-deepseek-v4-0813-20260813-r2" | first %}
 {% assign fable_judge = b.primary_judges | where: "id", "fable-5" | first %}
 {% assign sol_judge = b.primary_judges | where: "id", "gpt-5.6-sol" | first %}
-{% assign all_sol_fable = fable_judge.rows | where: "id", "all-codex-5.6-sol-xhigh" | first %}
-{% assign all_sol_sol = sol_judge.rows | where: "id", "all-codex-5.6-sol-xhigh" | first %}
-{% assign flagship_fable = fable_judge.rows | where: "id", "sol-plan@xhigh->exec@high+grok-review" | first %}
-{% assign flagship_sol = sol_judge.rows | where: "id", "sol-plan@xhigh->exec@high+grok-review" | first %}
-{% assign all_sol_total = all_sol_fable.mean | plus: all_sol_sol.mean %}
-{% assign all_sol_independent = all_sol_total | divided_by: 2.0 | round: 3 %}
-{% assign flagship_total = flagship_fable.mean | plus: flagship_sol.mean %}
-{% assign flagship_independent = flagship_total | divided_by: 2.0 | round: 3 %}
-{% assign all_sol_discussion = b.discussion_adjusted.candidates | where: "id", "all-codex-5.6-sol-xhigh" | first %}
 {% assign flagship_discussion = b.discussion_adjusted.candidates | where: "id", "sol-plan@xhigh->exec@high+grok-review" | first %}
-{% assign sol_grok_discussion = b.discussion_adjusted.candidates | where: "id", "sol-plan->grok-exec-sol-review" | first %}
-{% assign sol_terra_discussion = b.discussion_adjusted.candidates | where: "id", "sol-plan->terra-exec-sol-review" | first %}
-{% assign grok_candidate = b.candidates | where: "id", "all-grok-4.5" | first %}
-{% assign flagship_candidate = b.candidates | where: "id", "sol-plan@xhigh->exec@high+grok-review" | first %}
-{% assign terra_grok_candidate = b.candidates | where: "id", "sol-plan->terra-exec-grok-review" | first %}
-{% assign flagship_known_cost = flagship_candidate.known_cost_per_task_usd | round: 2 %}
-{% assign flagship_known_cost_one_decimal = flagship_candidate.known_cost_per_task_usd | round: 1 %}
-{% assign terra_grok_known_cost = terra_grok_candidate.known_cost_per_task_usd | round: 2 %}
-{% assign terra_grok_known_cost_one_decimal = terra_grok_candidate.known_cost_per_task_usd | round: 1 %}
+{% assign deepseek_all_fable = fable_judge.rows | where: "id", "all-deepseek-v4-pro-0813@xhigh" | first %}
+{% assign deepseek_all_sol = sol_judge.rows | where: "id", "all-deepseek-v4-pro-0813@xhigh" | first %}
+{% assign deepseek_mixed_fable = fable_judge.rows | where: "id", "deepseek-pro@xhigh->flash@xhigh-exec+pro-review" | first %}
+{% assign deepseek_mixed_sol = sol_judge.rows | where: "id", "deepseek-pro@xhigh->flash@xhigh-exec+pro-review" | first %}
+{% assign deepseek_all_discussion = b.discussion_adjusted.candidates | where: "id", "all-deepseek-v4-pro-0813@xhigh" | first %}
+{% assign deepseek_mixed_discussion = b.discussion_adjusted.candidates | where: "id", "deepseek-pro@xhigh->flash@xhigh-exec+pro-review" | first %}
+{% assign deepseek_all_candidate = b.candidates | where: "id", "all-deepseek-v4-pro-0813@xhigh" | first %}
+{% assign deepseek_mixed_candidate = b.candidates | where: "id", "deepseek-pro@xhigh->flash@xhigh-exec+pro-review" | first %}
+{% assign deepseek_all_gap = deepseek_all_fable.mean | minus: deepseek_all_sol.mean | round: 3 %}
+{% assign deepseek_mixed_gap = deepseek_mixed_fable.mean | minus: deepseek_mixed_sol.mean | round: 3 %}
+{% assign later_cells = followup_campaign.cells | plus: panel_campaign.cells | plus: deepseek_campaign.cells %}
 <section class="bench-intro">
   <div class="wrap">
     <p class="eyebrow">hive-bench</p>
@@ -59,8 +53,7 @@
       {{ b.coverage.candidates }} candidates &times; {{ b.coverage.tasks }} tasks.
       The original {{ original_campaign.cells }} cells have
       {{ original_campaign.judge_samples_per_cell }} independent score sample
-      per judge; the {{ followup_campaign.cells | plus: panel_campaign.cells }}
-      cells across the two later campaigns have
+      per judge; the {{ later_cells }} cells across the three later campaigns have
       {{ followup_campaign.judge_samples_per_cell }}. This corpus has no
       curated objective test gates, so close rankings are directional rather
       than definitive.
@@ -69,12 +62,12 @@
     <h2>How the scores should be read</h2>
     <ol class="bench-steps">
       <li><strong>Two independent rulers:</strong> Fable 5 and GPT-5.6 Sol
-        score each final diff from 0&ndash;10. Fable 5 ran at
-        <code>{{ fable_judge.reasoning_effort }}</code> in all three campaigns.
-        Sol ran at <code>{{ original_campaign.sol_reasoning_effort }}</code>
-        for the original campaign and
-        <code>{{ followup_campaign.sol_reasoning_effort }}</code> for both
-        three-seed follow-ups.</li>
+        score each final diff from 0&ndash;10. Fable ran with reasoning enabled:
+        the first three campaign records pin <code>xhigh</code>, while the
+        DeepSeek campaign did not serialize its exact effort. Sol ran at
+        <code>{{ original_campaign.sol_reasoning_effort }}</code> for the
+        original campaign and <code>{{ followup_campaign.sol_reasoning_effort }}</code>
+        for all three later campaigns.</li>
       <li><strong>Keep both judge scores visible:</strong> the leaderboard uses
         their arithmetic mean only for a compact ordering because their
         calibrations differ. Every row retains separate Fable and Sol columns,
@@ -103,30 +96,22 @@
 
     <h2>What came out</h2>
     <p>
-      The independent scores put the all-Sol configuration first at
-      <strong>{{ all_sol_independent }}</strong>:
-      <strong>{{ all_sol_fable.mean }}</strong> by Fable and
-      <strong>{{ all_sol_sol.mean }}</strong> by Sol. The production-like Sol
-      plan &rarr; Sol execute &rarr; Sol + Grok review setup is second at
-      <strong>{{ flagship_independent }}</strong>:
-      <strong>{{ flagship_fable.mean }}</strong> by Fable and
-      <strong>{{ flagship_sol.mean }}</strong> by Sol. After deliberation, that
-      production-like setup leads at
-      <strong>{{ flagship_discussion.combined.mean }}</strong>, with
-      <strong>{{ flagship_discussion.fable.mean }}</strong> by Fable and
-      <strong>{{ flagship_discussion.sol.mean }}</strong> by Sol. Sol plan
-      &rarr; Grok execute &rarr; Sol review follows at
-      <strong>{{ sol_grok_discussion.combined.mean }}</strong>, then Sol plan
-      &rarr; Terra execute &rarr; Sol review at
-      <strong>{{ sol_terra_discussion.combined.mean }}</strong>, then all-Sol at
-      <strong>{{ all_sol_discussion.combined.mean }}</strong>.
+      Adding DeepSeek does not change the after-discussion leader: the
+      production-like Sol plan &rarr; Sol execute &rarr; Sol + Grok review setup
+      remains first at <strong>{{ flagship_discussion.combined.mean }}</strong>.
+      The all-Pro and Pro-plan/Flash-execute/Pro-review DeepSeek configurations
+      finish at <strong>{{ deepseek_all_discussion.combined.mean }}</strong> and
+      <strong>{{ deepseek_mixed_discussion.combined.mean }}</strong>. Both
+      judgments are family-disjoint, so their evidence carries no
+      same-family warning.
     </p>
     <p>
-      The most curious result is the new winner: it ranks second under the
-      three-sample independent mean but first under the one-shot
-      after-discussion mean. The two later campaigns freshly re-graded round
-      one before the judges exchanged verdicts, so this is not a mathematical
-      adjustment to the independent mean. Across all
+      The sharper DeepSeek result is judge calibration, not rank. On the
+      three-sample independent scores, Fable and Sol differ by
+      <strong>{{ deepseek_all_gap }}</strong> points for all-Pro and
+      <strong>{{ deepseek_mixed_gap }}</strong> for the mixed workflow. The
+      fresh one-shot deliberation brings the final judge gap for both rows to
+      about 1.9 points without erasing it. Across all
       {{ b.discussion_adjusted.summary.cells }} cells, the judges' mean
       absolute spread still fell from
       <strong>{{ b.discussion_adjusted.summary.mean_spread_before }}</strong> to
@@ -136,23 +121,23 @@
       remains a diagnostic rather than a cleaner replacement score.
     </p>
     <p>
-      Grok 4.5 remains fastest on its recorded timed cells at
-      {{ grok_candidate.mean_minutes }} minutes on
-      average. The production-like winner reports
-      ${{ flagship_known_cost }}{% if flagship_known_cost == flagship_known_cost_one_decimal %}0{% endif %}
-      and {{ flagship_candidate.normalized_mtokens_per_task }}M known Sol-stage
-      tokens per task. Sol plan &rarr; Terra execute &rarr; Grok review reports
-      ${{ terra_grok_known_cost }}{% if terra_grok_known_cost == terra_grok_known_cost_one_decimal %}0{% endif %}
-      and {{ terra_grok_candidate.normalized_mtokens_per_task }}M known Sol/Terra
-      tokens. Both cover all six cells, but both remain lower-bound subtotals
-      because Grok reviewer telemetry is unavailable.
+      DeepSeek is the cheapest fully attributable provider path measured so
+      far: all-Pro averages ${{ deepseek_all_candidate.cost_per_task_usd | round: 2 }}
+      across five priced cells, and Pro/Flash/Pro averages
+      ${{ deepseek_mixed_candidate.cost_per_task_usd | round: 2 }} across all
+      six. Their normalized token volume is high&mdash;
+      {{ deepseek_all_candidate.normalized_mtokens_per_task }}M and
+      {{ deepseek_mixed_candidate.normalized_mtokens_per_task }}M per recorded
+      task respectively&mdash;because cache reads are counted as part of total
+      generation volume. Missing all-Pro telemetry remains unknown rather than
+      inferred.
     </p>
     <p>
       These are scoped findings, not a universal model ranking.
       {{ b.coverage.tasks }} tasks from
       one Ruby/CLI project cannot establish broad superiority. The original
       rows have {{ original_campaign.judge_samples_per_cell }} sample per judge,
-      the two later campaigns have {{ followup_campaign.judge_samples_per_cell }},
+      the three later campaigns have {{ followup_campaign.judge_samples_per_cell }},
       and the discussion layer is a single exchange; the results show what
       happened when these exact configurations drove this exact end-to-end
       workflow.
