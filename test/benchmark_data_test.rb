@@ -30,6 +30,12 @@ class BenchmarkDataTest < Minitest::Test
       "source_artifact" => "runs/v3-production-review-panels-three-seed-20260723/deliberation.json",
       "source_sha256" => "d04c4b5e990d7a39d4b46161b3584bca368a9f777e7e885faac6d146fac8d201",
       "round_one_mode" => "fresh_regrade"
+    },
+    "v3-deepseek-v4-0813-20260813-r2" => {
+      "source_repository" => "hive-bench",
+      "source_artifact" => "runs/v3-deepseek-v4-0813-20260813-r2/deliberation.json",
+      "source_sha256" => "a3de17cabb4fee957743ea1f911bb6aff980a341e0b1d725c1c1d7d3e04cc8bc",
+      "round_one_mode" => "fresh_regrade"
     }
   }.freeze
   FOLLOWUP_CAMPAIGN_BY_ID = {
@@ -40,33 +46,39 @@ class BenchmarkDataTest < Minitest::Test
     "sol-plan@xhigh->exec@high+grok-review" => "v3-production-review-panels-three-seed-20260723"
   }.freeze
   FOLLOWUP_IDS = FOLLOWUP_CAMPAIGN_BY_ID.keys.freeze
+  DEEPSEEK_IDS = [
+    "all-deepseek-v4-pro-0813@xhigh",
+    "deepseek-pro@xhigh->flash@xhigh-exec+pro-review"
+  ].freeze
   RANKED_LABELS = [
     "GPT-5.6 Sol xhigh",
     "Sol plan → Sol execute → Sol + Grok review",
     "Sol plan → Grok execute → Sol review",
     "Sol plan → Terra execute → Sol review",
+    "DeepSeek V4 Pro 0813 xhigh",
     "Opus plan → Codex 5.5 xhigh",
     "Fable plan → Grok execute → Sol review",
     "Grok 4.5 xhigh",
     "Sol plan → Terra execute → Grok review",
     "Opus 4.8",
+    "DeepSeek V4 Pro plan → V4 Flash execute → V4 Pro review",
     "Codex 5.5 xhigh",
     "GLM 5.2"
   ].freeze
 
   def test_completed_followup_expands_the_existing_board
-    assert_equal 9, DATA.fetch("schema_version")
+    assert_equal 10, DATA.fetch("schema_version")
     assert_equal(
-      "v2-ce + v3-mixed-workflows-followup-20260713 + v3-production-review-panels-20260723",
+      "v2-ce + v3-mixed-workflows-followup-20260713 + v3-production-review-panels-20260723 + v3-deepseek-v4-0813-20260813-r2",
       DATA.fetch("corpus_version")
     )
-    assert_equal 66, DATA.dig("coverage", "cells")
-    assert_equal 66, DATA.dig("coverage", "expected_cells")
-    assert_equal 11, DATA.dig("coverage", "candidates")
-    assert_equal 11, DATA.fetch("candidates").length
+    assert_equal 78, DATA.dig("coverage", "cells")
+    assert_equal 78, DATA.dig("coverage", "expected_cells")
+    assert_equal 13, DATA.dig("coverage", "candidates")
+    assert_equal 13, DATA.fetch("candidates").length
 
     DATA.fetch("primary_judges").each do |judge|
-      assert_equal 11, judge.fetch("rows").length
+      assert_equal 13, judge.fetch("rows").length
     end
 
     FOLLOWUP_IDS.each do |candidate_id|
@@ -98,6 +110,37 @@ class BenchmarkDataTest < Minitest::Test
         assert_in_delta cell.dig("judge_samples", "gpt-5.6-sol", "mean"), displayed_scores.last, 0.001
         assert_equal true, cell.dig("judge_samples", "gpt-5.6-sol", "same_family")
         assert_match %r{\A/bench/patches/#{Regexp.escape(candidate.fetch("campaign_id"))}/[^/]+/#{task_key}\.patch\z},
+                     cell.fetch("patch_url")
+        assert_path_exists File.join(ROOT, cell.fetch("patch_url").delete_prefix("/"))
+      end
+    end
+
+    DEEPSEEK_IDS.each do |candidate_id|
+      candidate = DATA.fetch("candidates").find { |row| row.fetch("id") == candidate_id }
+
+      refute_nil candidate
+      assert_equal "v3-deepseek-v4-0813-20260813-r2", candidate.fetch("campaign_id")
+      assert_equal 3, candidate.fetch("samples_per_cell")
+      assert_equal [6, 6], candidate.values_at("completed", "total")
+      assert_equal false, candidate.fetch("raw_evidence_published")
+      assert_equal true, candidate.fetch("patches_published")
+      assert_equal 6, candidate.fetch("cells").length
+
+      candidate.fetch("cells").each do |task_key, cell|
+        assert_equal %w[fable-5 gpt-5.6-sol], cell.fetch("judge_samples").keys.sort
+        cell.fetch("judge_samples").each_value do |judge_sample|
+          scores = judge_sample.fetch("scores")
+          mean = scores.sum / 3.0
+          stddev = Math.sqrt(scores.sum { |score| (score - mean)**2 } / 3.0)
+
+          assert_equal 3, scores.length
+          assert_in_delta mean, judge_sample.fetch("mean"), 0.001
+          assert_in_delta stddev, judge_sample.fetch("stddev"), 0.001
+          assert_in_delta mean - stddev, judge_sample.fetch("interval").first, 0.001
+          assert_in_delta mean + stddev, judge_sample.fetch("interval").last, 0.001
+          assert_equal false, judge_sample.fetch("same_family")
+        end
+        assert_match %r{\A/bench/patches/v3-deepseek-v4-0813-20260813-r2/[^/]+/#{task_key}\.patch\z},
                      cell.fetch("patch_url")
         assert_path_exists File.join(ROOT, cell.fetch("patch_url").delete_prefix("/"))
       end
@@ -151,20 +194,20 @@ class BenchmarkDataTest < Minitest::Test
 
     discussion = DATA.fetch("discussion_adjusted")
     assert_equal "diagnostic", discussion.fetch("status")
-    assert_equal %w[v2-ce v3-mixed-workflows-three-seed-20260713 v3-production-review-panels-three-seed-20260723],
+    assert_equal %w[v2-ce v3-mixed-workflows-three-seed-20260713 v3-production-review-panels-three-seed-20260723 v3-deepseek-v4-0813-20260813-r2],
                  discussion.fetch("source_campaign_ids")
-    assert_equal 66, discussion.dig("coverage", "cells")
-    assert_equal 66, discussion.dig("coverage", "expected_cells")
-    assert_equal 132, discussion.dig("coverage", "judge_decisions")
-    assert_equal 132, discussion.dig("coverage", "expected_judge_decisions")
-    assert_equal 66, discussion.dig("coverage", "fully_adjusted_cells")
+    assert_equal 78, discussion.dig("coverage", "cells")
+    assert_equal 78, discussion.dig("coverage", "expected_cells")
+    assert_equal 156, discussion.dig("coverage", "judge_decisions")
+    assert_equal 156, discussion.dig("coverage", "expected_judge_decisions")
+    assert_equal 78, discussion.dig("coverage", "fully_adjusted_cells")
     assert_empty discussion.dig("coverage", "missing")
 
     summary = discussion.fetch("summary")
     discussion_cells = discussion.fetch("candidates").flat_map do |candidate|
       candidate.fetch("cells").values
     end
-    assert_equal 66, discussion_cells.length
+    assert_equal 78, discussion_cells.length
     assert_equal discussion_cells.length, summary.fetch("cells")
 
     DISCUSSION_JUDGES.each do |summary_judge, cell_judge|
@@ -187,15 +230,15 @@ class BenchmarkDataTest < Minitest::Test
     assert_in_delta mean_spread_before, summary.fetch("mean_spread_before"), 0.001
     assert_in_delta mean_spread_after, summary.fetch("mean_spread_after"), 0.001
 
-    assert_in_delta(-0.782, summary.dig("mean_revision_by_judge", "fable-5"), 0.001)
-    assert_in_delta(-0.136, summary.dig("mean_revision_by_judge", "gpt-5.6-sol"), 0.001)
-    assert_in_delta 0.8, summary.dig("mean_abs_revision_by_judge", "fable-5"), 0.001
-    assert_in_delta 0.279, summary.dig("mean_abs_revision_by_judge", "gpt-5.6-sol"), 0.001
-    assert_in_delta 1.77, summary.fetch("mean_spread_before"), 0.001
-    assert_in_delta 1.039, summary.fetch("mean_spread_after"), 0.001
+    assert_in_delta(-0.764, summary.dig("mean_revision_by_judge", "fable-5"), 0.001)
+    assert_in_delta(-0.126, summary.dig("mean_revision_by_judge", "gpt-5.6-sol"), 0.001)
+    assert_in_delta 0.779, summary.dig("mean_abs_revision_by_judge", "fable-5"), 0.001
+    assert_in_delta 0.259, summary.dig("mean_abs_revision_by_judge", "gpt-5.6-sol"), 0.001
+    assert_in_delta 1.927, summary.fetch("mean_spread_before"), 0.001
+    assert_in_delta 1.188, summary.fetch("mean_spread_after"), 0.001
 
     discussion_candidates = discussion.fetch("candidates").to_h { |candidate| [candidate.fetch("id"), candidate] }
-    assert_equal 11, discussion_candidates.length
+    assert_equal 13, discussion_candidates.length
     assert_equal DATA.fetch("candidates").map { |candidate| candidate.fetch("id") }.sort,
                  discussion_candidates.keys.sort
 
@@ -227,7 +270,7 @@ class BenchmarkDataTest < Minitest::Test
         cells[key] = cell.fetch("judges")
       end
     end
-    assert_equal 66, fixture_cells.length
+    assert_equal 78, fixture_cells.length
     assert_equal discussion_cells.length, fixture_cells.length
 
     discussion_candidates.each do |candidate_id, adjusted|
@@ -282,6 +325,12 @@ class BenchmarkDataTest < Minitest::Test
     assert_equal [7.917, 6, 6], discussion_candidates.dig("sol-plan@xhigh->exec@high+grok-review", "fable").values_at("mean", "sample", "total")
     assert_equal [7.133, 6, 6], discussion_candidates.dig("sol-plan@xhigh->exec@high+grok-review", "sol").values_at("mean", "sample", "total")
     assert_equal [7.525, 6, 6], discussion_candidates.dig("sol-plan@xhigh->exec@high+grok-review", "combined").values_at("mean", "sample", "total")
+    assert_equal [6.833, 6, 6], discussion_candidates.dig("all-deepseek-v4-pro-0813@xhigh", "fable").values_at("mean", "sample", "total")
+    assert_equal [4.95, 6, 6], discussion_candidates.dig("all-deepseek-v4-pro-0813@xhigh", "sol").values_at("mean", "sample", "total")
+    assert_equal [5.892, 6, 6], discussion_candidates.dig("all-deepseek-v4-pro-0813@xhigh", "combined").values_at("mean", "sample", "total")
+    assert_equal [6.75, 6, 6], discussion_candidates.dig("deepseek-pro@xhigh->flash@xhigh-exec+pro-review", "fable").values_at("mean", "sample", "total")
+    assert_equal [4.817, 6, 6], discussion_candidates.dig("deepseek-pro@xhigh->flash@xhigh-exec+pro-review", "sol").values_at("mean", "sample", "total")
+    assert_equal [5.783, 6, 6], discussion_candidates.dig("deepseek-pro@xhigh->flash@xhigh-exec+pro-review", "combined").values_at("mean", "sample", "total")
     assert_equal 5.6, discussion_candidates.dig("fable-plan->grok-exec-sol-review", "cells", "daemon", "sol", "final")
     assert_equal 6.5, discussion_candidates.dig("fable-plan->grok-exec-sol-review", "cells", "daemon", "fable", "final")
     assert_equal 4.5, discussion_candidates.dig("opus-plan->codex-exec-xhigh", "cells", "daemon", "sol", "final")
@@ -296,11 +345,34 @@ class BenchmarkDataTest < Minitest::Test
     assert_equal 5, terra_candidate.fetch("token_sample")
     assert_nil terra_candidate.dig("efficiency_by_task", "fix-review", "cost_usd")
     assert_nil terra_candidate.dig("efficiency_by_task", "fix-review", "tokens")
-    assert_equal 35, DATA.dig("efficiency_accounting", "priced_cells")
+    assert_equal 46, DATA.dig("efficiency_accounting", "priced_cells")
     assert_equal 5, DATA.dig("efficiency_accounting", "followup_priced_cells")
     assert_equal 24, DATA.dig("efficiency_accounting", "known_partial_cost_cells")
     assert_equal 26, DATA.dig("efficiency_accounting", "followup_timed_cells")
-    assert_equal 66, DATA.dig("efficiency_accounting", "total_cells")
+    assert_equal 11, DATA.dig("efficiency_accounting", "deepseek_priced_cells")
+    assert_equal 9, DATA.dig("efficiency_accounting", "deepseek_timed_cells")
+    assert_equal 78, DATA.dig("efficiency_accounting", "total_cells")
+
+    all_deepseek = DATA.fetch("candidates").find { |candidate| candidate.fetch("id") == DEEPSEEK_IDS.first }
+    assert_equal [113.2, 3], all_deepseek.values_at("mean_minutes", "time_sample")
+    assert_equal 2.32, all_deepseek.fetch("cost_per_task_usd")
+    assert_equal [11.6212, 5], all_deepseek.values_at("cost_total_usd", "cost_sample")
+    assert_equal [191.917, 5], all_deepseek.values_at("normalized_mtokens_per_task", "token_sample")
+    assert_nil all_deepseek.dig("efficiency_by_task", "fix-tmux", "cost_usd")
+    assert_nil all_deepseek.dig("efficiency_by_task", "fix-tmux", "tokens")
+
+    mixed_deepseek = DATA.fetch("candidates").find { |candidate| candidate.fetch("id") == DEEPSEEK_IDS.last }
+    assert_equal [118.8, 6], mixed_deepseek.values_at("mean_minutes", "time_sample")
+    assert_equal 2.38, mixed_deepseek.fetch("cost_per_task_usd")
+    assert_equal [14.2711, 6], mixed_deepseek.values_at("cost_total_usd", "cost_sample")
+    assert_equal [139.953, 6], mixed_deepseek.values_at("normalized_mtokens_per_task", "token_sample")
+
+    [all_deepseek, mixed_deepseek].each do |candidate|
+      measured = candidate.fetch("efficiency_by_task").values.select { |task| task["tokens"] }
+      %w[input output cache_read cache_write].each do |bucket|
+        assert_equal measured.sum { |task| task.dig("tokens", bucket) }, candidate.dig("token_totals", bucket)
+      end
+    end
 
     terra_grok_candidate = DATA.fetch("candidates").find do |candidate|
       candidate.fetch("id") == "sol-plan->terra-exec-grok-review"
@@ -333,7 +405,7 @@ class BenchmarkDataTest < Minitest::Test
     end
 
     DATA.fetch("primary_judges").each do |judge|
-      FOLLOWUP_IDS.each do |candidate_id|
+      (FOLLOWUP_IDS + DEEPSEEK_IDS).each do |candidate_id|
         candidate = DATA.fetch("candidates").find { |row| row.fetch("id") == candidate_id }
         row = judge.fetch("rows").find { |entry| entry.fetch("id") == candidate_id }
         cell_mean = candidate.fetch("cells").values.sum do |cell|
@@ -349,15 +421,25 @@ class BenchmarkDataTest < Minitest::Test
       row = sol_rows.fetch("rows").find { |entry| entry.fetch("id") == candidate_id }
       assert_equal true, row.fetch("same_family")
     end
+    DEEPSEEK_IDS.each do |candidate_id|
+      row = sol_rows.fetch("rows").find { |entry| entry.fetch("id") == candidate_id }
+      assert_equal false, row.fetch("same_family")
+    end
 
     fable_judge = DATA.fetch("primary_judges").find { |judge| judge.fetch("id") == "fable-5" }
-    assert_equal "xhigh", fable_judge.fetch("reasoning_effort")
-    assert fable_judge.fetch("rows").all? { |row| row.fetch("reasoning_effort") == "xhigh" }
+    assert_equal "varies by campaign", fable_judge.fetch("reasoning_effort")
+    assert fable_judge.fetch("rows").reject { |row| DEEPSEEK_IDS.include?(row.fetch("id")) }
+                      .all? { |row| row.fetch("reasoning_effort") == "xhigh" }
+    assert(DEEPSEEK_IDS.all? do |candidate_id|
+      fable_judge.fetch("rows").find { |row| row.fetch("id") == candidate_id }
+                  .fetch("reasoning_effort") == "unspecified"
+    end)
     assert_equal(
       {
         "v2-ce" => "xhigh",
         "v3-mixed-workflows-three-seed-20260713" => "xhigh",
-        "v3-production-review-panels-three-seed-20260723" => "xhigh"
+        "v3-production-review-panels-three-seed-20260723" => "xhigh",
+        "v3-deepseek-v4-0813-20260813-r2" => "unspecified"
       },
       fable_judge.fetch("reasoning_effort_by_campaign")
     )
@@ -366,7 +448,8 @@ class BenchmarkDataTest < Minitest::Test
         {
           "v2-ce" => 1,
           "v3-mixed-workflows-three-seed-20260713" => 3,
-          "v3-production-review-panels-three-seed-20260723" => 3
+          "v3-production-review-panels-three-seed-20260723" => 3,
+          "v3-deepseek-v4-0813-20260813-r2" => 3
         },
         judge.fetch("samples_per_cell_by_campaign")
       )
@@ -376,11 +459,23 @@ class BenchmarkDataTest < Minitest::Test
       DATA.dig("evidence", "production_review_panel_patches")
     )
     assert_equal true, DATA.dig("evidence", "production_review_panel_patches_published")
+    assert_equal "/bench/patches/v3-deepseek-v4-0813-20260813-r2/",
+                 DATA.dig("evidence", "deepseek_patches")
+    assert_equal true, DATA.dig("evidence", "deepseek_patches_published")
     FOLLOWUP_IDS.each do |candidate_id|
       candidate = DATA.fetch("candidates").find { |row| row.fetch("id") == candidate_id }
       candidate.fetch("cells").each_value do |cell|
         assert_equal "xhigh", cell.dig("judge_samples", "fable-5", "reasoning_effort")
         assert_equal true, cell.dig("judge_samples", "fable-5", "reasoning_effort_explicit")
+      end
+    end
+    DEEPSEEK_IDS.each do |candidate_id|
+      candidate = DATA.fetch("candidates").find { |row| row.fetch("id") == candidate_id }
+      candidate.fetch("cells").each_value do |cell|
+        assert_equal "unspecified", cell.dig("judge_samples", "fable-5", "reasoning_effort")
+        assert_equal false, cell.dig("judge_samples", "fable-5", "reasoning_effort_explicit")
+        assert_equal "ultra", cell.dig("judge_samples", "gpt-5.6-sol", "reasoning_effort")
+        assert_equal true, cell.dig("judge_samples", "gpt-5.6-sol", "reasoning_effort_explicit")
       end
     end
   end
@@ -405,10 +500,9 @@ class BenchmarkDataTest < Minitest::Test
       scores = html[/<table class="bench-table bench-matrix bench-responsive-matrix bench-score-matrix">.*?<\/table>/m]
 
       refute_nil about
-      assert_includes about, "66 generation cells"
-      assert_match(/11 candidates\s+&times; 6 tasks/, about)
-      assert_match(/Fable 5.*?<code>xhigh<\/code>/m, about)
-      refute_includes about, "exact effort level was not preserved"
+      assert_includes about, "78 generation cells"
+      assert_match(/13 candidates\s+&times; 6 tasks/, about)
+      assert_match(/Fable ran with reasoning enabled.*?first three campaign records pin <code>xhigh<\/code>.*?DeepSeek campaign did not serialize its exact effort/m, about)
       assert_includes about, "Deliberation is not a third judge"
       assert_match(
         /key result is a split winner.*?All-Sol leads the independent scoring at\s+<strong>6\.55<\/strong>/m,
@@ -420,14 +514,18 @@ class BenchmarkDataTest < Minitest::Test
       )
       refute_match(/by Fable.*?by Sol/m, about)
       refute_includes about, "follows at"
-      assert_match(/spread still fell from\s+<strong>1\.77<\/strong> to\s+<strong>1\.039<\/strong>/m, about)
+      assert_match(/spread still fell from\s+<strong>1\.927<\/strong> to\s+<strong>1\.188<\/strong>/m, about)
       assert_match(/Grok 4\.5 remains fastest.*?27\.3 minutes.*?Grok usage telemetry is unavailable.*?lower-bound known-provider subtotals/m, about)
+      refute_includes about, "DeepSeek configurations"
+      refute_includes about, "4.483"
+      refute_includes about, "$2.32"
+      refute_includes about, "$2.38"
       refute_includes about, "$42.94"
       refute_includes about, "$18.63"
 
       [summary, efficiency, scores].each do |table|
         refute_nil table
-        assert_equal 11, table[/<tbody>.*?<\/tbody>/m].scan("<tr").length
+        assert_equal 13, table[/<tbody>.*?<\/tbody>/m].scan("<tr").length
       end
       summary_labels = summary.scan(/<th scope="row">\s*<code>([^<]+)<\/code>/m).flatten
       candidate_labels = DATA.fetch("candidates").to_h do |candidate|
@@ -442,12 +540,12 @@ class BenchmarkDataTest < Minitest::Test
         assert_equal RANKED_LABELS, labels
       end
 
-      assert_equal 5, summary.scan("scores + public diffs").length
-      assert_equal 5, summary.scan("3 samples/judge").length
+      assert_equal 7, summary.scan("scores + public diffs").length
+      assert_equal 7, summary.scan("3 samples/judge").length
       assert_equal 0, scores.scan("diff not public").length
-      assert_equal 30, scores.scan("3 samples/judge").length
-      assert_equal 66, scores.scan("discussion final").length
-      assert_equal 66, scores.scan(">diff</a>").length
+      assert_equal 42, scores.scan("3 samples/judge").length
+      assert_equal 78, scores.scan("discussion final").length
+      assert_equal 78, scores.scan(">diff</a>").length
 
       assert_equal 1, summary.scan(/data-sort-key="discussion"[^>]*>After discussion/).length
       assert_includes summary, 'data-sort-key="discussion"'
@@ -458,7 +556,7 @@ class BenchmarkDataTest < Minitest::Test
       assert_match(/aria-sort="none"><button class="bench-sort-button" type="button" data-sort-key="combined"/,
                    summary)
       discussion_values = summary.scan(/data-sort-discussion="([0-9.]+)"/).flatten.map(&:to_f)
-      assert_equal 11, discussion_values.length
+      assert_equal 13, discussion_values.length
       assert_equal discussion_values.sort.reverse, discussion_values
       assert_equal 0, summary.scan('data-sort-discussion=""').length
       assert_equal 0, summary.scan("not run").length
@@ -471,12 +569,12 @@ class BenchmarkDataTest < Minitest::Test
       assert_includes discussion_note, "one-shot diagnostic"
       assert_match(/six original rows reused their exact published independent\s+verdicts and recovered rationales/,
                    discussion_note)
-      assert_match(/five rows across the two later\s+three-seed campaigns received fresh round-one re-grades/,
+      assert_match(/seven rows across the three later\s+three-seed campaigns received fresh round-one re-grades/,
                    discussion_note)
-      assert_match(/In all three\s+campaigns, each judge then saw the other anonymous verdict/,
+      assert_match(/In all four\s+campaigns, each judge then saw the other anonymous verdict/,
                    discussion_note)
-      assert_match(/All eleven rows/, discussion_note)
-      assert_includes discussion_note, "66 paired cells"
+      assert_match(/All thirteen rows/, discussion_note)
+      assert_includes discussion_note, "78 paired cells"
       assert_match(/After discussion is the\s+default table sort/, discussion_note)
       refute_includes discussion_note, "not run"
       refute_includes discussion_note, "uncovered rows"
@@ -524,6 +622,26 @@ class BenchmarkDataTest < Minitest::Test
       assert_includes terra_grok_summary, "6/6 paired"
       refute_includes terra_grok_summary, "Sol plan + Terra execute only · Grok review telemetry unavailable"
 
+      all_deepseek_summary = summary[/<tr[^>]*>\s*<th scope="row">\s*<code>DeepSeek V4 Pro 0813 xhigh<\/code>.*?<\/tr>/m]
+      refute_nil all_deepseek_summary
+      assert_includes all_deepseek_summary, "5.892"
+      assert_includes all_deepseek_summary, "Fable 6.833 · Sol 4.95"
+      assert_includes all_deepseek_summary, "$2.32"
+      assert_includes all_deepseek_summary, "5/6 priced"
+      assert_includes all_deepseek_summary, "191.917M"
+      assert_includes all_deepseek_summary, "5/6 measured"
+      refute_includes all_deepseek_summary, "bench-family-badge"
+
+      mixed_deepseek_summary = summary[/<tr[^>]*>\s*<th scope="row">\s*<code>DeepSeek V4 Pro plan → V4 Flash execute → V4 Pro review<\/code>.*?<\/tr>/m]
+      refute_nil mixed_deepseek_summary
+      assert_includes mixed_deepseek_summary, "5.783"
+      assert_includes mixed_deepseek_summary, "Fable 6.75 · Sol 4.817"
+      assert_includes mixed_deepseek_summary, "$2.38"
+      assert_includes mixed_deepseek_summary, "6/6 priced"
+      assert_includes mixed_deepseek_summary, "139.953M"
+      assert_includes mixed_deepseek_summary, "6/6 measured"
+      refute_includes mixed_deepseek_summary, "bench-family-badge"
+
       fable_efficiency = efficiency[/<tr>\s*<th scope="row"><code>Fable plan → Grok execute → Sol review<\/code>.*?<\/tr>/m]
       sol_grok_efficiency = efficiency[/<tr>\s*<th scope="row"><code>Sol plan → Grok execute → Sol review<\/code>.*?<\/tr>/m]
       refute_includes fable_efficiency, "Known-provider tokens"
@@ -553,11 +671,23 @@ class BenchmarkDataTest < Minitest::Test
       assert_equal 6, flagship_efficiency.scan("Sol stages only · Grok reviewer telemetry unavailable · Fresh input").length
       assert_equal 6, terra_grok_efficiency.scan("Sol plan + Terra execute only · Grok review telemetry unavailable · Fresh input").length
 
+      all_deepseek_efficiency = efficiency[/<tr>\s*<th scope="row"><code>DeepSeek V4 Pro 0813 xhigh<\/code>.*?<\/tr>/m]
+      mixed_deepseek_efficiency = efficiency[/<tr>\s*<th scope="row"><code>DeepSeek V4 Pro plan → V4 Flash execute → V4 Pro review<\/code>.*?<\/tr>/m]
+      refute_nil all_deepseek_efficiency
+      refute_nil mixed_deepseek_efficiency
+      assert_equal 5, all_deepseek_efficiency.scan(/<strong>\$[\d.]+<\/strong>/).length
+      assert_equal 1, all_deepseek_efficiency.scan("cost unknown").length
+      assert_equal 5, all_deepseek_efficiency.scan(/<strong>[\d.]+M <\/strong>/).length
+      assert_equal 1, all_deepseek_efficiency.scan("tokens unknown").length
+      assert_equal 6, mixed_deepseek_efficiency.scan(/<strong>\$[\d.]+<\/strong>/).length
+      assert_equal 6, mixed_deepseek_efficiency.scan(/<strong>[\d.]+M <\/strong>/).length
+
       telemetry_note = html[/<p class="bench-meta bench-telemetry-note">.*?<\/p>/m]
       refute_nil telemetry_note
       telemetry_text = telemetry_note.gsub(/<[^>]+>/, " ").gsub(/\s+/, " ").strip
       assert_includes telemetry_text, "Known* values include only providers with preserved telemetry"
       assert_includes telemetry_text, "Grok telemetry is unavailable"
+      assert_includes telemetry_text, "DeepSeek's Pi/OpenRouter rows have complete provider scope"
 
       assert_includes sol_grok_summary, "7.383"
       assert_includes sol_grok_summary, "Fable 7.383 · Sol 6.433"
