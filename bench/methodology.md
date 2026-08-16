@@ -207,13 +207,16 @@ target clones, and auth material remain unpublished.
 
 Wall time is recorded per task where recoverable. The original campaign has 32
 timed cells; the first three-seed follow-up has 14, the production-panel
-follow-up has all 12, and the DeepSeek campaign has 9. A displayed time mean
+follow-up has all 12, and the DeepSeek campaign has 11. A displayed time mean
 uses only those recorded cells and always shows its sample count.
 
 For the original campaign, generation tokens and API-equivalent costs are
 recomputed uniformly from per-event stage logs with `HiveBench::TokenReport`.
 Session-cumulative `result` and `system` events are excluded rather than counted
-again. Codex usage is normalized by subtracting `cached_input_tokens` from its
+again. Pi usage is counted only from final assistant `message_end` events;
+`message_update` and `turn_end` repeat the same response usage and are not
+additional calls. Codex usage is normalized by subtracting
+`cached_input_tokens` from its
 inclusive input count, then pricing cached and uncached input separately. Event
 model ids provide the first attribution signal; stages provide the fallback for
 Codex events that do not carry a model id. Claude's internal Haiku utility calls
@@ -237,7 +240,7 @@ imputed.
 
 The DeepSeek campaign ran through Pi/OpenRouter with dated model pins. Its
 serialized telemetry preserves complete input, output, cache-read, and cost
-data for 11 of 12 cells and wall time for 9. The all-Pro `fix-tmux` cell has no
+data for 11 of 12 cells and wall time for 11. The all-Pro `fix-tmux` cell has no
 usable efficiency record, so its values remain unknown. Costs use the
 campaign's `2026-08-12-openrouter` usual-tier rates: Pro 0813 at
 $0.435/$0.87/$0.003625 per million input/output/cached-input tokens, and Flash

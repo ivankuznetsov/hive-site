@@ -350,22 +350,28 @@ class BenchmarkDataTest < Minitest::Test
     assert_equal 24, DATA.dig("efficiency_accounting", "known_partial_cost_cells")
     assert_equal 26, DATA.dig("efficiency_accounting", "followup_timed_cells")
     assert_equal 11, DATA.dig("efficiency_accounting", "deepseek_priced_cells")
-    assert_equal 9, DATA.dig("efficiency_accounting", "deepseek_timed_cells")
+    assert_equal 11, DATA.dig("efficiency_accounting", "deepseek_timed_cells")
+    assert_equal "assistant message_end", DATA.dig("efficiency_accounting", "pi_usage_event")
     assert_equal 78, DATA.dig("efficiency_accounting", "total_cells")
 
+    glm = DATA.fetch("candidates").find { |candidate| candidate.fetch("id") == "all-glm-5.2" }
+    assert_equal 5.65, glm.fetch("cost_per_task_usd")
+    assert_equal [33.9223, 6], glm.values_at("cost_total_usd", "cost_sample")
+    assert_equal [21.793, 6], glm.values_at("normalized_mtokens_per_task", "token_sample")
+
     all_deepseek = DATA.fetch("candidates").find { |candidate| candidate.fetch("id") == DEEPSEEK_IDS.first }
-    assert_equal [113.2, 3], all_deepseek.values_at("mean_minutes", "time_sample")
-    assert_equal 2.32, all_deepseek.fetch("cost_per_task_usd")
-    assert_equal [11.6212, 5], all_deepseek.values_at("cost_total_usd", "cost_sample")
-    assert_equal [191.917, 5], all_deepseek.values_at("normalized_mtokens_per_task", "token_sample")
+    assert_equal [120.0, 5], all_deepseek.values_at("mean_minutes", "time_sample")
+    assert_equal 0.55, all_deepseek.fetch("cost_per_task_usd")
+    assert_equal [2.7732, 5], all_deepseek.values_at("cost_total_usd", "cost_sample")
+    assert_equal [50.754, 5], all_deepseek.values_at("normalized_mtokens_per_task", "token_sample")
     assert_nil all_deepseek.dig("efficiency_by_task", "fix-tmux", "cost_usd")
     assert_nil all_deepseek.dig("efficiency_by_task", "fix-tmux", "tokens")
 
     mixed_deepseek = DATA.fetch("candidates").find { |candidate| candidate.fetch("id") == DEEPSEEK_IDS.last }
     assert_equal [118.8, 6], mixed_deepseek.values_at("mean_minutes", "time_sample")
-    assert_equal 2.38, mixed_deepseek.fetch("cost_per_task_usd")
-    assert_equal [14.2711, 6], mixed_deepseek.values_at("cost_total_usd", "cost_sample")
-    assert_equal [139.953, 6], mixed_deepseek.values_at("normalized_mtokens_per_task", "token_sample")
+    assert_equal 0.6, mixed_deepseek.fetch("cost_per_task_usd")
+    assert_equal [3.5895, 6], mixed_deepseek.values_at("cost_total_usd", "cost_sample")
+    assert_equal [34.774, 6], mixed_deepseek.values_at("normalized_mtokens_per_task", "token_sample")
 
     [all_deepseek, mixed_deepseek].each do |candidate|
       measured = candidate.fetch("efficiency_by_task").values.select { |task| task["tokens"] }
@@ -626,9 +632,10 @@ class BenchmarkDataTest < Minitest::Test
       refute_nil all_deepseek_summary
       assert_includes all_deepseek_summary, "5.892"
       assert_includes all_deepseek_summary, "Fable 6.833 · Sol 4.95"
-      assert_includes all_deepseek_summary, "$2.32"
+      assert_includes all_deepseek_summary, "$0.55"
       assert_includes all_deepseek_summary, "5/6 priced"
-      assert_includes all_deepseek_summary, "191.917M"
+      assert_includes all_deepseek_summary, "50.754M"
+      assert_includes all_deepseek_summary, "5/6 timed"
       assert_includes all_deepseek_summary, "5/6 measured"
       refute_includes all_deepseek_summary, "bench-family-badge"
 
@@ -636,9 +643,9 @@ class BenchmarkDataTest < Minitest::Test
       refute_nil mixed_deepseek_summary
       assert_includes mixed_deepseek_summary, "5.783"
       assert_includes mixed_deepseek_summary, "Fable 6.75 · Sol 4.817"
-      assert_includes mixed_deepseek_summary, "$2.38"
+      assert_includes mixed_deepseek_summary, "$0.6"
       assert_includes mixed_deepseek_summary, "6/6 priced"
-      assert_includes mixed_deepseek_summary, "139.953M"
+      assert_includes mixed_deepseek_summary, "34.774M"
       assert_includes mixed_deepseek_summary, "6/6 measured"
       refute_includes mixed_deepseek_summary, "bench-family-badge"
 
