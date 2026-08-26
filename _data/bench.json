@@ -1,21 +1,21 @@
 {
   "schema": "hive-bench-results-site",
-  "schema_version": 10,
-  "corpus_version": "v2-ce + v3-mixed-workflows-followup-20260713 + v3-production-review-panels-20260723 + v3-deepseek-v4-0813-20260813-r2",
-  "generated_at": "2026-08-16T11:25:09Z",
+  "schema_version": 11,
+  "corpus_version": "v2-ce + v3-mixed-workflows-followup-20260713 + v3-production-review-panels-20260723 + v3-deepseek-v4-0813-20260813-r2 + v3-pi-ox-alpha-high-20260825-r3 + v3-opencode-ox-alpha-high-20260825-r3",
+  "generated_at": "2026-08-26T10:09:16Z",
   "status": "preliminary_complete",
   "coverage": {
-    "cells": 78,
-    "expected_cells": 78,
+    "cells": 90,
+    "expected_cells": 90,
     "tasks": 6,
-    "candidates": 13
+    "candidates": 15
   },
   "efficiency_accounting": {
     "source": "campaign-serialized generation telemetry",
     "parser": "HiveBench::TokenReport",
     "pricing_version": "2026-06-usual + 2026-08-12-openrouter",
     "priced_cells": 46,
-    "total_cells": 78,
+    "total_cells": 90,
     "judge_usage_included": false,
     "excluded_cumulative_event_types": [
       "result",
@@ -33,7 +33,10 @@
     "followup_timed_cells": 26,
     "known_partial_cost_cells": 24,
     "deepseek_priced_cells": 11,
-    "deepseek_timed_cells": 11
+    "deepseek_timed_cells": 11,
+    "ox_alpha_priced_cells": 0,
+    "ox_alpha_token_cells": 6,
+    "ox_alpha_timed_cells": 10
   },
   "discussion_adjusted": {
     "status": "diagnostic",
@@ -41,29 +44,31 @@
       "v2-ce",
       "v3-mixed-workflows-three-seed-20260713",
       "v3-production-review-panels-three-seed-20260723",
-      "v3-deepseek-v4-0813-20260813-r2"
+      "v3-deepseek-v4-0813-20260813-r2",
+      "v3-pi-ox-alpha-high-20260825-r3",
+      "v3-opencode-ox-alpha-high-20260825-r3"
     ],
-    "description": "A separate one-shot diagnostic covering all four campaigns. The v2-ce campaign reused its exact published independent verdicts and rationales recovered from exact local provider sessions for round one; the three three-seed campaigns freshly re-graded round one. In every campaign, each judge then saw the other judge's verdict anonymously, argued the strongest evidence-based case that its own view was wrong, and held or revised. Discussion-final scores do not replace the independent leaderboard scores because shared verdicts can introduce anchoring or convergence pressure.",
+    "description": "A separate one-shot diagnostic covering all six campaigns. The v2-ce campaign reused its exact published independent verdicts and rationales recovered from exact local provider sessions for round one; the five three-sample campaigns freshly re-graded round one. In every campaign, each judge then saw the other judge's verdict anonymously, argued the strongest evidence-based case that its own view was wrong, and held or revised. Discussion-final scores do not replace the independent leaderboard scores because shared verdicts can introduce anchoring or convergence pressure.",
     "coverage": {
-      "cells": 78,
-      "expected_cells": 78,
-      "judge_decisions": 156,
-      "expected_judge_decisions": 156,
-      "fully_adjusted_cells": 78,
+      "cells": 90,
+      "expected_cells": 90,
+      "judge_decisions": 180,
+      "expected_judge_decisions": 180,
+      "fully_adjusted_cells": 90,
       "missing": []
     },
     "summary": {
-      "cells": 78,
+      "cells": 90,
       "mean_revision_by_judge": {
-        "fable-5": -0.764,
-        "gpt-5.6-sol": -0.126
+        "fable-5": -0.851,
+        "gpt-5.6-sol": -0.101
       },
       "mean_abs_revision_by_judge": {
-        "fable-5": 0.779,
-        "gpt-5.6-sol": 0.259
+        "fable-5": 0.864,
+        "gpt-5.6-sol": 0.317
       },
-      "mean_spread_before": 1.927,
-      "mean_spread_after": 1.188
+      "mean_spread_before": 2.058,
+      "mean_spread_after": 1.199
     },
     "candidates": [
       {
@@ -1417,6 +1422,214 @@
             }
           }
         }
+      },
+      {
+        "id": "all-ox-alpha@high",
+        "fable": {
+          "mean": 6.333,
+          "sample": 6,
+          "total": 6
+        },
+        "sol": {
+          "mean": 5.05,
+          "sample": 6,
+          "total": 6
+        },
+        "combined": {
+          "mean": 5.692,
+          "sample": 6,
+          "total": 6
+        },
+        "cells": {
+          "install": {
+            "fable": {
+              "initial": 7.0,
+              "final": 4.0,
+              "delta": -3.0,
+              "revised": true
+            },
+            "sol": {
+              "initial": 3.1,
+              "final": 2.8,
+              "delta": -0.3,
+              "revised": true
+            }
+          },
+          "fix-tmux": {
+            "fable": {
+              "initial": 8.0,
+              "final": 7.5,
+              "delta": -0.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 7.0,
+              "final": 6.5,
+              "delta": -0.5,
+              "revised": true
+            }
+          },
+          "daemon": {
+            "fable": {
+              "initial": 7.0,
+              "final": 6.5,
+              "delta": -0.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 5.0,
+              "final": 5.0,
+              "delta": 0.0,
+              "revised": false
+            }
+          },
+          "add-i-key": {
+            "fable": {
+              "initial": 8.5,
+              "final": 8.0,
+              "delta": -0.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 8.0,
+              "final": 7.5,
+              "delta": -0.5,
+              "revised": true
+            }
+          },
+          "web-install": {
+            "fable": {
+              "initial": 8.0,
+              "final": 7.5,
+              "delta": -0.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 2.0,
+              "final": 6.5,
+              "delta": 4.5,
+              "revised": true
+            }
+          },
+          "fix-review": {
+            "fable": {
+              "initial": 7.0,
+              "final": 4.5,
+              "delta": -2.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 2.0,
+              "final": 2.0,
+              "delta": 0.0,
+              "revised": false
+            }
+          }
+        }
+      },
+      {
+        "id": "all-ox-alpha-opencode@high",
+        "fable": {
+          "mean": 3.833,
+          "sample": 6,
+          "total": 6
+        },
+        "sol": {
+          "mean": 3.083,
+          "sample": 6,
+          "total": 6
+        },
+        "combined": {
+          "mean": 3.458,
+          "sample": 6,
+          "total": 6
+        },
+        "cells": {
+          "add-i-key": {
+            "fable": {
+              "initial": 4.0,
+              "final": 4.0,
+              "delta": 0.0,
+              "revised": false
+            },
+            "sol": {
+              "initial": 6.5,
+              "final": 5.0,
+              "delta": -1.5,
+              "revised": true
+            }
+          },
+          "web-install": {
+            "fable": {
+              "initial": 6.0,
+              "final": 2.5,
+              "delta": -3.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 2.0,
+              "final": 2.0,
+              "delta": 0.0,
+              "revised": false
+            }
+          },
+          "install": {
+            "fable": {
+              "initial": 6.5,
+              "final": 3.5,
+              "delta": -3.0,
+              "revised": true
+            },
+            "sol": {
+              "initial": 2.5,
+              "final": 2.5,
+              "delta": 0.0,
+              "revised": false
+            }
+          },
+          "fix-tmux": {
+            "fable": {
+              "initial": 5.0,
+              "final": 3.5,
+              "delta": -1.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 4.0,
+              "final": 4.0,
+              "delta": 0.0,
+              "revised": false
+            }
+          },
+          "fix-review": {
+            "fable": {
+              "initial": 7.0,
+              "final": 6.0,
+              "delta": -1.0,
+              "revised": true
+            },
+            "sol": {
+              "initial": 3.0,
+              "final": 3.0,
+              "delta": 0.0,
+              "revised": false
+            }
+          },
+          "daemon": {
+            "fable": {
+              "initial": 4.0,
+              "final": 3.5,
+              "delta": -0.5,
+              "revised": true
+            },
+            "sol": {
+              "initial": 3.0,
+              "final": 2.0,
+              "delta": -1.0,
+              "revised": true
+            }
+          }
+        }
       }
     ]
   },
@@ -1569,19 +1782,45 @@
           "campaign_id": "v3-deepseek-v4-0813-20260813-r2",
           "reasoning_effort": "ultra",
           "samples_per_cell": 3
+        },
+        {
+          "id": "all-ox-alpha@high",
+          "label": "Ox Alpha via Pi high",
+          "mean": 3.7945,
+          "scored": 6,
+          "total": 6,
+          "same_family": false,
+          "campaign_id": "v3-pi-ox-alpha-high-20260825-r3",
+          "reasoning_effort": "ultra",
+          "samples_per_cell": 3
+        },
+        {
+          "id": "all-ox-alpha-opencode@high",
+          "label": "Ox Alpha via OpenCode high",
+          "mean": 2.488833,
+          "scored": 6,
+          "total": 6,
+          "same_family": false,
+          "campaign_id": "v3-opencode-ox-alpha-high-20260825-r3",
+          "reasoning_effort": "ultra",
+          "samples_per_cell": 3
         }
       ],
       "reasoning_effort_by_campaign": {
         "v2-ce": "xhigh",
         "v3-mixed-workflows-three-seed-20260713": "ultra",
         "v3-production-review-panels-three-seed-20260723": "ultra",
-        "v3-deepseek-v4-0813-20260813-r2": "ultra"
+        "v3-deepseek-v4-0813-20260813-r2": "ultra",
+        "v3-pi-ox-alpha-high-20260825-r3": "ultra",
+        "v3-opencode-ox-alpha-high-20260825-r3": "ultra"
       },
       "samples_per_cell_by_campaign": {
         "v2-ce": 1,
         "v3-mixed-workflows-three-seed-20260713": 3,
         "v3-production-review-panels-three-seed-20260723": 3,
-        "v3-deepseek-v4-0813-20260813-r2": 3
+        "v3-deepseek-v4-0813-20260813-r2": 3,
+        "v3-pi-ox-alpha-high-20260825-r3": 3,
+        "v3-opencode-ox-alpha-high-20260825-r3": 3
       }
     },
     {
@@ -1732,19 +1971,45 @@
           "campaign_id": "v3-deepseek-v4-0813-20260813-r2",
           "reasoning_effort": "unspecified",
           "samples_per_cell": 3
+        },
+        {
+          "id": "all-ox-alpha@high",
+          "label": "Ox Alpha via Pi high",
+          "mean": 6.3055,
+          "scored": 6,
+          "total": 6,
+          "same_family": false,
+          "campaign_id": "v3-pi-ox-alpha-high-20260825-r3",
+          "reasoning_effort": "unspecified",
+          "samples_per_cell": 3
+        },
+        {
+          "id": "all-ox-alpha-opencode@high",
+          "label": "Ox Alpha via OpenCode high",
+          "mean": 4.833333,
+          "scored": 6,
+          "total": 6,
+          "same_family": false,
+          "campaign_id": "v3-opencode-ox-alpha-high-20260825-r3",
+          "reasoning_effort": "unspecified",
+          "samples_per_cell": 3
         }
       ],
       "reasoning_effort_by_campaign": {
         "v2-ce": "xhigh",
         "v3-mixed-workflows-three-seed-20260713": "xhigh",
         "v3-production-review-panels-three-seed-20260723": "xhigh",
-        "v3-deepseek-v4-0813-20260813-r2": "unspecified"
+        "v3-deepseek-v4-0813-20260813-r2": "unspecified",
+        "v3-pi-ox-alpha-high-20260825-r3": "unspecified",
+        "v3-opencode-ox-alpha-high-20260825-r3": "unspecified"
       },
       "samples_per_cell_by_campaign": {
         "v2-ce": 1,
         "v3-mixed-workflows-three-seed-20260713": 3,
         "v3-production-review-panels-three-seed-20260723": 3,
-        "v3-deepseek-v4-0813-20260813-r2": 3
+        "v3-deepseek-v4-0813-20260813-r2": 3,
+        "v3-pi-ox-alpha-high-20260825-r3": 3,
+        "v3-opencode-ox-alpha-high-20260825-r3": 3
       }
     }
   ],
@@ -4928,6 +5193,646 @@
           "recovered_artifact": false
         }
       }
+    },
+    {
+      "id": "all-ox-alpha@high",
+      "label": "Ox Alpha via Pi high",
+      "reasoning": "Ox Alpha high throughout via Pi/OpenRouter",
+      "note": "Ox Alpha owns planning, implementation, and review through Pi at explicit high reasoning; pre-execution plan review is disabled.",
+      "campaign_id": "v3-pi-ox-alpha-high-20260825-r3",
+      "samples_per_cell": 3,
+      "raw_evidence_published": false,
+      "patches_published": true,
+      "completed": 6,
+      "total": 6,
+      "mean_minutes": 105.7,
+      "time_sample": 4,
+      "cost_per_task_usd": null,
+      "cost_total_usd": null,
+      "cost_sample": 0,
+      "normalized_mtokens_per_task": 19.838,
+      "token_sample": 6,
+      "token_totals": {
+        "input": 5910682,
+        "output": 536749,
+        "cache_read": 112580672,
+        "cache_write": 0
+      },
+      "efficiency_by_task": {
+        "install": {
+          "cost_usd": null,
+          "normalized_mtokens": 29.776,
+          "tokens": {
+            "input": 1157836,
+            "output": 134357,
+            "cache_read": 28483392,
+            "cache_write": 0
+          },
+          "wall_minutes": 160.6
+        },
+        "fix-tmux": {
+          "cost_usd": null,
+          "normalized_mtokens": 3.348,
+          "tokens": {
+            "input": 467467,
+            "output": 32366,
+            "cache_read": 2847808,
+            "cache_write": 0
+          },
+          "wall_minutes": 99.1
+        },
+        "daemon": {
+          "cost_usd": null,
+          "normalized_mtokens": 17.794,
+          "tokens": {
+            "input": 1372838,
+            "output": 69838,
+            "cache_read": 16351616,
+            "cache_write": 0
+          },
+          "wall_minutes": null
+        },
+        "add-i-key": {
+          "cost_usd": null,
+          "normalized_mtokens": 5.392,
+          "tokens": {
+            "input": 651563,
+            "output": 64589,
+            "cache_read": 4676032,
+            "cache_write": 0
+          },
+          "wall_minutes": 51.2
+        },
+        "web-install": {
+          "cost_usd": null,
+          "normalized_mtokens": 52.999,
+          "tokens": {
+            "input": 1342766,
+            "output": 149583,
+            "cache_read": 51506880,
+            "cache_write": 0
+          },
+          "wall_minutes": null
+        },
+        "fix-review": {
+          "cost_usd": null,
+          "normalized_mtokens": 9.719,
+          "tokens": {
+            "input": 918212,
+            "output": 86016,
+            "cache_read": 8714944,
+            "cache_write": 0
+          },
+          "wall_minutes": 111.8
+        }
+      },
+      "cells": {
+        "install": {
+          "scores": "6.833 / 2.167",
+          "result_url": "/bench/results.json",
+          "patch_url": "/bench/patches/v3-pi-ox-alpha-high-20260825-r3/all-ox-alpha-high/install.patch",
+          "judge_samples": {
+            "fable-5": {
+              "mean": 6.833,
+              "stddev": 0.236,
+              "scores": [
+                7.0,
+                7.0,
+                6.5
+              ],
+              "interval": [
+                6.598,
+                7.069
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 2.167,
+              "stddev": 0.236,
+              "scores": [
+                2.5,
+                2.0,
+                2.0
+              ],
+              "interval": [
+                1.931,
+                2.402
+              ],
+              "same_family": false,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        },
+        "fix-tmux": {
+          "scores": "8.167 / 5.5",
+          "result_url": "/bench/results.json",
+          "patch_url": "/bench/patches/v3-pi-ox-alpha-high-20260825-r3/all-ox-alpha-high/fix-tmux.patch",
+          "judge_samples": {
+            "fable-5": {
+              "mean": 8.167,
+              "stddev": 0.236,
+              "scores": [
+                8.0,
+                8.5,
+                8.0
+              ],
+              "interval": [
+                7.931,
+                8.402
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 5.5,
+              "stddev": 0.408,
+              "scores": [
+                6.0,
+                5.5,
+                5.0
+              ],
+              "interval": [
+                5.092,
+                5.908
+              ],
+              "same_family": false,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        },
+        "daemon": {
+          "scores": "6.833 / 3.0",
+          "result_url": "/bench/results.json",
+          "patch_url": "/bench/patches/v3-pi-ox-alpha-high-20260825-r3/all-ox-alpha-high/daemon.patch",
+          "judge_samples": {
+            "fable-5": {
+              "mean": 6.833,
+              "stddev": 0.236,
+              "scores": [
+                6.5,
+                7.0,
+                7.0
+              ],
+              "interval": [
+                6.598,
+                7.069
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 3.0,
+              "stddev": 0.0,
+              "scores": [
+                3.0,
+                3.0,
+                3.0
+              ],
+              "interval": [
+                3.0,
+                3.0
+              ],
+              "same_family": false,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": true
+        },
+        "add-i-key": {
+          "scores": "6.833 / 6.0",
+          "result_url": "/bench/results.json",
+          "patch_url": "/bench/patches/v3-pi-ox-alpha-high-20260825-r3/all-ox-alpha-high/add-i-key.patch",
+          "judge_samples": {
+            "fable-5": {
+              "mean": 6.833,
+              "stddev": 0.471,
+              "scores": [
+                7.5,
+                6.5,
+                6.5
+              ],
+              "interval": [
+                6.362,
+                7.305
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 6.0,
+              "stddev": 0.408,
+              "scores": [
+                5.5,
+                6.5,
+                6.0
+              ],
+              "interval": [
+                5.592,
+                6.408
+              ],
+              "same_family": false,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        },
+        "web-install": {
+          "scores": "6.0 / 3.767",
+          "result_url": "/bench/results.json",
+          "patch_url": "/bench/patches/v3-pi-ox-alpha-high-20260825-r3/all-ox-alpha-high/web-install.patch",
+          "judge_samples": {
+            "fable-5": {
+              "mean": 6.0,
+              "stddev": 0.0,
+              "scores": [
+                6.0,
+                6.0,
+                6.0
+              ],
+              "interval": [
+                6.0,
+                6.0
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 3.767,
+              "stddev": 0.205,
+              "scores": [
+                4.0,
+                3.8,
+                3.5
+              ],
+              "interval": [
+                3.561,
+                3.972
+              ],
+              "same_family": false,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": true
+        },
+        "fix-review": {
+          "scores": "3.167 / 2.333",
+          "result_url": "/bench/results.json",
+          "patch_url": "/bench/patches/v3-pi-ox-alpha-high-20260825-r3/all-ox-alpha-high/fix-review.patch",
+          "judge_samples": {
+            "fable-5": {
+              "mean": 3.167,
+              "stddev": 0.236,
+              "scores": [
+                3.5,
+                3.0,
+                3.0
+              ],
+              "interval": [
+                2.931,
+                3.402
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 2.333,
+              "stddev": 0.236,
+              "scores": [
+                2.0,
+                2.5,
+                2.5
+              ],
+              "interval": [
+                2.098,
+                2.569
+              ],
+              "same_family": false,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        }
+      }
+    },
+    {
+      "id": "all-ox-alpha-opencode@high",
+      "label": "Ox Alpha via OpenCode high",
+      "reasoning": "Ox Alpha high throughout via OpenCode/OpenRouter",
+      "note": "Ox Alpha owns planning, implementation, and review through OpenCode at explicit high reasoning; pre-execution plan review is disabled.",
+      "campaign_id": "v3-opencode-ox-alpha-high-20260825-r3",
+      "samples_per_cell": 3,
+      "raw_evidence_published": false,
+      "patches_published": true,
+      "completed": 6,
+      "total": 6,
+      "mean_minutes": 42.5,
+      "time_sample": 6,
+      "cost_per_task_usd": null,
+      "cost_total_usd": null,
+      "cost_sample": 0,
+      "normalized_mtokens_per_task": null,
+      "token_sample": 0,
+      "token_totals": {
+        "input": 0,
+        "output": 0,
+        "cache_read": 0,
+        "cache_write": 0
+      },
+      "efficiency_by_task": {
+        "add-i-key": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": 34.9
+        },
+        "web-install": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": 65.4
+        },
+        "install": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": 37.3
+        },
+        "fix-tmux": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": 26.8
+        },
+        "fix-review": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": 42.2
+        },
+        "daemon": {
+          "cost_usd": null,
+          "normalized_mtokens": null,
+          "tokens": null,
+          "wall_minutes": 48.6
+        }
+      },
+      "cells": {
+        "add-i-key": {
+          "scores": "3.0 / 3.167",
+          "result_url": "/bench/results.json",
+          "patch_url": "/bench/patches/v3-opencode-ox-alpha-high-20260825-r3/all-ox-alpha-opencode-high/add-i-key.patch",
+          "judge_samples": {
+            "fable-5": {
+              "mean": 3.0,
+              "stddev": 0.0,
+              "scores": [
+                3.0,
+                3.0,
+                3.0
+              ],
+              "interval": [
+                3.0,
+                3.0
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 3.167,
+              "stddev": 0.624,
+              "scores": [
+                4.0,
+                2.5,
+                3.0
+              ],
+              "interval": [
+                2.543,
+                3.79
+              ],
+              "same_family": false,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        },
+        "web-install": {
+          "scores": "3.833 / 1.333",
+          "result_url": "/bench/results.json",
+          "patch_url": "/bench/patches/v3-opencode-ox-alpha-high-20260825-r3/all-ox-alpha-opencode-high/web-install.patch",
+          "judge_samples": {
+            "fable-5": {
+              "mean": 3.833,
+              "stddev": 0.236,
+              "scores": [
+                3.5,
+                4.0,
+                4.0
+              ],
+              "interval": [
+                3.598,
+                4.069
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 1.333,
+              "stddev": 0.471,
+              "scores": [
+                2.0,
+                1.0,
+                1.0
+              ],
+              "interval": [
+                0.862,
+                1.805
+              ],
+              "same_family": false,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        },
+        "install": {
+          "scores": "4.667 / 2.0",
+          "result_url": "/bench/results.json",
+          "patch_url": "/bench/patches/v3-opencode-ox-alpha-high-20260825-r3/all-ox-alpha-opencode-high/install.patch",
+          "judge_samples": {
+            "fable-5": {
+              "mean": 4.667,
+              "stddev": 0.236,
+              "scores": [
+                4.5,
+                5.0,
+                4.5
+              ],
+              "interval": [
+                4.431,
+                4.902
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 2.0,
+              "stddev": 0.0,
+              "scores": [
+                2.0,
+                2.0,
+                2.0
+              ],
+              "interval": [
+                2.0,
+                2.0
+              ],
+              "same_family": false,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        },
+        "fix-tmux": {
+          "scores": "5.667 / 3.5",
+          "result_url": "/bench/results.json",
+          "patch_url": "/bench/patches/v3-opencode-ox-alpha-high-20260825-r3/all-ox-alpha-opencode-high/fix-tmux.patch",
+          "judge_samples": {
+            "fable-5": {
+              "mean": 5.667,
+              "stddev": 0.236,
+              "scores": [
+                6.0,
+                5.5,
+                5.5
+              ],
+              "interval": [
+                5.431,
+                5.902
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 3.5,
+              "stddev": 0.408,
+              "scores": [
+                3.5,
+                4.0,
+                3.0
+              ],
+              "interval": [
+                3.092,
+                3.908
+              ],
+              "same_family": false,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        },
+        "fix-review": {
+          "scores": "5.833 / 2.6",
+          "result_url": "/bench/results.json",
+          "patch_url": "/bench/patches/v3-opencode-ox-alpha-high-20260825-r3/all-ox-alpha-opencode-high/fix-review.patch",
+          "judge_samples": {
+            "fable-5": {
+              "mean": 5.833,
+              "stddev": 0.236,
+              "scores": [
+                5.5,
+                6.0,
+                6.0
+              ],
+              "interval": [
+                5.598,
+                6.069
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 2.6,
+              "stddev": 0.432,
+              "scores": [
+                2.8,
+                2.0,
+                3.0
+              ],
+              "interval": [
+                2.168,
+                3.032
+              ],
+              "same_family": false,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        },
+        "daemon": {
+          "scores": "6.0 / 2.333",
+          "result_url": "/bench/results.json",
+          "patch_url": "/bench/patches/v3-opencode-ox-alpha-high-20260825-r3/all-ox-alpha-opencode-high/daemon.patch",
+          "judge_samples": {
+            "fable-5": {
+              "mean": 6.0,
+              "stddev": 0.408,
+              "scores": [
+                5.5,
+                6.0,
+                6.5
+              ],
+              "interval": [
+                5.592,
+                6.408
+              ],
+              "same_family": false,
+              "reasoning_effort": "unspecified",
+              "reasoning_effort_explicit": false
+            },
+            "gpt-5.6-sol": {
+              "mean": 2.333,
+              "stddev": 0.236,
+              "scores": [
+                2.0,
+                2.5,
+                2.5
+              ],
+              "interval": [
+                2.098,
+                2.569
+              ],
+              "same_family": false,
+              "reasoning_effort": "ultra",
+              "reasoning_effort_explicit": true
+            }
+          },
+          "recovered_artifact": false
+        }
+      }
     }
   ],
   "evidence": {
@@ -4942,19 +5847,24 @@
     "production_review_panel_patches": "/bench/patches/v3-production-review-panels-three-seed-20260723/",
     "production_review_panel_patches_published": true,
     "deepseek_patches": "/bench/patches/v3-deepseek-v4-0813-20260813-r2/",
-    "deepseek_patches_published": true
+    "deepseek_patches_published": true,
+    "ox_alpha_pi_patches": "/bench/patches/v3-pi-ox-alpha-high-20260825-r3/",
+    "ox_alpha_pi_patches_published": true,
+    "ox_alpha_opencode_patches": "/bench/patches/v3-opencode-ox-alpha-high-20260825-r3/",
+    "ox_alpha_opencode_patches_published": true
   },
   "notes": [
-    "All 78 generation cells completed. Every objective gate is no_gate in all four campaigns, so scores are judge evidence, not test-pass rates.",
-    "The original 36-cell campaign uses one sample per judge; the 42 cells across the three three-seed follow-ups use three samples per judge. All four campaigns ran adversarial deliberation across all 78 cells.",
-    "Discussion final is a separate one-shot diagnostic, not an adjustment to the independent leaderboard scores. It covers 156/156 judge decisions. The original campaign reused its exact published verdicts and locally recovered rationales for round two; the three later campaigns freshly re-graded round one.",
+    "All 90 generation cells completed. Every objective gate is no_gate in all six campaigns, so scores are judge evidence, not test-pass rates.",
+    "The original 36-cell campaign uses one sample per judge; the 54 cells across the five three-sample campaigns use three samples per judge. All six campaigns ran adversarial deliberation across all 90 cells.",
+    "Discussion final is a separate one-shot diagnostic, not an adjustment to the independent leaderboard scores. It covers 180/180 judge decisions. The original campaign reused its exact published verdicts and locally recovered rationales for round two; the five later campaigns freshly re-graded round one.",
+    "Ox Alpha used the same model family and high reasoning tier in both harness rows. Pi preserves tokens for 6/6 cells and wall time for 4/6; OpenCode preserves wall time for 6/6 but no usable token telemetry. Cost remains unknown rather than inferred.",
     "Efficiency uses each campaign's serialized generation telemetry. DeepSeek's Pi/OpenRouter path preserved complete price and token telemetry for 11/12 cells and wall time for 11/12; missing values remain unknown.",
     "Five Sol → Terra → Sol cells have complete recomputed API-equivalent costs; Grok workflows publish known-provider subtotals because Grok usage telemetry is unavailable.",
     "The mixed Opus → Codex estimate is $115.5829 across six cells: $67.3351 Codex 5.5, $47.6319 Opus 4.8, and $0.6159 Haiku utility calls, or $19.26 per task on average.",
     "Grok workflows publish known-provider token and API-equivalent cost subtotals. They exclude Grok, remain partial, and never impute its missing telemetry.",
     "Wall-time means use only recorded samples. The production-review-panel campaign retains wall time for all 12 cells.",
     "Costs use the benchmark's versioned usual-tier tables and are API-equivalent estimates, not subscription invoices; judge usage is excluded.",
-    "All 42 follow-up candidate patches are public on this site; raw provider streams, logs, target clones, and auth material remain unpublished."
+    "All 54 three-sample campaign patches are public on this site; raw provider streams, logs, target clones, and auth material remain unpublished."
   ],
   "campaigns": [
     {
@@ -4994,6 +5904,30 @@
       "corpus_version": "v3-deepseek-v4-0813-20260813-r2",
       "cells": 12,
       "candidates": 2,
+      "judge_samples_per_cell": 3,
+      "fable_reasoning_effort": "unspecified",
+      "sol_reasoning_effort": "ultra",
+      "deliberation_complete": true,
+      "raw_evidence_published": false,
+      "patches_published": true
+    },
+    {
+      "id": "v3-pi-ox-alpha-high-20260825-r3",
+      "corpus_version": "v3-pi-ox-alpha-high-20260825-r3",
+      "cells": 6,
+      "candidates": 1,
+      "judge_samples_per_cell": 3,
+      "fable_reasoning_effort": "unspecified",
+      "sol_reasoning_effort": "ultra",
+      "deliberation_complete": true,
+      "raw_evidence_published": false,
+      "patches_published": true
+    },
+    {
+      "id": "v3-opencode-ox-alpha-high-20260825-r3",
+      "corpus_version": "v3-opencode-ox-alpha-high-20260825-r3",
+      "cells": 6,
+      "candidates": 1,
       "judge_samples_per_cell": 3,
       "fable_reasoning_effort": "unspecified",
       "sol_reasoning_effort": "ultra",

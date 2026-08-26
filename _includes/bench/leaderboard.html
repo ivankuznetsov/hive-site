@@ -1,6 +1,6 @@
 {% assign b = site.data.bench %}
-{% assign ranked_candidate_ids = "all-codex-5.6-sol-xhigh,sol-plan@xhigh->exec@high+grok-review,sol-plan->grok-exec-sol-review,sol-plan->terra-exec-sol-review,all-deepseek-v4-pro-0813@xhigh,opus-plan->codex-exec-xhigh,fable-plan->grok-exec-sol-review,all-grok-4.5,sol-plan->terra-exec-grok-review,all-opus-4.8,deepseek-pro@xhigh->flash@xhigh-exec+pro-review,all-codex-xhigh,all-glm-5.2" | split: "," %}
-{% assign discussion_ranked_candidate_ids = "sol-plan@xhigh->exec@high+grok-review,sol-plan->grok-exec-sol-review,sol-plan->terra-exec-sol-review,all-codex-5.6-sol-xhigh,fable-plan->grok-exec-sol-review,all-deepseek-v4-pro-0813@xhigh,deepseek-pro@xhigh->flash@xhigh-exec+pro-review,sol-plan->terra-exec-grok-review,opus-plan->codex-exec-xhigh,all-opus-4.8,all-grok-4.5,all-glm-5.2,all-codex-xhigh" | split: "," %}
+{% assign ranked_candidate_ids = "all-codex-5.6-sol-xhigh,sol-plan@xhigh->exec@high+grok-review,sol-plan->grok-exec-sol-review,sol-plan->terra-exec-sol-review,all-deepseek-v4-pro-0813@xhigh,opus-plan->codex-exec-xhigh,fable-plan->grok-exec-sol-review,all-grok-4.5,sol-plan->terra-exec-grok-review,all-opus-4.8,all-ox-alpha@high,deepseek-pro@xhigh->flash@xhigh-exec+pro-review,all-codex-xhigh,all-glm-5.2,all-ox-alpha-opencode@high" | split: "," %}
+{% assign discussion_ranked_candidate_ids = "sol-plan@xhigh->exec@high+grok-review,sol-plan->grok-exec-sol-review,sol-plan->terra-exec-sol-review,all-codex-5.6-sol-xhigh,fable-plan->grok-exec-sol-review,all-deepseek-v4-pro-0813@xhigh,deepseek-pro@xhigh->flash@xhigh-exec+pro-review,sol-plan->terra-exec-grok-review,all-ox-alpha@high,opus-plan->codex-exec-xhigh,all-opus-4.8,all-grok-4.5,all-glm-5.2,all-codex-xhigh,all-ox-alpha-opencode@high" | split: "," %}
 {% assign sol_judge = b.primary_judges | where: "id", "gpt-5.6-sol" | first %}
 {% assign fable_judge = b.primary_judges | where: "id", "fable-5" | first %}
 <section class="bench-board">
@@ -73,11 +73,11 @@
               {% endif %}
             </th>
             <td data-label="Fable">
-              <span class="bench-cell-value"><strong>{{ fable_row.mean }}</strong>
+              <span class="bench-cell-value"><strong>{{ fable_row.mean | round: 3 }}</strong>
               {% if fable_row.same_family %}{% include bench/family-badge.html judge="Fable" %}{% endif %}</span>
             </td>
             <td data-label="Sol">
-              <span class="bench-cell-value"><strong>{{ sol_row.mean }}</strong>
+              <span class="bench-cell-value"><strong>{{ sol_row.mean | round: 3 }}</strong>
               {% if sol_row.same_family %}{% include bench/family-badge.html judge="Sol" %}{% endif %}</span>
             </td>
             <td data-label="Combined"><span class="bench-cell-value"><strong>{{ combined_mean }}</strong></span></td>
@@ -111,11 +111,11 @@
     <p class="bench-meta bench-discussion-note">
       <strong>Discussion</strong> is a one-shot diagnostic with campaign-specific
       round one: the six original rows reused their exact published independent
-      verdicts and recovered rationales; the seven rows across the three later
-      three-seed campaigns received fresh round-one re-grades. In all four
+      verdicts and recovered rationales; the nine rows across the five later
+      three-seed campaigns received fresh round-one re-grades. In all six
       campaigns, each judge then saw the other anonymous verdict, challenged
-      its own view, and held or revised it. All thirteen rows ran this step across
-      78 paired cells. After discussion is the default table sort using the
+      its own view, and held or revised it. All fifteen rows ran this step across
+      90 paired cells. After discussion is the default table sort using the
       paired final mean; the independent scores remain visible, sortable, and
       the primary evidence.
     </p>
@@ -192,14 +192,16 @@
       telemetry. Depending on the workflow, that can include Fable planning,
       Sol stages, or Sol planning plus Terra execution; Grok telemetry is
       unavailable. DeepSeek's Pi/OpenRouter rows have complete provider scope
-      wherever a value is present. Use each token info button for its exact
-      provider scope and token split.
+      wherever a value is present. Ox Alpha via Pi preserves complete token
+      telemetry, while its OpenCode row does not; neither row has a published
+      API-equivalent price. Use each token info button for its exact provider
+      scope and token split.
     </p>
 
     <h2>Full board (per task)</h2>
     <p class="bench-meta">
       Every cell shows <code>Fable 5 / GPT-5.6 Sol</code>. The original rows use
-      one score per judge; the three later campaigns use three and display their
+      one score per judge; the five later campaigns use three and display their
       means. Later-campaign cells also show the complete, separate
       discussion-final pair. Click a score for its machine-readable record. Exact diffs are
       linked where the public raw-evidence bundle contains them. No task in
@@ -288,8 +290,8 @@
         layer, recorded time, normalized token values, and API-equivalent cost
         estimates.</li>
       <li>Read or compare the <a href="{{ b.evidence.cells }}">36 original
-        candidate patches</a> or follow the per-cell links above for all 42
-        three-seed follow-up patches.</li>
+        candidate patches</a> or follow the per-cell links above for all 54
+        three-seed campaign patches.</li>
     </ul>
     <p>
       These artifacts let you audit every score against the candidate code.
