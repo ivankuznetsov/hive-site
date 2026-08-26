@@ -2,7 +2,7 @@
 layout: home
 title: hive-bench methodology & limitations
 nav_exclude: true
-description: How 78 active hive-bench runs measured coding agents across planning, implementation, pull requests, review, and fixes—and how to read the limits.
+description: How 84 active hive-bench runs measured coding agents across planning, implementation, pull requests, review, and fixes—and how to read the limits.
 permalink: /bench/methodology/
 ---
 
@@ -13,8 +13,8 @@ permalink: /bench/methodology/
 ## What one cell measures
 
 One cell is one corpus task run by one candidate configuration. The published
-board has six tasks and thirteen candidates across four active campaigns, for
-**78 generated cells**. A candidate can use one model across the workflow or
+board has six tasks and fourteen candidates across five active campaigns, for
+**84 generated cells**. A candidate can use one model across the workflow or
 split stages between models; for example,
 `sol-plan->grok-exec-sol-review` uses Sol to plan and review and Grok to
 execute.
@@ -87,6 +87,11 @@ which only evaluated the finished artifact afterward.
       <td><code>pi-ce-code-review</code> using DeepSeek V4 Pro 0813 xhigh</td>
     </tr>
     <tr>
+      <th scope="row">GLM 5.3 Flash (0x Alpha) via Pi high</th>
+      <td>Plan, implement, PR, triage, fix: GLM 5.3 Flash (0x Alpha) high through Pi/OpenRouter;<br>pre-execution plan review disabled</td>
+      <td><code>pi-ce-code-review</code> using GLM 5.3 Flash (0x Alpha) high</td>
+    </tr>
+    <tr>
       <th scope="row">Fable plan &rarr; Grok execute &rarr; Sol review</th>
       <td>Plan: Fable 5 high;<br>Implement: Grok 4.5 xhigh;<br>PR, triage, fix: Sol xhigh</td>
       <td><code>codex-ce-code-review</code> using Sol xhigh</td>
@@ -123,26 +128,23 @@ which only evaluated the finished artifact afterward.
 The original publication commit's harness defines the earlier
 [candidate stage assignments](https://github.com/ivankuznetsov/hive-bench/blob/122e6473971b6ccf7c3a24e1273fb7cffbbb7631/harness/profiles/candidates.rb)
 and [review-panel derivation](https://github.com/ivankuznetsov/hive-bench/blob/122e6473971b6ccf7c3a24e1273fb7cffbbb7631/harness/lib/hive_config.rb).
-The two production-panel rows and two dated DeepSeek rows come from later
-pre-registered campaigns. The DeepSeek campaign serializes its exact Pro 0813
-and Flash 0731 OpenRouter pins. Earlier evidence bundles do not bind every
+The two production-panel rows, two dated DeepSeek rows, and GLM 5.3 Flash (0x Alpha) via Pi
+come from later pre-registered campaigns. The DeepSeek campaign serializes its
+exact Pro 0813 and Flash 0731 OpenRouter pins. The GLM 5.3 Flash (0x Alpha) campaign uses Pi at
+high reasoning throughout and explicitly disables pre-execution plan review.
+Earlier evidence bundles do not bind every
 result to a harness revision or contain each resolved `config.yml`, so the
 table documents the publication records, not independently serialized
 per-cell configuration provenance for every older row.
 
-## Withdrawn Ox Alpha campaigns
+## Withdrawn OpenCode GLM 5.3 Flash (0x Alpha) campaign
 
-The historical Pi and OpenCode Ox Alpha campaigns were withdrawn on 26 August
-2026. Each target clone exposed full repository history, including the exact
-held-out merge commit, and allowed ordinary GitHub egress. The retained logs do
-not prove that either model copied the reference solution, but they cannot
-establish that it did not. The OpenCode campaign had an additional capability
-mismatch: its resolved profile allowed only Read, Write, and Edit, without
-Bash, so it could not inspect the repository through a shell or run tests like
-the Pi harness. The stages reached Hive's execute-complete boundary, but that
-handicap prevents a fair harness comparison. Those campaigns are excluded from rankings, active coverage, and
-aggregate discussion statistics. Their patch bundles remain available only as
-explicitly invalidated audit artifacts while sealed replacements are pending.
+The historical OpenCode GLM 5.3 Flash (0x Alpha) campaign was withdrawn on 26 August 2026.
+Its resolved profile allowed only Read, Write, and Edit, without Bash, and its
+target exposed held-out repository history. That row is excluded from ranking,
+active coverage, and aggregate discussion statistics. Its patch bundle remains
+available only as an explicitly invalidated audit artifact while the Bash-enabled
+sealed replacement runs.
 
 ## Current scoring
 
@@ -150,30 +152,30 @@ Two judges independently score every final diff from 0–10 against the task and
 merged reference:
 
 - **Fable 5**, pinned to `xhigh` in the first three campaign records. It ran
-  with reasoning enabled for the DeepSeek campaign, but that record did not
-  serialize an exact effort level.
+  with reasoning enabled for the DeepSeek and GLM 5.3 Flash (0x Alpha) campaigns, but those
+  records did not serialize an exact effort level.
 - **GPT-5.6 Sol**, pinned to `xhigh` for the original campaign and `ultra` for
-  all three active three-seed follow-ups.
+  all four active three-seed follow-ups.
 
 The merged PR tells a judge what the task ultimately required; candidates are
 not rewarded for textual or structural similarity. The original 36 cells have
-one score sample per judge; the 42 cells in the three active later campaigns have three
+one score sample per judge; the 48 cells in the four active later campaigns have three
 samples per judge. The bold independent score for the original rows and
 independent three-sample mean for the later rows remain the leaderboard's
 primary
 evidence. The public summary table opens ordered by the paired discussion-final
-mean, while the independent scores remain visible and sortable. All 78 cells
+mean, while the independent scores remain visible and sortable. All 84 cells
 then received an adversarial deliberation pass. The secondary **discussion
 final** is a separate one-shot diagnostic run with
 campaign-specific round-one provenance. The original campaign reused its exact
 published independent verdicts and rationales recovered from exact local
-provider sessions; all three active three-seed follow-ups freshly re-graded round one.
-In all four active campaigns, each judge then received the other judge's verdict
+provider sessions; all four active three-seed follow-ups freshly re-graded round one.
+In all five active campaigns, each judge then received the other judge's verdict
 anonymously, argued the strongest evidence-based case that its own view was
 wrong, and held or revised. It is not an adjustment applied to the independent
 score or mean.
 
-The site publishes all 156 discussion-final judge decisions across all 78
+The site publishes all 168 discussion-final judge decisions across all 84
 cells. Reusing the original campaign's published initial verdicts means its
 round two did not rerun independent scoring. Sol's originally interrupted
 second-round decision for the Fable-plan/Grok-execute `daemon` follow-up cell
@@ -181,7 +183,7 @@ was also recovered by replaying only round two from the preserved pair of
 round-one verdicts, plan, diff, and reference.
 Discussion finals do not replace the independent leaderboard because exposing
 verdicts can add anchoring or convergence pressure even when it also surfaces
-genuine misses. The default **After discussion** sort orders all thirteen rows by
+genuine misses. The default **After discussion** sort orders all fourteen rows by
 their paired final mean; choosing it as the presentation default does not
 rewrite the independent scores. The per-task board displays Fable before Sol
 for both layers.
@@ -200,9 +202,9 @@ published score data but are not used in the compact leaderboard ranking.
 
 ## Coverage and objective evidence
 
-All 78 active candidate runs produced scoreable patches, with no pending or
-failed generation cells. All 78 active exact final patches are public. The 42
-cells across the three active three-seed campaigns also publish their complete score samples and
+All 84 active candidate runs produced scoreable patches, with no pending or
+failed generation cells. All 84 active exact final patches are public. The 48
+cells across the four active three-seed campaigns also publish their complete score samples and
 intervals in the site snapshot. Every objective-gate
 record is `no_gate`: the corpus does not yet have curated held-out tests
 suitable for a fair candidate-independent pass/fail claim. The current numbers
@@ -212,7 +214,7 @@ The site links every score to a machine-readable record. For the original
 campaign, the manifest, complete merged `results.json`, exact candidate patches,
 and evidence directories are public in
 [hive-bench](https://github.com/ivankuznetsov/hive-bench/tree/main/runs/v2-ce).
-The three active follow-ups' three-sample distributions are included in the site's
+The four active follow-ups' three-sample distributions are included in the site's
 [data snapshot]({{ '/bench/results.json' | relative_url }}), and every later
 cell links directly to its candidate patch. Raw provider streams, build logs,
 target clones, and auth material remain unpublished.
@@ -221,8 +223,9 @@ target clones, and auth material remain unpublished.
 
 Wall time is recorded per task where recoverable. The original campaign has 32
 timed cells; the first three-seed follow-up has 14, the production-panel
-follow-up has all 12, and the DeepSeek campaign has 11. A displayed time mean
-uses only those recorded cells and always shows its sample count.
+follow-up has all 12, the DeepSeek campaign has 11, and GLM 5.3 Flash (0x Alpha) via Pi has 4.
+A displayed time mean uses only those recorded cells and always shows its
+sample count.
 
 For the original campaign, generation tokens and API-equivalent costs are
 recomputed uniformly from per-event stage logs with `HiveBench::TokenReport`.
@@ -260,6 +263,11 @@ campaign's `2026-08-12-openrouter` usual-tier rates: Pro 0813 at
 $0.435/$0.87/$0.003625 per million input/output/cached-input tokens, and Flash
 0731 at $0.08/$0.18/$0.016. Judge usage remains excluded.
 
+The GLM 5.3 Flash (0x Alpha) Pi campaign preserves complete input, output, and cache-read usage
+for all six cells, averaging **19.838M normalized tokens per task**, plus wall
+time for four cells. It did not serialize an API-equivalent model price, so its
+cost fields remain **unknown**, not zero.
+
 All displayed wall times come from the corresponding serialized
 `wall_clock_sec` values. The per-event source logs used to reconstruct normalized
 token splits and costs are not public. Those displayed values are available in
@@ -282,7 +290,8 @@ The site also publishes every task-level cost, token-bucket split, and recorded
 wall time rather than only the mean.
 
 Costs use versioned usual-tier tables (`2026-06-usual` for the earlier
-publication and `2026-08-12-openrouter` for DeepSeek) and are descriptive
+publication and `2026-08-12-openrouter` for DeepSeek; no GLM 5.3 Flash (0x Alpha) price was
+serialized) and are descriptive
 API-equivalent estimates, not a billing claim. Judge usage is excluded. Grok's
 runner emits no usable token events, so workflows that use Grok keep
 their complete-workflow token totals and cost fields **unknown**, not zero. The
@@ -295,19 +304,20 @@ No missing value is imputed from another provider or model.
 - **Small, single-project corpus.** Six Ruby/CLI tasks from one repository do
   not support a universal "best coding model" claim.
 - **Mixed sampling depth.** The original 36 cells have one sample per primary
-  judge; the 42 active later cells have three. Stability intervals therefore exist
+  judge; the 48 active later cells have three. Stability intervals therefore exist
   only for the later rows, and close gaps in the original cohort may reverse.
 - **No objective gates.** Human-aligned judge scoring is the only current
   quality signal.
 - **Judge-family overlap.** Several earlier follow-up candidates use Sol for at
   least one production stage and are judged by Sol; the Fable-planned candidate
-  is also judged by Fable. The two DeepSeek rows are family-disjoint from both
-  judges. Flags disclose overlap where present but
+  is also judged by Fable. The two DeepSeek rows and GLM 5.3 Flash (0x Alpha) via Pi are
+  family-disjoint from both judges. Flags disclose overlap where present but
   cannot remove the bias.
 - **Corpus provenance can frame the task.** All original task plans were
   Claude-authored, even though candidates re-ran the workflow themselves.
 - **Recovered telemetry is incomplete.** Some finished cells predate complete
-  wall-time capture and Grok exposes no usable token stream. The site labels
+  wall-time capture and Grok exposes no usable token stream. GLM 5.3 Flash (0x Alpha) via Pi
+  has complete token usage but only four recorded wall times. The site labels
   every affected task cell and aggregate.
 - **Token and cost source logs are not published.** The normalized site snapshot
   is public, but the underlying provider streams needed to reproduce that
