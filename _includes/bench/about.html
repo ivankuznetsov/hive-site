@@ -3,8 +3,6 @@
 {% assign followup_campaign = b.campaigns | where: "id", "v3-mixed-workflows-three-seed-20260713" | first %}
 {% assign panel_campaign = b.campaigns | where: "id", "v3-production-review-panels-three-seed-20260723" | first %}
 {% assign deepseek_campaign = b.campaigns | where: "id", "v3-deepseek-v4-0813-20260813-r2" | first %}
-{% assign ox_pi_campaign = b.campaigns | where: "id", "v3-pi-ox-alpha-high-20260825-r3" | first %}
-{% assign ox_opencode_campaign = b.campaigns | where: "id", "v3-opencode-ox-alpha-high-20260825-r3" | first %}
 {% assign fable_judge = b.primary_judges | where: "id", "fable-5" | first %}
 {% assign sol_judge = b.primary_judges | where: "id", "gpt-5.6-sol" | first %}
 {% assign flagship_discussion = b.discussion_adjusted.candidates | where: "id", "sol-plan@xhigh->exec@high+grok-review" | first %}
@@ -18,17 +16,7 @@
 {% assign deepseek_mixed_candidate = b.candidates | where: "id", "deepseek-pro@xhigh->flash@xhigh-exec+pro-review" | first %}
 {% assign deepseek_all_gap = deepseek_all_fable.mean | minus: deepseek_all_sol.mean | round: 3 %}
 {% assign deepseek_mixed_gap = deepseek_mixed_fable.mean | minus: deepseek_mixed_sol.mean | round: 3 %}
-{% assign ox_pi_fable = fable_judge.rows | where: "id", "all-ox-alpha@high" | first %}
-{% assign ox_pi_sol = sol_judge.rows | where: "id", "all-ox-alpha@high" | first %}
-{% assign ox_opencode_fable = fable_judge.rows | where: "id", "all-ox-alpha-opencode@high" | first %}
-{% assign ox_opencode_sol = sol_judge.rows | where: "id", "all-ox-alpha-opencode@high" | first %}
-{% assign ox_pi_total = ox_pi_fable.mean | plus: ox_pi_sol.mean %}
-{% assign ox_pi_combined = ox_pi_total | divided_by: 2.0 | round: 3 %}
-{% assign ox_opencode_total = ox_opencode_fable.mean | plus: ox_opencode_sol.mean %}
-{% assign ox_opencode_combined = ox_opencode_total | divided_by: 2.0 | round: 3 %}
-{% assign ox_pi_discussion = b.discussion_adjusted.candidates | where: "id", "all-ox-alpha@high" | first %}
-{% assign ox_opencode_discussion = b.discussion_adjusted.candidates | where: "id", "all-ox-alpha-opencode@high" | first %}
-{% assign later_cells = followup_campaign.cells | plus: panel_campaign.cells | plus: deepseek_campaign.cells | plus: ox_pi_campaign.cells | plus: ox_opencode_campaign.cells %}
+{% assign later_cells = followup_campaign.cells | plus: panel_campaign.cells | plus: deepseek_campaign.cells %}
 <section class="bench-intro">
   <div class="wrap">
     <p class="eyebrow">hive-bench</p>
@@ -65,7 +53,7 @@
       {{ b.coverage.candidates }} candidates &times; {{ b.coverage.tasks }} tasks.
       The original {{ original_campaign.cells }} cells have
       {{ original_campaign.judge_samples_per_cell }} independent score sample
-      per judge; the {{ later_cells }} cells across the five later campaigns have
+      per judge; the {{ later_cells }} cells across the three active later campaigns have
       {{ followup_campaign.judge_samples_per_cell }}. This corpus has no
       curated objective test gates, so close rankings are directional rather
       than definitive.
@@ -76,10 +64,10 @@
       <li><strong>Two independent rulers:</strong> Fable 5 and GPT-5.6 Sol
         score each final diff from 0&ndash;10. Fable ran with reasoning enabled:
         the first three campaign records pin <code>xhigh</code>, while the
-        DeepSeek and two Ox Alpha campaigns record it as unspecified. Sol ran at
+        DeepSeek campaign records it as unspecified. Sol ran at
         <code>{{ original_campaign.sol_reasoning_effort }}</code> for the
         original campaign and <code>{{ followup_campaign.sol_reasoning_effort }}</code>
-        for all five later campaigns.</li>
+        for all three active later campaigns.</li>
       <li><strong>Keep both judge scores visible:</strong> the leaderboard uses
         their arithmetic mean only for a compact ordering because their
         calibrations differ. Every row retains separate Fable and Sol columns,
@@ -108,18 +96,17 @@
 
     <h2>What came out</h2>
     <p>
-      The same Ox Alpha model at the same high reasoning tier produced a clear
-      harness split. Its independent paired mean is
-      <strong>{{ ox_pi_combined }}</strong> through Pi and
-      <strong>{{ ox_opencode_combined }}</strong> through OpenCode. After the
-      separate discussion diagnostic, the rows finish at
-      <strong>{{ ox_pi_discussion.combined.mean }}</strong> and
-      <strong>{{ ox_opencode_discussion.combined.mean }}</strong>. Both judges
-      are family-disjoint from Ox Alpha, and both rows use three samples per
-      judge on the same six tasks.
+      A post-publication isolation audit withdrew both Ox Alpha rows. The old
+      checkouts exposed full repository history, including each held-out merge
+      commit, and allowed GitHub egress; the OpenCode campaign also ran under a
+      capability-mismatched profile that allowed only Read, Write, and Edit,
+      without Bash. The retained logs do not prove that either model copied a
+      reference solution, but those runs cannot support a fair harness or model
+      comparison. Their patches remain available only as invalidated audit
+      artifacts while sealed replacements are pending.
     </p>
     <p>
-      The new rows do not change the after-discussion leader: the
+      The active rows leave the after-discussion leader unchanged: the
       production-like Sol plan &rarr; Sol execute &rarr; Sol + Grok review setup
       remains first at <strong>{{ flagship_discussion.combined.mean }}</strong>.
       The all-Pro and Pro-plan/Flash-execute/Pro-review DeepSeek configurations
@@ -160,7 +147,7 @@
       {{ b.coverage.tasks }} tasks from
       one Ruby/CLI project cannot establish broad superiority. The original
       rows have {{ original_campaign.judge_samples_per_cell }} sample per judge,
-      the five later campaigns have {{ followup_campaign.judge_samples_per_cell }},
+      the three active later campaigns have {{ followup_campaign.judge_samples_per_cell }},
       and the discussion layer is a single exchange; the results show what
       happened when these exact configurations drove this exact end-to-end
       workflow.
