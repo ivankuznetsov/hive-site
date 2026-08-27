@@ -1,10 +1,11 @@
-<!-- Production deployment marker: GLM 5.3 Flash (0x Alpha) Pi restoration, 2026-08-26. -->
+<!-- Production deployment marker: GLM 5.3 Flash (0x Alpha) Pi high/max, 2026-08-27. -->
 {% assign b = site.data.bench %}
 {% assign original_campaign = b.campaigns | where: "id", "v2-ce" | first %}
 {% assign followup_campaign = b.campaigns | where: "id", "v3-mixed-workflows-three-seed-20260713" | first %}
 {% assign panel_campaign = b.campaigns | where: "id", "v3-production-review-panels-three-seed-20260723" | first %}
 {% assign deepseek_campaign = b.campaigns | where: "id", "v3-deepseek-v4-0813-20260813-r2" | first %}
 {% assign ox_pi_campaign = b.campaigns | where: "id", "v3-pi-ox-alpha-high-20260825-r3" | first %}
+{% assign ox_pi_max_campaign = b.campaigns | where: "id", "v3-pi-ox-alpha-glm-5-3-flash-max-20260826-r6-sealed" | first %}
 {% assign fable_judge = b.primary_judges | where: "id", "fable-5" | first %}
 {% assign sol_judge = b.primary_judges | where: "id", "gpt-5.6-sol" | first %}
 {% assign flagship_discussion = b.discussion_adjusted.candidates | where: "id", "sol-plan@xhigh->exec@high+grok-review" | first %}
@@ -23,7 +24,13 @@
 {% assign ox_pi_total = ox_pi_fable.mean | plus: ox_pi_sol.mean %}
 {% assign ox_pi_combined = ox_pi_total | divided_by: 2.0 | round: 3 %}
 {% assign ox_pi_discussion = b.discussion_adjusted.candidates | where: "id", "all-ox-alpha@high" | first %}
-{% assign later_cells = followup_campaign.cells | plus: panel_campaign.cells | plus: deepseek_campaign.cells | plus: ox_pi_campaign.cells %}
+{% assign ox_pi_max_fable = fable_judge.rows | where: "id", "all-ox-alpha@max" | first %}
+{% assign ox_pi_max_sol = sol_judge.rows | where: "id", "all-ox-alpha@max" | first %}
+{% assign ox_pi_max_total = ox_pi_max_fable.mean | plus: ox_pi_max_sol.mean %}
+{% assign ox_pi_max_combined = ox_pi_max_total | divided_by: 2.0 | round: 3 %}
+{% assign ox_pi_max_discussion = b.discussion_adjusted.candidates | where: "id", "all-ox-alpha@max" | first %}
+{% assign ox_pi_max_candidate = b.candidates | where: "id", "all-ox-alpha@max" | first %}
+{% assign later_cells = followup_campaign.cells | plus: panel_campaign.cells | plus: deepseek_campaign.cells | plus: ox_pi_campaign.cells | plus: ox_pi_max_campaign.cells %}
 <section class="bench-intro">
   <div class="wrap">
     <p class="eyebrow">hive-bench</p>
@@ -60,7 +67,7 @@
       {{ b.coverage.candidates }} candidates &times; {{ b.coverage.tasks }} tasks.
       The original {{ original_campaign.cells }} cells have
       {{ original_campaign.judge_samples_per_cell }} independent score sample
-      per judge; the {{ later_cells }} cells across the four active later campaigns have
+      per judge; the {{ later_cells }} cells across the five active later campaigns have
       {{ followup_campaign.judge_samples_per_cell }}. This corpus has no
       curated objective test gates, so close rankings are directional rather
       than definitive.
@@ -74,7 +81,7 @@
         DeepSeek and GLM 5.3 Flash (0x Alpha) campaigns record it as unspecified. Sol ran at
         <code>{{ original_campaign.sol_reasoning_effort }}</code> for the
         original campaign and <code>{{ followup_campaign.sol_reasoning_effort }}</code>
-        for all four active later campaigns.</li>
+        for all five active later campaigns.</li>
       <li><strong>Keep both judge scores visible:</strong> the leaderboard uses
         their arithmetic mean only for a compact ordering because their
         calibrations differ. Every row retains separate Fable and Sol columns,
@@ -103,15 +110,17 @@
 
     <h2>What came out</h2>
     <p>
-      GLM 5.3 Flash (0x Alpha) via Pi high has an independent paired mean of
-      <strong>{{ ox_pi_combined }}</strong>. After the separate discussion
-      diagnostic, it finishes at
-      <strong>{{ ox_pi_discussion.combined.mean }}</strong>. Both judges are
-      family-disjoint from GLM 5.3 Flash (0x Alpha), and the row uses three samples per judge
-      on the same six tasks.
+      GLM 5.3 Flash (0x Alpha) via Pi high and Pi max have independent paired
+      means of <strong>{{ ox_pi_combined }}</strong> and
+      <strong>{{ ox_pi_max_combined }}</strong>. After the separate discussion
+      diagnostic, they finish at
+      <strong>{{ ox_pi_discussion.combined.mean }}</strong> and
+      <strong>{{ ox_pi_max_discussion.combined.mean }}</strong>. Both judges are
+      family-disjoint from GLM 5.3 Flash (0x Alpha), and both rows use three
+      samples per judge on the same six tasks.
     </p>
     <p>
-      The GLM 5.3 Flash (0x Alpha) row does not change the after-discussion leader: the
+      Neither GLM 5.3 Flash (0x Alpha) row changes the after-discussion leader: the
       production-like Sol plan &rarr; Sol execute &rarr; Sol + Grok review setup
       remains first at <strong>{{ flagship_discussion.combined.mean }}</strong>.
       The all-Pro and Pro-plan/Flash-execute/Pro-review DeepSeek configurations
@@ -148,11 +157,21 @@
       inferred.
     </p>
     <p>
+      The Pi max campaign averages
+      ${{ ox_pi_max_candidate.cost_per_task_usd | round: 2 }} per task across
+      all six priced cells and {{ ox_pi_max_candidate.normalized_mtokens_per_task }}M
+      normalized tokens per task. Its wall-time mean is
+      {{ ox_pi_max_candidate.mean_minutes }} minutes across
+      {{ ox_pi_max_candidate.time_sample }} recorded cells. The earlier Pi high
+      campaign has complete token telemetry but no serialized API-equivalent
+      price, so its cost remains unknown.
+    </p>
+    <p>
       These are scoped findings, not a universal model ranking.
       {{ b.coverage.tasks }} tasks from
       one Ruby/CLI project cannot establish broad superiority. The original
       rows have {{ original_campaign.judge_samples_per_cell }} sample per judge,
-      the four active later campaigns have {{ followup_campaign.judge_samples_per_cell }},
+      the five active later campaigns have {{ followup_campaign.judge_samples_per_cell }},
       and the discussion layer is a single exchange; the results show what
       happened when these exact configurations drove this exact end-to-end
       workflow.
