@@ -12,8 +12,9 @@ description: The interactive two-pane dashboard for watching tasks and driving e
 The interactive dashboard. It's a two-pane terminal UI over `hive status`: a
 left pane of your registered projects and a right pane of their tasks, each
 showing an icon, id, name, stage, status, and age. It refreshes once a second
-and lets you drive any workflow verb with a single keystroke. This is the
-recommended way to watch and steer Hive day to day.
+and lets you drive any workflow verb with a single keystroke. It is the
+power-user terminal counterpart to the normal
+[`hive web`]({{ '/docs/commands/web/' | relative_url }}) browser experience.
 
 ## Usage
 

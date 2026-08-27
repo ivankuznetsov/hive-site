@@ -3,18 +3,52 @@ title: Operating
 layout: doc
 nav_order: 5
 permalink: /docs/operating/
-description: Run the daemon, Telegram bot, and babysitter as services, and drive Hive from OpenClaw.
+description: Operate native Hive web, the daemon, Telegram bot, and babysitter services, and drive Hive from OpenClaw.
 ---
 
 # Operating
 {: .no_toc }
 
-Day-2 guide for running Hive's background services — the daemon, the
-experimental PR babysitter, and the Telegram bot — plus driving Hive from a
-coding agent.
+Day-2 guide for running Hive's per-user services — native Hive web, the daemon,
+the experimental PR babysitter, and the Telegram bot — plus driving Hive from
+a coding agent.
 
 1. TOC
 {:toc}
+
+## Native Hive web
+
+`hive setup` is the normal Linux/macOS first run. By default it installs,
+enables, starts, and probes a separate per-user `hive-web` service, then reports
+the effective URL and distinct installed, enabled, running, service-manager,
+and readiness state. Untouched configuration is private to the local machine at
+`http://127.0.0.1:4567`; setup never creates or widens LAN/public binding or
+Tailscale exposure.
+
+```bash
+hive web status             # read-only lifecycle and readiness summary
+hive web status --json      # hive-web-status.v1
+hive web                    # blocking foreground server
+hive web install --force    # explicitly replace a drifted managed unit
+```
+
+Ordinary setup preserves a customized/drifted unit and points to the explicit
+`--force` repair instead of overwriting it. `hive web status` is always
+read-only. Use `hive setup --no-service` when setup should observe but never
+install, enable, start, stop, or disable the web service. Use
+`hive setup --no-bootstrap` for a diagnose-only run that provisions nothing.
+
+Linux without systemd-user and other unsupported service-manager environments
+report a truthful manager-unavailable platform exception and keep the
+installed/enabled/running/ready fields false; use foreground `hive web` there.
+On Windows, use WSL with systemd for the native service or
+[Hivebox]({{ '/box/' | relative_url }}) through Docker Desktop. Choose Hivebox
+for container isolation, multiple local instances, containment of untrusted
+agents, or reproducible server/NAS deployment.
+
+See the [`web`]({{ '/docs/commands/web/' | relative_url }}) and
+[`setup`]({{ '/docs/commands/setup/' | relative_url }}) command references for
+their versioned machine contracts and release-bundle trust model.
 
 ## The daemon
 
@@ -129,6 +163,9 @@ Public listing: <https://clawhub.ai/ivankuznetsov/hive-cli>. That installs the
 ```
 
 It installs the Hive CLI through the documented channel, verifies `hive`/`hv`,
-runs `hive daemon install`, and optionally initializes the current project.
-After setup, pass Hive commands through `/hive …`, e.g. `/hive status --json`,
-`/hive new . "build this feature"`, `/hive review <slug>`.
+previews the host mutations, then runs consent-approved `hive setup` to provision
+the daemon and native Hive web without silently enrolling a project. Initial
+project enrollment remains an interactive `hive init .` choice. After setup,
+pass Hive commands through `/hive …`, e.g. `/hive web status --json`,
+`/hive status --json`, `/hive new . "build this feature"`, or
+`/hive review <slug>`.

@@ -3,7 +3,8 @@
     <h2 class="section-title">Install &amp; run your first task</h2>
     <p class="section-lead">
       Hive ships as the <code>hive-cli</code> rubygem attached to each GitHub Release,
-      signed with cosign keyless attestation. Every channel verifies the signature before installing.
+      signed with cosign keyless attestation. Every channel verifies the signature before installing;
+      native Hive web then authenticates its matching release bundle before extraction.
       Prerequisites: <strong>Ruby&nbsp;3.4</strong>, git, an authenticated <code>gh</code>, and the
       agent CLIs you plan to use (<code>claude</code>, <code>codex</code>).
     </p>
@@ -26,24 +27,47 @@
       </div>
     </div>
 
-    <h3 class="install__then">Then attach it to a project and capture an idea</h3>
+    <h3 class="install__then">Then set up Hive in your project</h3>
     <pre><code>cd ~/Dev/your-project
-hive init .          # choose launch + permission mode, enroll the daemon
-hive tui             # open the dashboard — press n to capture a new idea</code></pre>
+hive setup           # initialize the project and start native Hive web
+# open the reported URL (normally http://127.0.0.1:4567)</code></pre>
+
+    <p class="section-lead">
+      On Linux and macOS, <code>hive setup</code> installs, enables, starts, and probes the
+      per-user daemon and Hive web services. It reports the effective URL and keeps installed,
+      enabled, running, and ready state distinct. The untouched setup is loopback-only: it never
+      creates LAN/public binding or Tailscale exposure.
+    </p>
+
+    <h3 class="install__then">Choose a different operating mode</h3>
+    <pre><code>hive setup --no-service     # no web-service mutation; use foreground mode
+hive web                    # blocking foreground server
+hive setup --no-bootstrap   # diagnose only; provision nothing
+hive tui                    # power-user terminal dashboard</code></pre>
+
+    <p class="section-lead">
+      On Windows, use WSL with systemd for native Hive web, or
+      <a href="{{ '/box/' | relative_url }}">Hivebox through Docker Desktop</a>. Choose Hivebox
+      for container isolation, multiple local instances, containment of untrusted agents, or a
+      reproducible server/NAS deployment.
+    </p>
 
     <h3 class="install__then">Or drive it from OpenClaw</h3>
     <p class="section-lead">
       Prefer to let an agent install and run Hive? Install the ClawHub skill, then use the
-      <code>/hive</code> slash command for guided setup and every workflow verb.
+      <code>/hive</code> slash command for guided setup and every workflow verb. It previews
+      host mutations before running the consent-approved native setup.
     </p>
     <pre><code>openclaw skills install hive-cli
-/hive setup                         # installs Hive, verifies it, sets up the daemon
+/hive setup                         # verifies Hive, then provisions web + daemon
 /hive new . "build this feature"    # then drive any command through /hive …
 /hive status</code></pre>
 
     <p class="install__more">
       Full walkthrough in <a href="{{ '/docs/getting-started/' | relative_url }}">Getting started</a>;
-      services and the OpenClaw skill in <a href="{{ '/docs/operating/' | relative_url }}">Operating</a>.
+      setup and web command details in the <a href="{{ '/docs/commands/setup/' | relative_url }}">setup</a>
+      and <a href="{{ '/docs/commands/web/' | relative_url }}">web</a> references; services and the
+      OpenClaw skill in <a href="{{ '/docs/operating/' | relative_url }}">Operating</a>.
       Public listing: <a href="https://clawhub.ai/ivankuznetsov/hive-cli">clawhub.ai/ivankuznetsov/hive-cli</a>.
     </p>
   </div>
