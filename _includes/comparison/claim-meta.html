@@ -1,0 +1,19 @@
+{% assign comparison = site.data.comparison %}
+{% assign claim = include.claim %}
+{% assign claim_type = comparison.claim_types[claim.claim_type] %}
+{% assign scope = comparison.scopes[claim.scope] %}
+<div class="comparison-claim-meta">
+  <div class="comparison-labels" aria-label="Claim classification and scope">
+    <span class="comparison-label comparison-label--claim">{{ claim_type.label }}</span>
+    <span class="comparison-label comparison-label--scope">{% if claim.scope_label %}{{ claim.scope_label }}{% else %}{{ scope.label }}{% endif %}</span>
+  </div>
+  <ul class="comparison-citations" aria-label="Supporting official sources">
+    {% for source_id in claim.source_ids %}
+      {% assign source = comparison.sources[source_id] %}
+      <li>
+        <a href="{{ source.url }}">{{ source.title }}</a>
+        <span>Verified <time datetime="{{ source.verified_on }}">{{ source.verified_on }}</time></span>
+      </li>
+    {% endfor %}
+  </ul>
+</div>
