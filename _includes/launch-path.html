@@ -1,0 +1,97 @@
+{% assign path = site.data.launch_paths.paths[include.path_id] %}
+<section class="launch-hero launch-hero--{{ path.accent }}" aria-labelledby="launch-title">
+  <div class="wrap launch-hero__inner">
+    <p class="eyebrow">{{ path.eyebrow }} · {{ path.workflow }} workflow</p>
+    <h1 class="launch-hero__title" id="launch-title">{{ path.headline }}</h1>
+    <p class="launch-hero__lead">{{ path.promise }}</p>
+    <div class="launch-hero__actions">
+      <a class="btn btn--primary" href="#run">Run the {{ path.name }} sample</a>
+      <a class="btn btn--ghost" href="#artifacts">Inspect fixture artifacts</a>
+    </div>
+    <p class="launch-hero__truth"><strong>Evidence status:</strong> Deterministic fixture. This is not a provider-completion or timing claim.</p>
+  </div>
+</section>
+
+<section class="launch-run" id="run" aria-labelledby="launch-run-title">
+  <div class="wrap">
+    <p class="eyebrow">First run</p>
+    <h2 class="section-title" id="launch-run-title">{{ path.sample_title }}</h2>
+    <p class="section-lead">Start in a clean git repository after installing Hive. Run <code>hive setup --service</code>, start a stopped daemon with <code>hive daemon start --detach</code>, and open the UI with <code>hive web start --detach</code>.</p>
+    <div class="launch-run__grid">
+      <article class="launch-command">
+        <p class="launch-command__label">1 · Select the workflow</p>
+        <pre><code>{{ path.init_command }}</code></pre>
+      </article>
+      <article class="launch-command">
+        <p class="launch-command__label">2 · Launch the sample</p>
+        <pre><code>hive new . {{ path.sample_input | jsonify }}</code></pre>
+      </article>
+    </div>
+    <article class="launch-input">
+      <h3>Sample input</h3>
+      <p>{{ path.sample_input }}</p>
+      <p><strong>First artifact target:</strong> <code>{{ path.first_artifact }}</code>. The launch acceptance target is visible progress and this artifact within five minutes; no measured result is published yet.</p>
+    </article>
+  </div>
+</section>
+
+<section class="launch-journey" aria-labelledby="launch-journey-title">
+  <div class="wrap">
+    <p class="eyebrow">The native state model</p>
+    <h2 class="section-title" id="launch-journey-title">Know what happened and what to do next</h2>
+    <p class="section-lead">These labels and controls come from Hive web, task actions, and status operational bands. A sample is only useful if its waiting and failure paths are as clear as success.</p>
+    <ol class="state-journey">
+      {% for state in path.journey %}
+        {% assign state_id = state[0] %}
+        {% assign state_detail = state[1] %}
+        <li class="state-card state-card--{{ state_id | replace: '_', '-' }}">
+          <p class="state-card__step">{{ forloop.index | prepend: '00' | slice: -2, 2 }}</p>
+          <h3>{{ site.data.launch_paths.state_labels[state_id] }}</h3>
+          <p>{{ state_detail.detail }}</p>
+          <p class="state-card__action"><strong>Action:</strong> {{ state_detail.action }}</p>
+        </li>
+      {% endfor %}
+    </ol>
+  </div>
+</section>
+
+<section class="launch-artifacts" id="artifacts" aria-labelledby="launch-artifacts-title">
+  <div class="wrap">
+    <p class="eyebrow">Inspectable output</p>
+    <h2 class="section-title" id="launch-artifacts-title">A memorable fixture, artifact by artifact</h2>
+    <p class="section-lead">Every linked file says “Deterministic replay fixture.” Use it to understand the handoff shape, then compare it with a real clean replay.</p>
+    <div class="artifact-grid">
+      {% for artifact in path.artifacts %}
+        <article class="artifact-card">
+          <p class="artifact-card__label">{{ artifact.label }}</p>
+          <h3><code>{{ artifact.file }}</code></h3>
+          <p>{{ artifact.description }}</p>
+          <a href="{{ artifact.url }}">Inspect {{ artifact.file }} source</a>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="launch-evidence" aria-labelledby="launch-evidence-title">
+  <div class="wrap launch-evidence__grid">
+    <div>
+      <p class="eyebrow">Evidence boundary</p>
+      <h2 class="section-title" id="launch-evidence-title">Fixture proof is not live proof</h2>
+      <p>{{ path.evidence.blocker }}</p>
+      <dl class="evidence-ledger">
+        <div><dt>Sample output</dt><dd>Deterministic fixture</dd></div>
+        <div><dt>Live full replay at {{ path.evidence.observed_at }}</dt><dd>{{ path.evidence.live_full_replay_status | replace: '_', ' ' }}</dd></div>
+        <div><dt>Live first-artifact time</dt><dd>Unavailable</dd></div>
+        <div><dt>Measured full-completion time</dt><dd>Unavailable</dd></div>
+      </dl>
+    </div>
+    <aside class="launch-next" aria-labelledby="launch-next-title">
+      <h2 id="launch-next-title">Next action</h2>
+      <p>{{ path.reviewed_outcome }}</p>
+      <p><a class="btn btn--primary" href="{{ '/docs/first-run/' | relative_url }}">Open the complete first-run guide</a></p>
+      <p><a href="{{ path.sources.walkthrough }}">Audit the source walkthrough</a></p>
+      <p><a href="{{ path.sources.native_web }}">Audit the native web contract</a></p>
+    </aside>
+  </div>
+</section>

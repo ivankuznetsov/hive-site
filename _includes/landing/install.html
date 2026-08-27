@@ -1,11 +1,11 @@
-<section class="install" id="install">
+<section class="install" id="install" aria-labelledby="install-title">
   <div class="wrap">
-    <h2 class="section-title">Install &amp; run your first task</h2>
+    <h2 class="section-title" id="install-title">Install &amp; run your first task</h2>
     <p class="section-lead">
       Hive ships as the <code>hive-cli</code> rubygem attached to each GitHub Release,
       signed with cosign keyless attestation. Every channel verifies the signature before installing.
       Prerequisites: <strong>Ruby&nbsp;3.4</strong>, git, an authenticated <code>gh</code>, and the
-      agent CLIs you plan to use (<code>claude</code>, <code>codex</code>).
+      agent CLIs you plan to use (<code>claude</code>, <code>codex</code>, <code>pi</code>, or <code>grok</code>).
     </p>
 
     <div class="install__channels">
@@ -36,15 +36,16 @@ hive tui             # open the dashboard — press n to capture a new idea</cod
       Prefer to let an agent install and run Hive? Install the ClawHub skill, then use the
       <code>/hive</code> slash command for guided setup and every workflow verb.
     </p>
-    <pre><code>openclaw skills install hive-cli
-/hive setup                         # installs Hive, verifies it, sets up the daemon
+    <pre><code>openclaw skills install @ivankuznetsov/hive-cli
+/hive setup                         # guided install + core provisioning
+# review project enrollment in your real terminal with: hive init .
 /hive new . "build this feature"    # then drive any command through /hive …
 /hive status</code></pre>
 
     <p class="install__more">
       Full walkthrough in <a href="{{ '/docs/getting-started/' | relative_url }}">Getting started</a>;
       services and the OpenClaw skill in <a href="{{ '/docs/operating/' | relative_url }}">Operating</a>.
-      Public listing: <a href="https://clawhub.ai/ivankuznetsov/hive-cli">clawhub.ai/ivankuznetsov/hive-cli</a>.
+      Public listing: <a href="https://clawhub.ai/ivankuznetsov/skills/hive-cli">clawhub.ai/ivankuznetsov/skills/hive-cli</a>.
     </p>
   </div>
 </section>
