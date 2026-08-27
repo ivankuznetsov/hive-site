@@ -1,12 +1,13 @@
 ---
 layout: home
-title: Hive — turn a rough idea into a merge-ready PR
+title: Hive — durable workflows for agents and teams
 nav_exclude: true
 description: >-
   Hive is an open-source agent workflow engine & meta-harness: it orchestrates
   Claude, Codex, and Pi to run multi-step work as a folder-as-agent pipeline.
-  Its flagship coding workflow turns a rough idea into a merge-ready PR — and
-  you can author your own workflows for writing, research, anything.
+  Each stage leaves durable, reviewable work behind. Its flagship coding
+  workflow turns an idea into a merge-ready PR, and the same engine runs
+  editorial, research, and owner-authored workflows.
 ---
 
 {% include landing/hero.html %}

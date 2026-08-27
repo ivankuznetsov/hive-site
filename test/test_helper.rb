@@ -3,10 +3,45 @@
 require "fileutils"
 require "json"
 require "minitest/autorun"
+require "open3"
 require "tmpdir"
 
 ROOT = File.expand_path("..", __dir__)
 SOURCE_SHA = "a" * 40
+
+module SiteTestHelpers
+  SITE_COPY_EXCLUSIONS = %w[
+    .git .jekyll-cache .sass-cache _site node_modules test vendor
+  ].freeze
+
+  def with_built_site(overrides = {})
+    Dir.mktmpdir do |directory|
+      source = File.join(directory, "source")
+      destination = File.join(directory, "site")
+      FileUtils.mkdir_p(source)
+      copy_site(source)
+      overrides.each do |relative_path, contents|
+        path = File.join(source, relative_path)
+        FileUtils.mkdir_p(File.dirname(path))
+        File.binwrite(path, contents)
+      end
+
+      env = {"BUNDLE_GEMFILE" => File.join(ROOT, "Gemfile"), "JEKYLL_ENV" => "test"}
+      command = [RbConfig.ruby, Gem.bin_path("bundler", "bundle"), "exec", "jekyll", "build",
+                 "--source", source, "--destination", destination, "--quiet"]
+      stdout, stderr, status = Open3.capture3(env, *command)
+      assert status.success?, "Jekyll build failed:\n#{stdout}\n#{stderr}"
+      yield destination
+    end
+  end
+
+  private
+
+  def copy_site(destination)
+    entries = Dir.children(ROOT) - SITE_COPY_EXCLUSIONS
+    entries.each { |entry| FileUtils.cp_r(File.join(ROOT, entry), destination) }
+  end
+end
 
 module CatalogFixtures
   module_function

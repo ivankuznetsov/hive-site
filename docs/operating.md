@@ -100,9 +100,10 @@ and [`uninstall`]({{ '/docs/commands/uninstall/' | relative_url }}).
 ## Drive Hive from a coding agent
 
 Hive's other primary surface is a coding agent — Claude Code, Codex, Pi, or
-anything that can run shell commands and read output. Every workflow verb
-supports `--json` and emits a typed envelope, so an agent parses structured
-output instead of scraping text:
+anything that can run shell commands and read output. Use `--json` on commands
+whose reference pages document a typed result. Support is command-specific;
+Hive 0.6.5 accepts `--json` on `hive new` but still prints the human capture
+summary, including the new task's slug:
 
 ```text
 Run hive status --json and tell me which tasks are waiting for me.
@@ -110,8 +111,10 @@ Run hive new your-project "<title>" and report the slug it printed.
 Run hive review <slug> --json and summarize the resulting envelope.
 ```
 
-`hive tui` is intentionally human-only and rejects `--json` — use the CLI verbs
-and `hive status --json` for programmatic use.
+`hive tui` is intentionally human-only and rejects `--json`. Use documented
+typed verbs such as `hive status --json` for programmatic reads, and parse the
+human summary only where a command page explicitly identifies a text-only
+exception.
 
 ### OpenClaw `/hive` skill
 

@@ -212,17 +212,7 @@ section:nth-of-type(even) { background: var(--bg-alt); }
   font-size: 0.9rem;
 }
 
-// --- Pipeline -------------------------------------------------------------
-.pipeline__diagram {
-  margin: 0 0 2.5rem;
-  padding: 1.25rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow-x: auto;
-}
-.pipeline__diagram img { display: block; min-width: 760px; width: 100%; height: auto; }
-
+// --- Shared stage cards (also used by Hive Box) ---------------------------
 .pipeline__stages {
   list-style: none;
   margin: 0;
@@ -260,6 +250,67 @@ section:nth-of-type(even) { background: var(--bg-alt); }
   letter-spacing: 0.08em;
 }
 .pipeline__stages p { margin: 0.6rem 0 0; color: var(--muted); font-size: 0.95rem; }
+
+// --- Workflow explainer ---------------------------------------------------
+.workflow-explainer { overflow: clip; }
+.workflow-explainer .section-lead { max-width: 72ch; }
+.workflow-explainer__steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 2rem 0;
+  padding-left: 1.5rem;
+}
+.workflow-explainer__steps li {
+  min-width: 0;
+  padding: 1.1rem 1.2rem 1.2rem 0.35rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.workflow-explainer__steps li::marker {
+  color: var(--accent);
+  font-weight: 800;
+}
+.workflow-explainer__steps h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+}
+.workflow-explainer__steps p,
+.workflow-explainer__why p,
+.workflow-explainer__why li,
+.workflow-explainer__examples li {
+  color: var(--muted);
+}
+.workflow-explainer__steps p { margin: 0; font-size: 0.95rem; }
+.workflow-explainer__why {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  padding: 1.4rem 1.5rem;
+  background: var(--surface-2);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+}
+.workflow-explainer__why h3,
+.workflow-explainer__examples h3 { margin: 0 0 0.5rem; }
+.workflow-explainer__why p,
+.workflow-explainer__why ul,
+.workflow-explainer__examples ul { margin-block: 0; }
+.workflow-explainer__why li + li,
+.workflow-explainer__examples li + li { margin-top: 0.35rem; }
+.workflow-explainer__examples { margin: 1.75rem 0 1.25rem; }
+.workflow-explainer__cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 700;
+}
+.workflow-explainer__cta:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
 
 // --- Capability cards -----------------------------------------------------
 .cards__grid {
@@ -329,6 +380,7 @@ section:nth-of-type(even) { background: var(--bg-alt); }
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
+.install__channel { min-width: 0; }
 .install .section-lead { max-width: 80ch; }
 .install__channel h3 { margin: 0 0 0.5rem; font-size: 1rem; }
 .install__channel--wide { grid-column: 1 / -1; }
@@ -356,7 +408,7 @@ section:nth-of-type(even) { background: var(--bg-alt); }
 .site-footer__brand p { color: var(--muted); margin: 0.75rem 0 0; max-width: 32ch; }
 .site-footer__links { display: flex; gap: 3rem; justify-content: flex-end; flex-wrap: wrap; }
 .footer-col { display: flex; flex-direction: column; gap: 0.5rem; }
-.footer-col h4 { margin: 0 0 0.25rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.footer-col h3 { margin: 0 0 0.25rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
 .footer-col a { color: var(--text); font-size: 0.95rem; }
 .footer-col a:hover { color: var(--accent-hover); }
 .site-footer__legal { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
@@ -368,8 +420,19 @@ section:nth-of-type(even) { background: var(--bg-alt); }
 
 // --- Responsive -----------------------------------------------------------
 @media (max-width: 860px) {
+  .site-header__inner {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 64px;
+    padding-block: 0.75rem;
+  }
+  .site-nav {
+    justify-content: space-between;
+    width: 100%;
+  }
   .pipeline__stages,
   .cards__grid { grid-template-columns: repeat(2, 1fr); }
+  .workflow-explainer__steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .proof__inner,
   .fit__cols,
   .install__channels,
@@ -377,14 +440,18 @@ section:nth-of-type(even) { background: var(--bg-alt); }
   .site-footer__links { justify-content: flex-start; gap: 2rem; }
 }
 @media (max-width: 600px) {
-  .site-nav { gap: 0.9rem; }
+  .site-header__inner {
+    flex-wrap: nowrap;
+    height: 64px;
+    padding-block: 0;
+  }
+  .site-nav { gap: 0.9rem; width: auto; }
   .site-nav a:not(.btn) { display: none; }
   .pipeline__stages,
   .cards__grid { grid-template-columns: 1fr; }
+  .workflow-explainer__steps,
+  .workflow-explainer__why { grid-template-columns: 1fr; }
   section { padding-block: 3.5rem; }
-  // The wide pipeline SVG can't shrink legibly on phones; the numbered
-  // stage cards below carry the same sequence, so drop the diagram here.
-  .pipeline__diagram { display: none; }
 }
 
 /* Alpha badge for the Box nav/eyebrow. */
