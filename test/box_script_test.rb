@@ -4,6 +4,19 @@ require "open3"
 require_relative "test_helper"
 
 class BoxScriptTest < Minitest::Test
+  def test_powershell_resolves_data_path_before_docker_mount
+    script = File.read(File.join(ROOT, "box.ps1"))
+    create_index = script.index("New-Item -ItemType Directory -Force -Path $Data")
+    resolve_index = script.index('$Data = (Resolve-Path -LiteralPath $Data).Path')
+    mount_index = script.index('docker run -d --name $Name')
+
+    refute_nil create_index
+    refute_nil resolve_index, "box.ps1 must resolve HIVEBOX_DATA to an absolute filesystem path"
+    refute_nil mount_index
+    assert_operator create_index, :<, resolve_index
+    assert_operator resolve_index, :<, mount_index
+  end
+
   def test_relative_data_override_is_mounted_as_an_absolute_bind_path
     Dir.mktmpdir do |directory|
       bin_dir = File.join(directory, "bin")
