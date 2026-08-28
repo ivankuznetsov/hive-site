@@ -635,16 +635,28 @@ class BenchmarkDataTest < Minitest::Test
       assert_match(/15 candidates\s+&times; 6 tasks/, about)
       assert_match(/Fable ran with reasoning enabled.*?first three campaign records pin <code>xhigh<\/code>.*?DeepSeek and GLM 5.3 Flash \(0x Alpha\) campaigns record it as unspecified/m, about)
       assert_includes about, "Deliberation is not a third judge"
-      assert_match(/GLM 5.3 Flash \(0x Alpha\) via Pi high and Pi max have independent paired\s+means of <strong>5\.05<\/strong> and\s+<strong>5\.036<\/strong>.*?finish at\s+<strong>5\.692<\/strong> and\s+<strong>5\.483<\/strong>/m, about)
-      assert_match(/production-like Sol plan &rarr; Sol execute &rarr; Sol \+ Grok review setup\s+remains first at <strong>7\.525<\/strong>/m, about)
-      assert_match(/DeepSeek configurations\s+finish at <strong>5\.892<\/strong> and\s+<strong>5\.783<\/strong>/m, about)
-      assert_match(/Both\s+judgments are family-disjoint/m, about)
-      assert_match(/differ by\s+<strong>4\.483<\/strong> points for all-Pro and\s+<strong>2\.994<\/strong>/m, about)
+      assert_match(/GLM 5\.3 Flash \(0x Alpha\) via Pi high and Pi max have independent paired\s+means of <strong>5\.05<\/strong> and\s+<strong>5\.036<\/strong>.*?finish at\s+<strong>5\.692<\/strong> and\s+<strong>5\.483<\/strong>/m, about)
+      assert_match(
+        /key result is a split winner.*?All-Sol leads the independent scoring at\s+<strong>6\.55<\/strong>/m,
+        about
+      )
+      assert_match(
+        /After discussion, the\s+production-like Sol plan &rarr; Sol execute &rarr; Sol \+ Grok review\s+setup leads at <strong>7\.525<\/strong>\s+after placing second independently at\s+<strong>6\.328<\/strong>/m,
+        about
+      )
+      refute_match(/by Fable.*?by Sol/m, about)
+      refute_includes about, "follows at"
       assert_match(/spread still fell from\s+<strong>2\.082<\/strong> to\s+<strong>1\.251<\/strong>/m, about)
-      assert_match(/all-Pro averages \$0\.55\s+across five priced cells.*?Pro\/Flash\/Pro averages\s+\$0\.6 across all\s+six/m, about)
-      assert_match(/50\.754M and\s+34\.774M per recorded\s+task/m, about)
-      assert_match(/Pi max campaign averages\s+\$6\.94 per task across\s+all six priced cells and 33\.343M\s+normalized tokens per task/m, about)
-      assert_match(/wall-time mean is\s+95\.5 minutes across\s+5 recorded cells/m, about)
+      assert_match(/Grok 4\.5 remains fastest.*?27\.3 minutes.*?Grok usage telemetry is unavailable.*?lower-bound known-provider subtotals/m, about)
+      refute_includes about, "DeepSeek configurations"
+      refute_includes about, "4.483"
+      refute_includes about, "all-Pro averages"
+      refute_includes about, "$0.55"
+      refute_includes about, "$0.6"
+      refute_includes about, "$42.94"
+      refute_includes about, "$18.63"
+      refute_includes about, "Pi max campaign averages"
+      refute_includes about, "$6.94"
 
       [summary, efficiency, scores].each do |table|
         refute_nil table
