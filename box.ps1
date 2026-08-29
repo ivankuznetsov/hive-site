@@ -40,7 +40,7 @@ if ($LASTEXITCODE -ne 0) { Fail "docker run failed." }
 Write-Host ""
 Write-Host "hivebox is running."
 Write-Host ""
-Write-Host "  Open:  http://localhost:$Port"
+Write-Host "  Open:  http://${Bind}:$Port"
 Write-Host "  Data:  $Data"
 Write-Host ""
 Write-Host "The first GitHub sign-in claims the box as its owner."
