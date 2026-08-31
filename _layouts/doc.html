@@ -23,7 +23,10 @@ layout: default
     if (!btn || !url) { return; }
     btn.addEventListener("click", function () {
       fetch(url)
-        .then(function (r) { return r.text(); })
+        .then(function (r) {
+          if (!r.ok) { throw new Error("HTTP " + r.status); }
+          return r.text();
+        })
         .then(function (text) { return navigator.clipboard.writeText(text); })
         .then(function () {
           var original = btn.textContent;

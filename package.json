@@ -3,7 +3,7 @@
   "private": true,
   "description": "Reproducible build and deployment tooling for the Hive website.",
   "scripts": {
-    "test": "ruby script/bundle exec ruby -Itest test/run.rb",
+    "test": "ruby script/bundle exec ruby -Itest test/run.rb && node --test test/doc_layout_copy_test.js",
     "build": "npm test && ruby script/bundle exec jekyll build && pagefind --site _site",
     "deploy": "wrangler deploy",
     "preview": "wrangler versions upload",
