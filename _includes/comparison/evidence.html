@@ -1,0 +1,53 @@
+{% assign comparison = site.data.comparison %}
+<section class="comparison-evidence" aria-labelledby="comparison-evidence-title">
+  <div class="wrap">
+    <h2 id="comparison-evidence-title" class="section-title">{{ comparison.page.evidence_heading }}</h2>
+    <p class="section-lead">{{ comparison.page.evidence_introduction }}</p>
+
+    <dl class="comparison-legend">
+      {% for claim_type_entry in comparison.claim_types %}
+        {% assign claim_type = claim_type_entry[1] %}
+        <div>
+          <dt><span class="comparison-label comparison-label--claim">{{ claim_type.label }}</span></dt>
+          <dd>{{ claim_type.description }}</dd>
+        </div>
+      {% endfor %}
+      <div>
+        <dt><span class="comparison-label comparison-label--scope">{{ comparison.scopes.included_workflow.label }}</span></dt>
+        <dd>{{ comparison.scopes.included_workflow.description }}</dd>
+      </div>
+      <div>
+        <dt><span class="comparison-label comparison-label--unknown">Not documented</span></dt>
+        <dd>An exact dated finding generated only when the complete listed set of official sources was reviewed. It does not mean the capability is absent.</dd>
+      </div>
+    </dl>
+
+    <div class="comparison-evidence-grid">
+      <div>
+        <h3>{{ comparison.page.sources_heading }}</h3>
+        <ul class="comparison-source-register">
+          {% for source_entry in comparison.sources %}
+            {% assign source = source_entry[1] %}
+            <li>
+              <a href="{{ source.url }}">{{ source.title }}</a>
+              <span>{{ source.product_id | capitalize }} · verified <time datetime="{{ source.verified_on }}">{{ source.verified_on }}</time>{% if source.source_revision %} · revision <code>{{ source.source_revision | slice: 0, 12 }}</code>{% endif %}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div>
+        <h3>{{ comparison.page.excluded_heading }}</h3>
+        <p>{{ comparison.page.excluded_introduction }}</p>
+        <dl class="comparison-excluded-list">
+          {% for topic in comparison.excluded_topics %}
+            <div>
+              <dt>{{ topic.label }}</dt>
+              <dd>{{ topic.reason }}</dd>
+            </div>
+          {% endfor %}
+        </dl>
+      </div>
+    </div>
+  </div>
+</section>
