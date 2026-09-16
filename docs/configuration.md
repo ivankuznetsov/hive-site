@@ -3,7 +3,7 @@ title: Configuration
 layout: doc
 nav_order: 3
 permalink: /docs/configuration/
-description: Project config, patrol mode, reviewers, agent profiles, the daemon, and token-cost knobs.
+description: Native Hive web settings, project config, patrol, reviewers, agent profiles, the daemon, and token-cost knobs.
 ---
 
 # Configuration
@@ -26,6 +26,40 @@ Per-project values are deep-merged onto Hive's built-in defaults, then
 validated. A bad value raises a clear config error rather than failing later —
 so it's safe to edit and re-run. Arrays (like `review.reviewers`) are replaced
 wholesale, never merged element-by-element.
+
+## Native Hive web
+
+The untouched native setup is loopback-only at `http://127.0.0.1:4567`.
+`hive setup` never creates LAN/public binding or Tailscale exposure; it only
+observes a non-loopback configuration you explicitly created and gated.
+
+The shared native-web settings have canonical `HIVE_WEB_*` environment names:
+
+| Setting | Purpose |
+|---------|---------|
+| `HIVE_WEB_APP_DIR` | Use an operator-managed Rails app instead of the authenticated managed bundle. |
+| `HIVE_WEB_ORIGIN` | Set the advertised origin and additional Action Cable origin. |
+| `HIVE_WEB_STORAGE_DIR` | Place Hive web's persistent SQLite storage in a specific directory. |
+| `HIVE_WEB_LOCAL_LOOPBACK` | Control the verified loopback-only local access mode. |
+| `HIVE_WEB_DIFF_TIMEOUT_SEC` | Bound diff generation used by task views. |
+| `HIVE_WEB_CLONE_TIMEOUT_SEC` | Bound repository clone operations. |
+
+The corresponding native-web aliases — `HIVEBOX_WEB_APP_DIR`,
+`HIVEBOX_ORIGIN`, `HIVEBOX_STORAGE_DIR`, `HIVEBOX_LOCAL_LOOPBACK`,
+`HIVEBOX_DIFF_TIMEOUT_SEC`, and `HIVEBOX_CLONE_TIMEOUT_SEC` — remain accepted
+with migration warnings through the next major release. A canonical value wins
+when both are set. Container-only Hivebox variables remain canonical and do not
+warn.
+
+Released native installs resolve the managed Rails app from the installed
+`hive-cli` package root. Hive authenticates the matching release archive through
+the cosign-signed checksum manifest before extraction. If you point
+`HIVE_WEB_BUNDLE_URL` at a custom remote archive, you must also provide its exact
+`HIVE_WEB_BUNDLE_SHA256`; Hive refuses to download or extract it otherwise.
+
+See [`hive web`]({{ '/docs/commands/web/' | relative_url }}) for foreground and
+managed-service behavior, and [`hive setup`]({{ '/docs/commands/setup/' | relative_url }})
+for the first-run safety contract.
 
 ## Launch & permission mode
 
