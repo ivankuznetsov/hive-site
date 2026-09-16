@@ -4,7 +4,7 @@ require "yaml"
 require_relative "test_helper"
 
 class CredibilityClaimsTest < Minitest::Test
-  CURRENT_VERSION = "0.6.5"
+  CURRENT_VERSION = "0.7.3"
   CATEGORY = "Hive is a durable, local-first workflow engine for AI agents."
 
   def test_release_and_category_metadata_match_the_current_public_product
