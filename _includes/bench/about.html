@@ -8,17 +8,16 @@
 {% assign ox_pi_max_campaign = b.campaigns | where: "id", "v3-pi-ox-alpha-glm-5-3-flash-max-20260826-r6-sealed" | first %}
 {% assign fable_judge = b.primary_judges | where: "id", "fable-5" | first %}
 {% assign sol_judge = b.primary_judges | where: "id", "gpt-5.6-sol" | first %}
+{% assign all_sol_fable = fable_judge.rows | where: "id", "all-codex-5.6-sol-xhigh" | first %}
+{% assign all_sol_sol = sol_judge.rows | where: "id", "all-codex-5.6-sol-xhigh" | first %}
+{% assign flagship_fable = fable_judge.rows | where: "id", "sol-plan@xhigh->exec@high+grok-review" | first %}
+{% assign flagship_sol = sol_judge.rows | where: "id", "sol-plan@xhigh->exec@high+grok-review" | first %}
+{% assign all_sol_total = all_sol_fable.mean | plus: all_sol_sol.mean %}
+{% assign all_sol_independent = all_sol_total | divided_by: 2.0 | round: 3 %}
+{% assign flagship_total = flagship_fable.mean | plus: flagship_sol.mean %}
+{% assign flagship_independent = flagship_total | divided_by: 2.0 | round: 3 %}
 {% assign flagship_discussion = b.discussion_adjusted.candidates | where: "id", "sol-plan@xhigh->exec@high+grok-review" | first %}
-{% assign deepseek_all_fable = fable_judge.rows | where: "id", "all-deepseek-v4-pro-0813@xhigh" | first %}
-{% assign deepseek_all_sol = sol_judge.rows | where: "id", "all-deepseek-v4-pro-0813@xhigh" | first %}
-{% assign deepseek_mixed_fable = fable_judge.rows | where: "id", "deepseek-pro@xhigh->flash@xhigh-exec+pro-review" | first %}
-{% assign deepseek_mixed_sol = sol_judge.rows | where: "id", "deepseek-pro@xhigh->flash@xhigh-exec+pro-review" | first %}
-{% assign deepseek_all_discussion = b.discussion_adjusted.candidates | where: "id", "all-deepseek-v4-pro-0813@xhigh" | first %}
-{% assign deepseek_mixed_discussion = b.discussion_adjusted.candidates | where: "id", "deepseek-pro@xhigh->flash@xhigh-exec+pro-review" | first %}
-{% assign deepseek_all_candidate = b.candidates | where: "id", "all-deepseek-v4-pro-0813@xhigh" | first %}
-{% assign deepseek_mixed_candidate = b.candidates | where: "id", "deepseek-pro@xhigh->flash@xhigh-exec+pro-review" | first %}
-{% assign deepseek_all_gap = deepseek_all_fable.mean | minus: deepseek_all_sol.mean | round: 3 %}
-{% assign deepseek_mixed_gap = deepseek_mixed_fable.mean | minus: deepseek_mixed_sol.mean | round: 3 %}
+{% assign grok_candidate = b.candidates | where: "id", "all-grok-4.5" | first %}
 {% assign ox_pi_fable = fable_judge.rows | where: "id", "all-ox-alpha@high" | first %}
 {% assign ox_pi_sol = sol_judge.rows | where: "id", "all-ox-alpha@high" | first %}
 {% assign ox_pi_total = ox_pi_fable.mean | plus: ox_pi_sol.mean %}
@@ -29,7 +28,6 @@
 {% assign ox_pi_max_total = ox_pi_max_fable.mean | plus: ox_pi_max_sol.mean %}
 {% assign ox_pi_max_combined = ox_pi_max_total | divided_by: 2.0 | round: 3 %}
 {% assign ox_pi_max_discussion = b.discussion_adjusted.candidates | where: "id", "all-ox-alpha@max" | first %}
-{% assign ox_pi_max_candidate = b.candidates | where: "id", "all-ox-alpha@max" | first %}
 {% assign later_cells = followup_campaign.cells | plus: panel_campaign.cells | plus: deepseek_campaign.cells | plus: ox_pi_campaign.cells | plus: ox_pi_max_campaign.cells %}
 <section class="bench-intro">
   <div class="wrap">
@@ -120,22 +118,17 @@
       samples per judge on the same six tasks.
     </p>
     <p>
-      Neither GLM 5.3 Flash (0x Alpha) row changes the after-discussion leader: the
-      production-like Sol plan &rarr; Sol execute &rarr; Sol + Grok review setup
-      remains first at <strong>{{ flagship_discussion.combined.mean }}</strong>.
-      The all-Pro and Pro-plan/Flash-execute/Pro-review DeepSeek configurations
-      finish at <strong>{{ deepseek_all_discussion.combined.mean }}</strong> and
-      <strong>{{ deepseek_mixed_discussion.combined.mean }}</strong>. Both
-      judgments are family-disjoint, so their evidence carries no
-      same-family warning.
+      The key result is a split winner. All-Sol leads the independent scoring at
+      <strong>{{ all_sol_independent }}</strong>. After discussion, the
+      production-like Sol plan &rarr; Sol execute &rarr; Sol + Grok review
+      setup leads at <strong>{{ flagship_discussion.combined.mean }}</strong>
+      after placing second independently at
+      <strong>{{ flagship_independent }}</strong>.
     </p>
     <p>
-      The sharper DeepSeek result is judge calibration, not rank. On the
-      three-sample independent scores, Fable and Sol differ by
-      <strong>{{ deepseek_all_gap }}</strong> points for all-Pro and
-      <strong>{{ deepseek_mixed_gap }}</strong> for the mixed workflow. The
-      fresh one-shot deliberation brings the final judge gap for both rows to
-      about 1.9 points without erasing it. Across all
+      The five active later campaigns freshly re-graded round one before the judges
+      exchanged verdicts, so discussion is not a mathematical adjustment to
+      the independent mean. Across all
       {{ b.discussion_adjusted.summary.cells }} cells, the judges' mean
       absolute spread still fell from
       <strong>{{ b.discussion_adjusted.summary.mean_spread_before }}</strong> to
@@ -145,26 +138,11 @@
       remains a diagnostic rather than a cleaner replacement score.
     </p>
     <p>
-      DeepSeek is the cheapest fully attributable provider path measured so
-      far: all-Pro averages ${{ deepseek_all_candidate.cost_per_task_usd | round: 2 }}
-      across five priced cells, and Pro/Flash/Pro averages
-      ${{ deepseek_mixed_candidate.cost_per_task_usd | round: 2 }} across all
-      six. Their normalized token volume is
-      {{ deepseek_all_candidate.normalized_mtokens_per_task }}M and
-      {{ deepseek_mixed_candidate.normalized_mtokens_per_task }}M per recorded
-      task respectively&mdash;because cache reads are counted as part of total
-      generation volume. Missing all-Pro telemetry remains unknown rather than
-      inferred.
-    </p>
-    <p>
-      The Pi max campaign averages
-      ${{ ox_pi_max_candidate.cost_per_task_usd | round: 2 }} per task across
-      all six priced cells and {{ ox_pi_max_candidate.normalized_mtokens_per_task }}M
-      normalized tokens per task. Its wall-time mean is
-      {{ ox_pi_max_candidate.mean_minutes }} minutes across
-      {{ ox_pi_max_candidate.time_sample }} recorded cells. The earlier Pi high
-      campaign has complete token telemetry but no serialized API-equivalent
-      price, so its cost remains unknown.
+      Grok 4.5 remains fastest on its recorded timed cells at
+      {{ grok_candidate.mean_minutes }} minutes on
+      average. Because Grok usage telemetry is unavailable, mixed Grok
+      workflows show lower-bound known-provider subtotals rather than complete
+      token and cost comparisons.
     </p>
     <p>
       These are scoped findings, not a universal model ranking.
