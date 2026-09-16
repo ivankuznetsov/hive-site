@@ -1,9 +1,10 @@
 # hive-site
 
-The public website for [Hive](https://github.com/ivankuznetsov/hive) —
-**[hivecli.sh](https://hivecli.sh)**. An outcome-first marketing landing page
-plus curated documentation, built with [Jekyll](https://jekyllrb.com) and
-[Just the Docs](https://just-the-docs.com), deployed to Cloudflare Pages.
+The public website for [Hive](https://github.com/ivankuznetsov/hive) — a
+durable, local-first workflow engine for AI agents — at
+**[hivecli.sh](https://hivecli.sh)**. The evidence-linked landing page and
+curated documentation are built with [Jekyll](https://jekyllrb.com) and
+[Just the Docs](https://just-the-docs.com), then deployed to Cloudflare Pages.
 
 ## Local development
 

@@ -19,8 +19,9 @@ for scripting, debugging, and recovery.
 
 | Group | Commands |
 |-------|----------|
-| **Workflow** | [`new`]({{ '/docs/commands/new/' | relative_url }}), [`run`]({{ '/docs/commands/run/' | relative_url }}), [`approve`]({{ '/docs/commands/approve/' | relative_url }}) |
-| **Dashboard** | [`tui`]({{ '/docs/commands/tui/' | relative_url }}), [`status`]({{ '/docs/commands/status/' | relative_url }}) |
+| **Workflow** | [`new`]({{ '/docs/commands/new/' | relative_url }}), [`run`]({{ '/docs/commands/run/' | relative_url }}), [`approve`]({{ '/docs/commands/approve/' | relative_url }}), [`workflow install/list/update/remove/publish`]({{ '/docs/custom-workflows/' | relative_url }}) |
+| **Interfaces** | [`tui`]({{ '/docs/commands/tui/' | relative_url }}), [`status`]({{ '/docs/commands/status/' | relative_url }}), [`web`](https://github.com/ivankuznetsov/hive/blob/main/wiki/commands/web.md) |
+| **Benchmark** | [`bench submit`]({{ '/bench/run/' | relative_url }}) |
 | **Review** | [`findings`]({{ '/docs/commands/findings/' | relative_url }}) |
 | **Autonomy** | [`patrol`]({{ '/docs/commands/patrol/' | relative_url }}), [`babysit`]({{ '/docs/commands/babysit/' | relative_url }}), [`daemon`]({{ '/docs/commands/daemon/' | relative_url }}), [`bot`]({{ '/docs/commands/bot/' | relative_url }}) |
 | **Lifecycle** | [`init`]({{ '/docs/commands/init/' | relative_url }}), [`update`]({{ '/docs/commands/update/' | relative_url }}), [`uninstall`]({{ '/docs/commands/uninstall/' | relative_url }}), [`drop`]({{ '/docs/commands/drop/' | relative_url }}), [`migrate`]({{ '/docs/commands/migrate/' | relative_url }}) |

@@ -1,18 +1,30 @@
-<section class="demo" id="demo">
+<section class="demo" id="demo" aria-labelledby="demo-title">
   <div class="wrap">
-    <h2 class="section-title">Watch the whole loop</h2>
+    <h2 class="section-title" id="demo-title">Watch the whole loop</h2>
     <p class="section-lead">
       A sub-two-minute reel: install, <code>hive init</code>, capture an idea in the TUI,
       answer brainstorm questions in vim, and archive the finished task once Hive has shipped it.
     </p>
     <figure class="demo__media">
-      <video autoplay muted loop playsinline width="1210" height="780"
-             aria-label="Animated reel of a Hive run: capturing an idea, stages advancing on their own in the TUI, and a finished pull request.">
+      <video controls playsinline preload="metadata" width="1210" height="780"
+             aria-describedby="demo-caption demo-transcript">
         <source src="{{ '/assets/video/hive-demo.mp4' | relative_url }}" type="video/mp4">
+        Your browser cannot play this video. Use the transcript below or open the MP4 directly.
       </video>
-      <figcaption>
+      <figcaption id="demo-caption">
         Sped up 1.5–3× so the loop fits in 91 seconds — <a href="{{ '/assets/video/hive-demo.mp4' | relative_url }}">open the MP4 (~5&nbsp;MB)</a>.
       </figcaption>
     </figure>
+    <details class="demo__transcript" id="demo-transcript">
+      <summary>Read the demo transcript</summary>
+      <ol>
+        <li>Install Hive and initialize a local project.</li>
+        <li>Capture a one-sentence software idea in the TUI.</li>
+        <li>Open the generated brainstorm artifact and answer its questions in an editor.</li>
+        <li>Watch the task advance through plan, execute, pull request, review, artifacts, and finalize.</li>
+        <li>Inspect the finished pull request, then archive the completed task.</li>
+      </ol>
+      <p>The reel has no audio; this ordered description is its complete spoken-content equivalent.</p>
+    </details>
   </div>
 </section>
