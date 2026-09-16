@@ -12,6 +12,8 @@ $Data  = if ($env:HIVEBOX_DATA)  { $env:HIVEBOX_DATA }  else { Join-Path $HOME "
 # Localhost by default: a fresh box is claimable by its FIRST login — do
 # not publish it to network peers before the owner signs in.
 $Bind  = if ($env:HIVEBOX_BIND)  { $env:HIVEBOX_BIND }  else { "127.0.0.1" }
+# A wildcard is valid for listening but is not a browser destination.
+$OpenHost = if ($Bind -eq "0.0.0.0") { "localhost" } else { $Bind }
 
 function Fail($Message) {
     Write-Error "hivebox install: $Message"
@@ -40,7 +42,7 @@ if ($LASTEXITCODE -ne 0) { Fail "docker run failed." }
 Write-Host ""
 Write-Host "hivebox is running."
 Write-Host ""
-Write-Host "  Open:  http://localhost:$Port"
+Write-Host "  Open:  http://${OpenHost}:$Port"
 Write-Host "  Data:  $Data"
 Write-Host ""
 Write-Host "The first GitHub sign-in claims the box as its owner."
