@@ -1,0 +1,2056 @@
+diff --git a/lib/hive/tui/bubble_model.rb b/lib/hive/tui/bubble_model.rb
+index d42249e3..978ceec0 100644
+--- a/lib/hive/tui/bubble_model.rb
++++ b/lib/hive/tui/bubble_model.rb
+@@ -22,6 +22,7 @@ require "hive/tui/update"
+ require "hive/tui/snapshot"
+ require "hive/tui/text"
+ require "hive/tui/log_tail"
++require "hive/tui/info_panel"
+ require "hive/tui/brainstorm_answers"
+ require "hive/tui/clipboard"
+ require "hive/tui/composer_staging"
+@@ -32,7 +33,7 @@ require "hive/tui/views/log_tail"
+ require "hive/tui/views/red_status_detail"
+ require "hive/tui/views/help_overlay"
+ require "hive/tui/views/filter_prompt"
+-require "hive/tui/views/idea_preview"
++require "hive/tui/views/info_panel"
+ require "hive/tui/views/new_idea_prompt"
+ require "hive/tui/views/new_idea_project_picker"
+ 
+@@ -50,9 +51,8 @@ module Hive
+     #   * Handle messages that need a runner reference (DispatchCommand
+     #     wraps takeover_command with `runner.method(:send)` — Update
+     #     can't, since it's runner-agnostic).
+-    #   * Handle messages that perform synchronous I/O (OpenLogTail,
+-    #     OpenInputEditor) — I/O lands here, not in Update, to keep
+-    #     Update pure.
++    #   * Start bounded asynchronous reads at the side-effect boundary
++    #     (OpenInfoPanel); Update remains pure and render never reads.
+     #   * Dispatch view by `model.mode` to one of the Views modules.
+     #
+     # The `dispatch:` lambda is set externally (App.run_charm wires
+@@ -227,7 +227,7 @@ module Hive
+         when :red_status_detail then Views::RedStatusDetail.render(@hive_model)
+         when :help then Views::HelpOverlay.render(@hive_model)
+         when :filter then compose_filter_view
+-        when :idea_preview then compose_idea_preview_view
++        when :info_panel then Views::InfoPanel.render(@hive_model)
+         when :new_idea_project then compose_new_idea_project_view
+         when :new_idea then compose_new_idea_view
+         else compose_two_pane_view
+@@ -384,8 +384,8 @@ module Hive
+           open_input_editor(message.row)
+         when Hive::Tui::Messages::OpenTaskFolder
+           open_task_folder(message.row)
+-        when Hive::Tui::Messages::OpenIdeaPreview
+-          open_idea_preview(message.row)
++        when Hive::Tui::Messages::OpenInfoPanel
++          open_info_panel(message.row)
+         when Hive::Tui::Messages::OpenInAgent
+           dispatch_open_in_agent_then_close_detail(message.row)
+         when Hive::Tui::Messages::AgentSteerExited
+@@ -1514,42 +1514,38 @@ module Hive
+         [ flashed("editor command invalid: #{e.message}"), nil ]
+       end
+ 
+-      def open_idea_preview(row)
+-        return [ flashed("no idea for #{row.slug}"), nil ] if row.folder.to_s.empty?
+-
+-        idea_path = File.join(row.folder, "idea.md")
+-        return [ flashed("no idea.md for #{row.slug}"), nil ] unless File.exist?(idea_path)
+-
+-        data = idea_frontmatter(File.read(idea_path))
+-        original_text = data["original_text"].to_s
+-        if original_text.empty?
+-          return [ flashed("idea has no original_text for #{row.slug}"), nil ]
+-        end
+-
+-        capped_text = original_text[0, Hive::Tui::Model::NEW_IDEA_BUFFER_MAX_CHARS]
+-        [
+-          @hive_model.with(
+-            mode: :idea_preview,
+-            idea_preview_text: capped_text,
+-            idea_preview_slug: row.slug
+-          ),
++      # Flip state synchronously so the next render paints a loading
++      # panel, then return a native Bubble Tea Proc. Runner executes
++      # that Proc on a worker thread; it dispatches one correlated
++      # result and returns nil, never blocking input or render.
++      def open_info_panel(row)
++        opened, _cmd = Hive::Tui::Update.apply(
++          @hive_model,
++          Hive::Tui::Messages::OpenInfoPanel.new(row: row)
++        )
++        command = lambda do
++          snapshot = Hive::Tui::InfoPanel.load(row)
++          @dispatch.call(Hive::Tui::Messages::InfoPanelLoaded.new(snapshot: snapshot))
+           nil
+-        ]
+-      rescue Errno::ENOENT, Errno::EACCES, Psych::Exception
+-        [ flashed("could not read idea for #{row.slug}"), nil ]
+-      end
+-
+-      def idea_frontmatter(contents)
+-        match = contents.match(/\A---[ \t]*\r?\n(.*?)\r?\n---[ \t]*(?:\r?\n|\z)/m)
+-        return {} unless match
+-
+-        parsed = YAML.safe_load(
+-          match[1],
+-          permitted_classes: [ Time, Date ],
+-          permitted_symbols: [],
+-          aliases: false
+-        ) || {}
+-        parsed.is_a?(Hash) ? parsed : {}
++        rescue Hive::Tui::InfoPanel::LoadError => e
++          @dispatch.call(
++            Hive::Tui::Messages::InfoPanelLoadFailed.new(folder: row.folder.to_s, error: e.message)
++          )
++          nil
++        rescue StandardError => e
++          # The loader maps expected filesystem/YAML failures to
++          # LoadError. Keep an unexpected local-read failure inside the
++          # same typed-result boundary rather than leaking a worker
++          # exception that leaves the loading panel stranded.
++          Hive::Tui::Debug.log("info_panel", "load failed #{e.class.name}: #{e.message}")
++          @dispatch.call(
++            Hive::Tui::Messages::InfoPanelLoadFailed.new(
++              folder: row.folder.to_s, error: "could not read idea for #{row.slug}"
++            )
++          )
++          nil
++        end
++        [ opened, command ]
+       end
+ 
+       def resolve_agent_label(row)
+@@ -2884,11 +2880,6 @@ module Hive
+         compose_two_pane_view(footer: prompt_footer(Views::FilterPrompt.render(@hive_model, width: usable), usable))
+       end
+ 
+-      def compose_idea_preview_view
+-        usable = [ @hive_model.cols.to_i - 1, 1 ].max
+-        compose_two_pane_view(footer: prompt_footer(Views::IdeaPreview.render(@hive_model, width: usable), usable))
+-      end
+-
+       # New-idea mode: same composition; footer = the inline prompt with
+       # the project label so the operator sees the resolved target.
+       # Width clamps the prompt so long titles don't overflow the
+@@ -3002,7 +2993,7 @@ module Hive
+       # Default footer — context-aware key hints + flash decay (the
+       # status line). v1 had this in Views::Grid#status_line; lifted here
+       # so the panes stay layout-only. `usable_width` clamps the line
+-      # so the fixed 75-char hint string doesn't overflow narrow
++      # so the fixed standard-width hint string doesn't overflow narrow
+       # terminals (e.g. cols=70 used to wrap onto a second visible row).
+       def default_footer(usable_width = nil)
+         if @hive_model.flash_active?
+@@ -3017,7 +3008,7 @@ module Hive
+       end
+ 
+       def footer_hint
+-        "[Tab] switch  [Enter] action  [n] new  [/] filter  [?] help  [q] quit"
++        "[Tab] switch  [Enter] action  [n] new  [/] filter  [?] help  [i] info  [q] quit"
+       end
+ 
+       # Compute pane widths and join horizontally. Left pane is clamped
+diff --git a/lib/hive/tui/info_panel.rb b/lib/hive/tui/info_panel.rb
+new file mode 100644
+index 00000000..8da0c88c
+--- /dev/null
++++ b/lib/hive/tui/info_panel.rb
+@@ -0,0 +1,171 @@
++require "date"
++require "time"
++require "yaml"
++require "hive"
++require "hive/task"
++require "hive/tui/log_tail"
++require "hive/tui/text"
++
++module Hive
++  module Tui
++    # Bounded, read-only task information captured before the info panel
++    # renders. This module deliberately has no renderer or runner
++    # dependency: BubbleModel runs it in a Bubble Tea Proc and Update
++    # stores only its immutable result.
++    module InfoPanel
++      IDEA_BYTE_LIMIT = 16 * 1024
++      ARTIFACT_BYTE_LIMIT = 16 * 1024
++      EXECUTE_LOG_BYTE_LIMIT = 16 * 1024
++      EXECUTE_LINE_LIMIT = 80
++
++      LoadError = Class.new(StandardError)
++      Snapshot = Data.define(
++        :row, :folder, :slug, :stage, :created_at, :original_text,
++        :original_text_truncated, :working_directory, :latest_log_path,
++        :stage_extra
++      )
++      StageExtra = Data.define(:label, :path, :text, :lines, :status, :truncated)
++
++      module_function
++
++      def load(row)
++        folder = File.expand_path(row.folder.to_s)
++        raise LoadError, "could not read idea for #{row.slug}" if row.folder.to_s.empty?
++
++        idea_text, idea_truncated = bounded_read(File.join(folder, "idea.md"), IDEA_BYTE_LIMIT)
++        data = idea_frontmatter(idea_text, truncated: idea_truncated)
++        original_text = data["original_text"]
++        created_at = parse_created_at(data["created_at"])
++        if !original_text.is_a?(String) || original_text.empty? || created_at.nil?
++          raise LoadError, "could not read idea for #{row.slug}"
++        end
++
++        task = Hive::Task.new(folder)
++        Snapshot.new(
++          row: row,
++          folder: folder,
++          slug: row.slug.to_s,
++          stage: row.stage.to_s,
++          created_at: created_at,
++          original_text: original_text,
++          original_text_truncated: idea_truncated,
++          working_directory: folder,
++          latest_log_path: latest_log_path(task),
++          stage_extra: stage_extra(row.stage.to_s, folder, task)
++        )
++      rescue LoadError
++        raise
++      rescue Hive::InvalidTaskPath, Psych::Exception, ArgumentError, *Hive::Tui::LogTail::FILESYSTEM_RESCUE
++        raise LoadError, "could not read idea for #{row.slug}"
++      end
++
++      def latest_log_path(task)
++        Hive::Tui::LogTail::FileResolver.latest(task.log_dir)
++      rescue Hive::NoLogFiles, *Hive::Tui::LogTail::FILESYSTEM_RESCUE
++        nil
++      end
++
++      def stage_extra(stage, folder, task)
++        case stage
++        when "2-brainstorm" then file_extra("Brainstorm", File.join(folder, "brainstorm.md"))
++        when "3-plan" then file_extra("Plan", File.join(folder, "plan.md"))
++        when "4-execute" then execute_log_extra(task)
++        end
++      end
++
++      def file_extra(label, path)
++        text, truncated = bounded_read(path, ARTIFACT_BYTE_LIMIT)
++        status = displayable_text?(text) ? :available : :empty
++        StageExtra.new(label: label, path: path, text: text, lines: [], status: status, truncated: truncated)
++      rescue *Hive::Tui::LogTail::FILESYSTEM_RESCUE
++        StageExtra.new(label: label, path: path, text: "", lines: [], status: :unavailable, truncated: false)
++      end
++
++      def execute_log_extra(task)
++        path = Hive::Tui::LogTail::FileResolver.latest_matching(task.log_dir, "execute-*.log")
++        text, truncated = bounded_tail(path, EXECUTE_LOG_BYTE_LIMIT)
++        lines = text.lines(chomp: true)
++        if lines.length > EXECUTE_LINE_LIMIT
++          lines = lines.last(EXECUTE_LINE_LIMIT)
++          truncated = true
++        end
++        status = if lines.any? { |line| displayable_text?(Hive::Tui::LogTail::Formatter.format(line)) }
++          :available
++        else
++          :empty
++        end
++        StageExtra.new(label: "Execute log", path: path, text: "", lines: lines, status: status, truncated: truncated)
++      rescue Hive::NoLogFiles, *Hive::Tui::LogTail::FILESYSTEM_RESCUE
++        StageExtra.new(label: "Execute log", path: nil, text: "", lines: [], status: :unavailable, truncated: false)
++      end
++
++      # Read just one byte past the cap so a view can distinguish a
++      # complete value from a clipped one without retaining unbounded
++      # agent-authored content in the model.
++      def bounded_read(path, limit)
++        File.open(path, "rb") do |file|
++          data = file.read(limit + 1).to_s
++          [ utf8(data.byteslice(0, limit).to_s), data.bytesize > limit ]
++        end
++      end
++
++      def bounded_tail(path, limit)
++        File.open(path, "rb") do |file|
++          size = file.size
++          start = [ size - limit, 0 ].max
++          length = size - start
++          file.seek(start)
++          data = file.read(length).to_s
++          # When the cap begins mid-line, discard the partial prefix so
++          # static log formatting never presents a misleading fragment.
++          data = data.sub(/\A[^\n]*\n/, "") if start.positive?
++          [ utf8(data), start.positive? ]
++        end
++      end
++
++      def idea_frontmatter(contents, truncated: false)
++        match = contents.match(/\A---[ \t]*\r?\n(.*?)\r?\n---[ \t]*(?:\r?\n|\z)/m)
++        # A bounded read can end inside a deliberately long block scalar
++        # before the closing delimiter. YAML accepts the captured
++        # frontmatter at EOF, so use that safe fallback rather than
++        # turning an otherwise valid large idea into a load failure.
++        source = if match
++          match[1]
++        elsif truncated
++          contents.sub(/\A---[ \t]*\r?\n/, "")
++        else
++          return {}
++        end
++        return {} if source == contents
++
++        parsed = YAML.safe_load(
++          source, permitted_classes: [ Time, Date ], permitted_symbols: [], aliases: false
++        ) || {}
++        parsed.is_a?(Hash) ? parsed : {}
++      end
++
++      def parse_created_at(value)
++        return value if value.is_a?(Time)
++        return nil unless value.is_a?(String)
++        return nil if value.empty?
++
++        Time.parse(value)
++      rescue ArgumentError
++        nil
++      end
++
++      def displayable_text?(value)
++        value.to_s.split("\n", -1).any? do |line|
++          without_ansi = line.gsub(Hive::Tui::Text::ANSI_CSI_PATTERN, "")
++          next false if without_ansi.strip.empty?
++
++          !Hive::Tui::Text.sanitize(line).strip.empty?
++        end
++      end
++
++      def utf8(value)
++        value.to_s.force_encoding(Encoding::UTF_8).scrub("?")
++      end
++    end
++  end
++end
+diff --git a/lib/hive/tui/key_map.rb b/lib/hive/tui/key_map.rb
+index 8233e9a4..92c58fbd 100644
+--- a/lib/hive/tui/key_map.rb
++++ b/lib/hive/tui/key_map.rb
+@@ -88,7 +88,7 @@ module Hive
+         when :red_status_detail then red_status_detail_message(key: key, row: row)
+         when :filter then filter_message(key: key, row: row)
+         when :help then help_message(key: key, row: row)
+-        when :idea_preview then idea_preview_message(key: key, row: row)
++        when :info_panel then info_panel_message(key: key, row: row)
+         when :new_idea_project then new_idea_project_message(key: key, row: row)
+         when :new_idea then new_idea_message(key: key, row: row)
+         else raise ArgumentError, "unknown mode: #{mode.inspect}"
+@@ -129,13 +129,13 @@ module Hive
+ 
+         return Messages::NOOP if row.nil?
+ 
+-        # `o`, `i`, and `s` are row-bound browse/preview/steer gestures
++        # `o`, `i`, and `s` are row-bound browse/info/steer gestures
+         # that require right-pane focus (where the row under the cursor
+         # is). Without the gate, an operator on the left (scope) pane
+         # could fire any of these against a row whose cursor they are
+         # not visually tracking.
+         return Messages::OpenTaskFolder.new(row: row) if key == "o" && pane_focus == :right
+-        return Messages::OpenIdeaPreview.new(row: row) if key == "i" && pane_focus == :right
++        return Messages::OpenInfoPanel.new(row: row) if key == "i" && pane_focus == :right
+         return Messages::OpenInAgent.new(row: row) if key == "s" && pane_focus == :right
+         return verb_message(row, key) if VERB_KEYS.key?(key)
+         return enter_message(row) if ENTER_KEYS.include?(key)
+@@ -402,11 +402,13 @@ module Hive
+         Messages::BACK
+       end
+ 
+-      # Idea preview is read-only: every key closes it and returns to
+-      # grid, whether Bubble Tea emitted a printable String or a
+-      # special-key Symbol.
+-      def idea_preview_message(key:, row:) # rubocop:disable Lint/UnusedMethodArgument
+-        Messages::BACK
++      # The info panel is read-only and deliberately non-scrollable.
++      # Only its explicit close gestures act; every other key is inert
++      # so it cannot accidentally dispatch a workflow behind the panel.
++      def info_panel_message(key:, row:) # rubocop:disable Lint/UnusedMethodArgument
++        return Messages::BACK if ESCAPE_KEYS.include?(key) || key == "q" || key == "i"
++
++        Messages::NOOP
+       end
+ 
+       # New-idea prompt mode — same key shape as `:filter` mode but
+diff --git a/lib/hive/tui/log_tail.rb b/lib/hive/tui/log_tail.rb
+index a997fd5d..9e5cf574 100644
+--- a/lib/hive/tui/log_tail.rb
++++ b/lib/hive/tui/log_tail.rb
+@@ -160,7 +160,19 @@ module Hive
+ 
+         def latest_in_dirs(log_dirs)
+           dirs = Array(log_dirs)
+-          candidates = dirs.flat_map { |log_dir| Dir[File.join(log_dir.to_s, "*.log")] }
++          latest_from_candidates(dirs, dirs.flat_map { |log_dir| Dir[File.join(log_dir.to_s, "*.log")] })
++        end
++
++        # Resolve the newest direct child matching `pattern` in one log
++        # directory. The info panel uses this for its static
++        # `execute-*.log` snapshot; keeping the mtime/rotation behaviour
++        # here ensures the tail and read-only detail surfaces agree.
++        def latest_matching(log_dir, pattern)
++          dir = log_dir.to_s
++          latest_from_candidates([ dir ], Dir[File.join(dir, pattern.to_s)])
++        end
++
++        def latest_from_candidates(dirs, candidates)
+           raise Hive::NoLogFiles, "no log files in #{dirs.join(', ')}" if candidates.empty?
+ 
+           # `File.mtime` can race with concurrent log rotation that removes a
+@@ -175,6 +187,7 @@ module Hive
+ 
+           with_mtimes.max_by(&:last).first
+         end
++        private_class_method :latest_from_candidates
+       end
+ 
+       # Open one log file, hold a bounded line buffer, and incrementally
+diff --git a/lib/hive/tui/messages.rb b/lib/hive/tui/messages.rb
+index 980952a5..4416e285 100644
+--- a/lib/hive/tui/messages.rb
++++ b/lib/hive/tui/messages.rb
+@@ -179,12 +179,16 @@ module Hive
+       # (workflow-contextual) and the verb keys (subprocess dispatch).
+       OpenTaskFolder = Data.define(:row)
+ 
+-      # `i` in grid mode — read the focused row's source idea.md and
+-      # show its original_text in the bottom strip. Carries the row so
+-      # BubbleModel's side-effect handler can resolve `row.folder` at
+-      # the moment of the keystroke; this cannot be a payload-free
+-      # singleton because snapshot polling may move the live cursor.
+-      OpenIdeaPreview = Data.define(:row)
++      # `i` in grid mode — enter the read-only full-screen info panel
++      # for this exact task row. BubbleModel performs the bounded local
++      # read off the UI loop and later injects a correlated result.
++      OpenInfoPanel = Data.define(:row)
++
++      # Result of the background InfoPanel loader. `snapshot.folder` is
++      # the correlation identity; Update ignores it after close or for a
++      # newly-opened different row.
++      InfoPanelLoaded = Data.define(:snapshot)
++      InfoPanelLoadFailed = Data.define(:folder, :error)
+ 
+       # `s` in grid mode — suspend the TUI and open the focused row's
+       # configured development agent in the feature worktree. BubbleModel
+diff --git a/lib/hive/tui/model.rb b/lib/hive/tui/model.rb
+index b81a44c0..6abc3d65 100644
+--- a/lib/hive/tui/model.rb
++++ b/lib/hive/tui/model.rb
+@@ -20,7 +20,7 @@ module Hive
+     # Lifted out of the Data.define block because Ruby's Data.define
+     # block-scope doesn't bind constants to the resulting class.
+     Model = Data.define(
+-      :mode,             # Symbol: :grid / :log_tail / :filter / :help / :new_idea_project / :new_idea / :idea_preview / :red_status_detail
++      :mode,             # Symbol: :grid / :log_tail / :filter / :help / :new_idea_project / :new_idea / :info_panel / :red_status_detail
+       :snapshot,         # Hive::Tui::Snapshot (or nil before first poll)
+       :cursor,           # [project_idx, row_idx] (or nil for empty grid)
+       :filter,           # String or nil — committed substring filter
+@@ -40,8 +40,7 @@ module Hive
+       # asset. Resets only on open / cancel / submit.
+       :new_idea_attachment_counter,
+       :new_idea_broken_labels, # Array<String> — labels highlighted after rich-submit validation fails
+-      :idea_preview_text, # String or nil — original_text rendered in :idea_preview mode
+-      :idea_preview_slug, # String or nil — slug captured when the preview opened
++      :info_panel_state, # Model::InfoPanelState or nil — :info_panel mode only
+       :flash,            # String or nil — current status-line message
+       :flash_set_at,     # Time or nil — flash decay timestamp
+       :tail_state,       # Hive::Tui::LogTail::Tail or nil — :log_tail mode only
+@@ -104,6 +103,15 @@ module Hive
+       end
+     end
+ 
++    # The panel opens with `snapshot: nil` and paints its loading state
++    # immediately. A later InfoPanelLoaded message replaces it with the
++    # bounded, immutable filesystem snapshot captured off the UI loop.
++    Model::InfoPanelState = Data.define(:row, :snapshot) do
++      def loading?
++        snapshot.nil?
++      end
++    end
++
+     class Model
+       # Boot state. App.run constructs the runner with this Model.
+       # `pane_focus` defaults to `:right` so the table is the first
+@@ -128,8 +136,7 @@ module Hive
+           new_idea_staging_tmp_root: nil,
+           new_idea_attachment_counter: 0,
+           new_idea_broken_labels: [],
+-          idea_preview_text: nil,
+-          idea_preview_slug: nil,
++          info_panel_state: nil,
+           flash: nil,
+           flash_set_at: nil,
+           tail_state: nil,
+diff --git a/lib/hive/tui/text.rb b/lib/hive/tui/text.rb
+index 44b2c791..710de776 100644
+--- a/lib/hive/tui/text.rb
++++ b/lib/hive/tui/text.rb
+@@ -32,7 +32,8 @@ module Hive
+       # string — every caller is concerned with display safety, not
+       # with surfacing a TypeError on a missing field.
+       def sanitize(text)
+-        text.to_s.gsub(ANSI_CSI_PATTERN, "").gsub(CONTROL_CHARS_PATTERN, "?")
++        normalized = text.to_s.dup.force_encoding(Encoding::UTF_8).scrub("?")
++        normalized.gsub(ANSI_CSI_PATTERN, "").gsub(CONTROL_CHARS_PATTERN, "?")
+       end
+     end
+   end
+diff --git a/lib/hive/tui/update.rb b/lib/hive/tui/update.rb
+index f17a433b..8cb46dcb 100644
+--- a/lib/hive/tui/update.rb
++++ b/lib/hive/tui/update.rb
+@@ -75,6 +75,12 @@ module Hive
+           [ apply_open_filter_prompt(model), nil ]
+         when Messages::OpenRedStatusDetail
+           [ apply_open_red_status_detail(model, message), nil ]
++        when Messages::OpenInfoPanel
++          [ apply_open_info_panel(model, message), nil ]
++        when Messages::InfoPanelLoaded
++          [ apply_info_panel_loaded(model, message), nil ]
++        when Messages::InfoPanelLoadFailed
++          [ apply_info_panel_load_failed(model, message), nil ]
+         when Messages::RedStatusDetailScroll
+           [ apply_red_status_detail_scroll(model, message), nil ]
+         when Messages::Back
+@@ -161,6 +167,9 @@ module Hive
+         if model.mode == :red_status_detail && model.red_status_detail_state
+           return apply_red_status_detail_snapshot(new_model, model.red_status_detail_state)
+         end
++        if model.mode == :info_panel && model.info_panel_state
++          return apply_info_panel_snapshot(new_model, model.info_panel_state)
++        end
+ 
+         visible = visible_snapshot(new_model)
+         return new_model if visible.nil?
+@@ -187,6 +196,15 @@ module Hive
+         model.with(red_status_detail_state: state.with(row: row))
+       end
+ 
++      def apply_info_panel_snapshot(model, state)
++        row = find_row_for_detail(model.snapshot, state.row)
++        unless row
++          return close_info_panel(model, flash: "#{state.row.slug} no longer in this project")
++        end
++
++        model.with(info_panel_state: state.with(row: row))
++      end
++
+       # Close the red-status detail view and return to grid. Recompute
+       # the cursor against the post-close snapshot so a row that
+       # disappeared while the operator was in the detail view doesn't
+@@ -713,6 +731,27 @@ module Hive
+         model.with(mode: :red_status_detail, red_status_detail_state: state)
+       end
+ 
++      def apply_open_info_panel(model, msg)
++        state = Model::InfoPanelState.new(row: msg.row, snapshot: nil)
++        model.with(mode: :info_panel, info_panel_state: state)
++      end
++
++      def apply_info_panel_loaded(model, msg)
++        state = model.info_panel_state
++        return model unless model.mode == :info_panel && state
++        return model unless same_folder?(msg.snapshot&.folder, state.row.folder)
++
++        model.with(info_panel_state: state.with(snapshot: msg.snapshot))
++      end
++
++      def apply_info_panel_load_failed(model, msg)
++        state = model.info_panel_state
++        return model unless model.mode == :info_panel && state
++        return model unless same_folder?(msg.folder, state.row.folder)
++
++        close_info_panel(model, flash: msg.error.to_s)
++      end
++
+       def apply_red_status_detail_scroll(model, msg)
+         state = model.red_status_detail_state
+         if model.mode != :red_status_detail || state.nil?
+@@ -782,7 +821,7 @@ end
+           closed = model.with(mode: :grid, red_status_detail_state: nil)
+           visible = visible_snapshot(closed)
+           visible.nil? ? closed : closed.with(cursor: reclamp_cursor(visible, closed.cursor))
+-        when :idea_preview then model.with(mode: :grid, idea_preview_text: nil, idea_preview_slug: nil)
++        when :info_panel then close_info_panel(model)
+         when :help, :filter then model.with(mode: :grid)
+         when :new_idea_project then apply_new_idea_cancelled(model)
+         else model
+@@ -820,6 +859,43 @@ end
+           snapshot.rows.find { |row| row.project_name == original_row.project_name && row.slug == original_row.slug && row.stage == original_row.stage }
+       end
+ 
++      # Close by stable folder identity rather than stale row indices.
++      # Polling can reorder projects/rows while the panel is open.
++      def close_info_panel(model, flash: nil)
++        state = model.info_panel_state
++        closed = model.with(
++          mode: :grid,
++          info_panel_state: nil,
++          flash: flash,
++          flash_set_at: flash ? Time.now : nil
++        )
++        visible = visible_snapshot(closed)
++        return closed if visible.nil?
++
++        cursor = state ? cursor_for_folder(visible, state.row.folder) : nil
++        if cursor
++          closed.with(cursor: cursor)
++        else
++          fallback = reclamp_cursor(visible, closed.cursor)
++          message = flash || "#{state&.row&.slug || 'task'} no longer in this project"
++          closed.with(cursor: fallback, flash: message, flash_set_at: Time.now)
++        end
++      end
++
++      def cursor_for_folder(visible, folder)
++        visible.projects.each_with_index do |project, project_idx|
++          row_idx = project.rows.index { |row| same_folder?(row.folder, folder) }
++          return [ project_idx, row_idx ] if row_idx
++        end
++        nil
++      end
++
++      def same_folder?(left, right)
++        return false if left.to_s.empty? || right.to_s.empty?
++
++        File.expand_path(left.to_s) == File.expand_path(right.to_s)
++      end
++
+       def red_status_row?(row)
+         %w[recover_review recover_execute error].include?(row.action_key.to_s)
+       end
+diff --git a/lib/hive/tui/views/idea_preview.rb b/lib/hive/tui/views/idea_preview.rb
+deleted file mode 100644
+index c9fdfb09..00000000
+--- a/lib/hive/tui/views/idea_preview.rb
++++ /dev/null
+@@ -1,60 +0,0 @@
+-require "hive/tui/styles"
+-require "hive/tui/views/format"
+-
+-module Hive
+-  module Tui
+-    module Views
+-      # Bottom-strip preview for a task's source idea.md original_text.
+-      # Read-only: KeyMap routes every key in :idea_preview mode back
+-      # to grid; this view only renders the captured model fields.
+-      module IdeaPreview
+-        DISMISS_HINT = "press any key to dismiss".freeze
+-        MAX_VISIBLE_ROWS = 6
+-
+-        module_function
+-
+-        def render(model, width: model.cols.to_i)
+-          usable = [ width.to_i, 1 ].max
+-          rows = [
+-            Styles::HINT.render(truncate("Idea for #{model.idea_preview_slug}:", usable)),
+-            *body_rows(model.idea_preview_text.to_s, usable),
+-            Styles::HINT.render(truncate(DISMISS_HINT, usable))
+-          ]
+-          rows.join("\n")
+-        end
+-
+-        def body_rows(text, width)
+-          return [] if text.empty?
+-
+-          wrap_text(text, width).first(MAX_VISIBLE_ROWS).map { |line| truncate(line, width) }
+-        end
+-
+-        # Intentional local copy of NewIdeaPrompt's simple chunking shape.
+-        # NewIdeaPrompt's helper is cursor-aware and attachment-aware;
+-        # extracting it would widen this read-only view change.
+-        def chunk_buffer(buffer, capacity)
+-          return [ "" ] if buffer.empty?
+-
+-          chunks = []
+-          offset = 0
+-          while offset < buffer.length
+-            chunks << buffer[offset, capacity].to_s
+-            offset += capacity
+-          end
+-          chunks
+-        end
+-
+-        def wrap_text(text, width)
+-          capacity = [ width.to_i, 1 ].max
+-          text.each_line(chomp: true).flat_map do |line|
+-            chunk_buffer(line, capacity)
+-          end
+-        end
+-
+-        def truncate(line, width)
+-          Views::Format.truncate(line, width.to_i)
+-        end
+-      end
+-    end
+-  end
+-end
+diff --git a/lib/hive/tui/views/info_panel.rb b/lib/hive/tui/views/info_panel.rb
+new file mode 100644
+index 00000000..4dc91fa9
+--- /dev/null
++++ b/lib/hive/tui/views/info_panel.rb
+@@ -0,0 +1,214 @@
++require "lipgloss"
++require "hive/tui/info_panel"
++require "hive/tui/log_tail"
++require "hive/tui/styles"
++require "hive/tui/text"
++require "hive/tui/views/format"
++
++module Hive
++  module Tui
++    module Views
++      # Full-screen, static rendering of a bounded InfoPanel::Snapshot.
++      # The model has already captured every byte shown here, so this
++      # view never opens files or advances a tail cursor.
++      module InfoPanel
++        CLOSE_HINT = "[q] close  [Esc] close  [i] close".freeze
++
++        module_function
++
++        def render(model)
++          state = model.info_panel_state
++          return "" unless state
++
++          width = [ model.cols.to_i, 1 ].max
++          header_width = [ width - 1, 1 ].max
++          outer_width = [ width - 2, 1 ].max
++          bordered = width >= 40
++          inner_width = bordered ? [ outer_width - 2, 1 ].max : outer_width
++          body_height = [ model.rows.to_i - 4, 1 ].max
++          body = state.loading? ? loading_body(state.row, inner_width, body_height) : loaded_body(state.snapshot, inner_width, body_height)
++          panel = if bordered
++                    Styles::PANE_FOCUSED_BORDER.width(inner_width).render(body.join("\n"))
++          else
++                    body.join("\n")
++          end
++
++          Lipgloss.join_vertical(Lipgloss::TOP, header_bar(state.row, header_width), panel)
++        end
++
++        def header_bar(row, width)
++          text = "INFO · #{safe(row.stage)}/#{safe(row.slug)}"
++          Styles::HEADER.render(truncate(text, width))
++        end
++
++        def loading_body(row, width, height)
++          fit_lines([
++            Styles::HEADER.render(truncate("Loading info for #{safe(row.slug)}…", width)),
++            "",
++            truncate("Stage: #{safe(row.stage)}", width),
++            truncate("Working directory:", width),
++            truncate(safe(File.expand_path(row.folder.to_s)), width),
++            "",
++            Styles::HINT.render(truncate(CLOSE_HINT, width))
++          ], height, width)
++        end
++
++        def loaded_body(snapshot, width, height)
++          metadata = metadata_lines(snapshot, width)
++          extra = snapshot.stage_extra
++          # Reserve both headings up front. A long original idea must
++          # not silently erase the stage-specific material in this
++          # deliberately non-scrollable first iteration.
++          fixed_rows = extra ? 6 : 4
++          content_rows = [ height - metadata.length - fixed_rows, 0 ].max
++          idea_rows, extra_rows = content_budgets(content_rows, extra)
++
++          lines = metadata
++          lines << ""
++          lines.concat(section_lines("Original idea", idea_content(snapshot, width, idea_rows), snapshot.original_text_truncated, width, idea_rows))
++          if extra
++            lines << ""
++            lines.concat(section_lines(extra.label, extra_content(extra, width, extra_rows), extra.truncated, width, extra_rows))
++          end
++          lines << ""
++          lines << Styles::HINT.render(truncate(CLOSE_HINT, width))
++          fit_lines(lines, height, width)
++        end
++
++        def metadata_lines(snapshot, width)
++          [
++            Styles::HEADER.render(truncate("Task information", width)),
++            truncate("Slug: #{safe(snapshot.slug)}", width),
++            truncate("Stage: #{safe(snapshot.stage)}", width),
++            truncate("Created: #{safe(snapshot.created_at.utc.iso8601)}", width),
++            truncate("Working directory:", width),
++            truncate(safe(snapshot.working_directory), width),
++            truncate(snapshot.latest_log_path ? "Latest log:" : "Latest log: unavailable", width),
++            *(snapshot.latest_log_path ? [ truncate(safe(snapshot.latest_log_path), width) ] : [])
++          ]
++        end
++
++        def content_budgets(rows, extra)
++          return [ rows, 0 ] unless extra
++          return [ 0, 0 ] if rows.zero?
++          return [ 1, 0 ] if rows == 1
++
++          idea = (rows / 2.0).ceil
++          [ idea, rows - idea ]
++        end
++
++        def section_lines(title, source_lines, source_truncated, width, budget)
++          title = "#{title} …" if budget.zero?
++          lines = [ Styles::HEADER.render(truncate(title, width)) ]
++          return lines if budget.zero?
++
++          visible = source_lines.first(budget)
++          clipped = source_truncated || source_lines.length > budget
++          visible = [ "unavailable" ] if visible.empty? && source_lines.empty?
++          visible = mark_truncated(visible, width) if clipped
++          lines.concat(visible.map { |line| truncate(line, width) })
++        end
++
++        def idea_content(snapshot, width, budget)
++          wrapped(snapshot.original_text, width, limit: overflow_limit(budget))
++        end
++
++        def extra_content(extra, width, budget)
++          limit = overflow_limit(budget)
++          return [] if limit.zero?
++
++          case extra.status
++          when :unavailable then [ "unavailable" ]
++          when :empty then [ "empty" ]
++          else
++            if extra.label == "Execute log"
++              formatted = Array(extra.lines).lazy.map { |line| Hive::Tui::LogTail::Formatter.format(line) }
++              wrapped_lines(formatted, width, limit: limit)
++            else
++              wrapped(extra.text, width, limit: limit)
++            end
++          end
++        end
++
++        def overflow_limit(budget)
++          budget.positive? ? budget + 1 : 0
++        end
++
++        def wrapped(text, width, limit:)
++          value = text.to_s
++          lines = Enumerator.new do |yielder|
++            if value.empty?
++              yielder << ""
++            else
++              value.each_line { |line| yielder << line.chomp }
++              yielder << "" if value.end_with?("\n")
++            end
++          end
++          wrapped_lines(lines, width, limit: limit)
++        end
++
++        def wrapped_lines(lines, width, limit:)
++          return [] unless limit.positive?
++
++          capacity = [ width.to_i, 1 ].max
++          wrapped = []
++          lines.each do |line|
++            append_chunks(wrapped, safe(line), capacity, limit)
++            break if wrapped.length >= limit
++          end
++          wrapped.empty? ? [ "" ] : wrapped
++        end
++
++        def append_chunks(rows, text, capacity, limit)
++          if text.empty?
++            rows << ""
++            return
++          end
++
++          chunk = +""
++          count = 0
++          text.each_char do |char|
++            chunk << char
++            count += 1
++            next if count < capacity
++
++            rows << chunk
++            return if rows.length >= limit
++
++            chunk = +""
++            count = 0
++          end
++          rows << chunk unless chunk.empty? || rows.length >= limit
++        end
++
++        def mark_truncated(lines, width)
++          return [ "…" ] if lines.empty?
++
++          marked = lines.dup
++          marked[-1] = truncate("#{marked[-1]}…", width)
++          marked
++        end
++
++        # If a pathological terminal is too short for the complete
++        # static frame, retain the close hint and add an explicit final
++        # overflow marker rather than wrapping outside the viewport.
++        def fit_lines(lines, height, width)
++          return lines if lines.length <= height
++
++          capacity = [ height - 1, 0 ].max
++          visible = lines.first(capacity)
++          visible << Styles::HINT.render(truncate("… #{CLOSE_HINT}", width)) if height.positive?
++          visible
++        end
++
++        def truncate(text, width)
++          Views::Format.truncate(text.to_s, width.to_i)
++        end
++
++        def safe(text)
++          Hive::Tui::Text.sanitize(text)
++        end
++      end
++    end
++  end
++end
+diff --git a/test/integration/tui_smoke_charm_test.rb b/test/integration/tui_smoke_charm_test.rb
+index 63b134a9..1a02c174 100644
+--- a/test/integration/tui_smoke_charm_test.rb
++++ b/test/integration/tui_smoke_charm_test.rb
+@@ -62,16 +62,18 @@ class TuiSmokeCharmTest < Minitest::Test
+ 
+         env = { "TERM" => "xterm-256color", "HIVE_TUI_BACKEND" => "charm" }
+         PTY.spawn(env, "ruby", "-I", HIVE_LIB, HIVE_BIN, "tui") do |reader, writer, pid|
+-          # Default PTY winsize trips v2's single-pane fallback (<70 cols);
+-          # explicitly size to 120x30 so the projects pane renders.
+-          reader.winsize = [ 30, 120 ]
++          # The canonical footer is 79 cells and must fit the standard
++          # 80-column frame (which reserves its final cell).
++          reader.winsize = [ 30, 80 ]
+ 
+           buffer = read_until(reader, deadline_seconds: 10.0) do |buf|
+-            buf.include?(project_prefix)
++            buf.include?(project_prefix) && buf.include?("[?] help  [i] info  [q] quit")
+           end
+           assert_includes buffer, project_prefix,
+                           "a stable prefix of the seeded project name must appear in " \
+                           "the first frame within 10s, got buffer:\n#{buffer.inspect[0, 500]}"
++          assert_includes buffer, "[?] help  [i] info  [q] quit",
++                          "the first standard-width dashboard frame must expose the info gesture"
+ 
+           writer.write("q")
+           writer.flush
+diff --git a/test/unit/tui/bubble_model_test.rb b/test/unit/tui/bubble_model_test.rb
+index bfc3e63b..46347244 100644
+--- a/test/unit/tui/bubble_model_test.rb
++++ b/test/unit/tui/bubble_model_test.rb
+@@ -345,18 +345,18 @@ class HiveTuiBubbleModelTest < Minitest::Test
+     assert_includes out, "/auth"
+   end
+ 
+-  def test_view_composes_idea_preview_onto_grid_in_idea_preview_mode
++  def test_view_renders_info_panel_loading_state_in_info_panel_mode
++    row = make_task_row
+     @model = Hive::Tui::BubbleModel.new(
+       hive_model: Hive::Tui::Model.initial.with(
+-        mode: :idea_preview,
+-        idea_preview_slug: "some-slug",
+-        idea_preview_text: "original idea"
++        mode: :info_panel,
++        info_panel_state: Hive::Tui::Model::InfoPanelState.new(row: row, snapshot: nil)
+       ),
+       dispatch: @dispatch
+     )
+     out = @model.view
+-    assert_includes out, "Idea for some-slug:"
+-    assert_includes out, "original idea"
++    assert_includes out, "Loading info for some-slug…"
++    assert_includes out, "[q] close"
+   end
+ 
+   # Regression: paste-truncated / paste-timeout / overflow flashes
+@@ -603,28 +603,43 @@ class HiveTuiBubbleModelTest < Minitest::Test
+     refute_includes out, "[Enter] open",   "Enter is not only an open action"
+   end
+ 
+-  def test_default_footer_hint_omits_o_at_70_col_budget
+-    # Plan R6: `[o] open` is included in the footer only if it fits
+-    # the 70-col budget without wrapping or pushing primary actions
+-    # onto a second line. At 70 cols the current hint string is
+-    # already ~69 chars; adding ten more (separator + "[o] open")
+-    # would exceed the budget. We rely on the `?` overlay for
+-    # discoverability instead. This test pins that decision so a
+-    # future contributor doesn't silently re-add the hint and break
+-    # 70-col rendering.
++  def test_default_footer_hint_has_canonical_info_order
+     hint = @model.send(:footer_hint)
+-    assert_equal "[Tab] switch  [Enter] action  [n] new  [/] filter  [?] help  [q] quit",
+-                 hint,
+-                 "footer hint must remain the pre-`o` literal; `o` is documented in `?` only"
++    assert_equal "[Tab] switch  [Enter] action  [n] new  [/] filter  [?] help  [i] info  [q] quit", hint
++    assert_equal 1, hint.scan("[i] info").length
++    assert_operator hint.index("[?] help"), :<, hint.index("[i] info")
++    assert_operator hint.index("[i] info"), :<, hint.index("[q] quit")
+     refute_includes hint, "[o] open",
+-                    "70-col budget can't absorb `[o] open` alongside primary hints"
+-    # Width guard: pin the actual character count so a future contributor
+-    # who adds a hint and (correctly) bumps the literal above also has to
+-    # acknowledge they're spending bytes against the 70-col budget. If
+-    # this assertion fires alongside an updated literal, the contributor
+-    # MUST verify default_footer truncation behavior at cols == 70.
+-    assert hint.length <= 70,
+-           "footer hint must fit the 70-col budget without truncation; got #{hint.length} chars"
++                    "the row browser remains help-overlay-only"
++    assert_equal 79, hint.length
++  end
++
++  def test_standard_80_column_dashboard_renders_full_info_footer
++    snap = Hive::Tui::Snapshot.from_payload(
++      "generated_at" => "2026-05-01",
++      "projects" => [ { "name" => "hive", "tasks" => [
++        { "slug" => "footer-task", "stage" => "2-brainstorm", "action" => "ready_to_plan",
++          "action_label" => "Ready", "age_seconds" => 0, "marker" => "complete" }
++      ] } ]
++    )
++    @model = Hive::Tui::BubbleModel.new(
++      hive_model: Hive::Tui::Model.initial(cols: 80).with(snapshot: snap), dispatch: @dispatch
++    )
++
++    assert_includes @model.view, "[?] help  [i] info  [q] quit"
++  end
++
++  def test_narrow_dashboard_truncates_footer_to_one_safe_line
++    @model = Hive::Tui::BubbleModel.new(
++      hive_model: Hive::Tui::Model.initial(cols: 60).with(
++        snapshot: Hive::Tui::Snapshot.new(generated_at: nil, projects: [])
++      ),
++      dispatch: @dispatch
++    )
++    footer = @model.send(:default_footer, 59)
++
++    assert_operator footer.length, :<=, 59
++    refute_includes footer, "\n"
+   end
+ 
+   def test_grid_mode_collapses_to_single_pane_below_min_cols
+@@ -3658,117 +3673,70 @@ class HiveTuiBubbleModelTest < Minitest::Test
+       "OpenTaskFolder must not dispatch any follow-up message — no auto-continue, no InputEditorExited"
+   end
+ 
+-  # ---- OpenIdeaPreview → bottom-strip preview (read-only) ----
+-
+-  def test_open_idea_preview_reads_original_text_and_enters_preview_mode
+-    with_tmp_dir do |dir|
+-      write_idea_md(dir, original_text: "Build task from user note")
+-      row = make_task_row(folder: dir, slug: "some-slug")
+-
+-      _, cmd = @model.update(Hive::Tui::Messages::OpenIdeaPreview.new(row: row))
++  # ---- OpenInfoPanel → full-screen static snapshot (read-only) ----
+ 
+-      assert_nil cmd
+-      assert_equal :idea_preview, @model.hive_model.mode
+-      assert_equal "Build task from user note", @model.hive_model.idea_preview_text
+-      assert_equal "some-slug", @model.hive_model.idea_preview_slug
++  def with_info_panel_task(stage: "2-brainstorm")
++    with_tmp_dir do |root|
++      folder = File.join(root, ".hive-state", "stages", stage, "some-slug")
++      FileUtils.mkdir_p(folder)
++      File.write(File.join(folder, "idea.md"), <<~IDEA)
++        ---
++        slug: some-slug
++        created_at: 2026-05-20T00:00:00Z
++        original_text: |
++          Read-only task detail
++        ---
++      IDEA
++      yield(make_task_row(folder: folder, stage: stage))
+     end
+   end
+ 
+-  def test_open_idea_preview_flashes_when_folder_empty
+-    row = make_task_row(folder: "")
++  def test_open_info_panel_paints_loading_before_proc_dispatches_loaded_snapshot
++    with_info_panel_task do |row|
++      _, cmd = @model.update(Hive::Tui::Messages::OpenInfoPanel.new(row: row))
+ 
+-    _, cmd = @model.update(Hive::Tui::Messages::OpenIdeaPreview.new(row: row))
++      assert_kind_of Proc, cmd
++      assert_equal :info_panel, @model.hive_model.mode
++      assert @model.hive_model.info_panel_state.loading?
++      assert_includes @model.view, "Loading info for some-slug…"
+ 
+-    assert_nil cmd
+-    assert_equal :grid, @model.hive_model.mode
+-    assert_match(/no idea for some-slug/, @model.hive_model.flash.to_s)
+-  end
+-
+-  def test_open_idea_preview_flashes_when_idea_md_missing
+-    with_tmp_dir do |dir|
+-      row = make_task_row(folder: dir)
+-
+-      _, cmd = @model.update(Hive::Tui::Messages::OpenIdeaPreview.new(row: row))
+-
+-      assert_nil cmd
+-      assert_equal :grid, @model.hive_model.mode
+-      assert_match(/no idea\.md for some-slug/, @model.hive_model.flash.to_s)
++      assert_nil cmd.call
++      loaded = @messages.shift
++      assert_kind_of Hive::Tui::Messages::InfoPanelLoaded, loaded
++      @model.update(loaded)
++      assert_equal "Read-only task detail", @model.hive_model.info_panel_state.snapshot.original_text
+     end
+   end
+ 
+-  def test_open_idea_preview_flashes_when_original_text_missing
+-    with_tmp_dir do |dir|
+-      File.write(File.join(dir, "idea.md"), "---\nslug: some-slug\n---\n")
+-      row = make_task_row(folder: dir)
+-
+-      _, cmd = @model.update(Hive::Tui::Messages::OpenIdeaPreview.new(row: row))
+-
+-      assert_nil cmd
++  def test_info_panel_close_ignores_late_background_result
++    with_info_panel_task do |row|
++      _, cmd = @model.update(Hive::Tui::Messages::OpenInfoPanel.new(row: row))
++      @model.update(Bubbletea::KeyMessage.new(key_type: 0, runes: [ "q".ord ]))
+       assert_equal :grid, @model.hive_model.mode
+-      assert_match(/idea has no original_text for some-slug/, @model.hive_model.flash.to_s)
+-    end
+-  end
+ 
+-  def test_open_idea_preview_flashes_on_unreadable_idea_md
+-    with_tmp_dir do |dir|
+-      File.write(File.join(dir, "idea.md"), "---\noriginal_text: [broken\n---\n")
+-      row = make_task_row(folder: dir)
+-
+-      _, cmd = @model.update(Hive::Tui::Messages::OpenIdeaPreview.new(row: row))
+-
+-      assert_nil cmd
++      cmd.call
++      @model.update(@messages.shift)
+       assert_equal :grid, @model.hive_model.mode
+-      assert_match(/could not read idea for some-slug/, @model.hive_model.flash.to_s)
++      assert_nil @model.hive_model.info_panel_state
+     end
+   end
+ 
+-  def test_open_idea_preview_does_not_dispatch_or_mutate_marker
+-    with_tmp_dir do |dir|
+-      idea_path = write_idea_md(dir, original_text: "Read only")
+-      before = File.read(idea_path)
+-      row = make_task_row(folder: dir)
+-
+-      _, cmd = @model.update(Hive::Tui::Messages::OpenIdeaPreview.new(row: row))
+-
+-      assert_nil cmd
+-      assert_empty @messages
+-      assert_equal before, File.read(idea_path)
+-    end
+-  end
+-
+-  def test_open_idea_preview_truncates_oversized_original_text
+-    with_tmp_dir do |dir|
+-      original = "x" * (Hive::Tui::Model::NEW_IDEA_BUFFER_MAX_CHARS + 20)
+-      write_idea_md(dir, original_text: original)
+-      row = make_task_row(folder: dir)
+-
+-      _, cmd = @model.update(Hive::Tui::Messages::OpenIdeaPreview.new(row: row))
+-
+-      assert_nil cmd
+-      assert_equal :idea_preview, @model.hive_model.mode
+-      assert_equal Hive::Tui::Model::NEW_IDEA_BUFFER_MAX_CHARS,
+-                   @model.hive_model.idea_preview_text.length
+-    end
+-  end
+-
+-  def test_idea_preview_roundtrip_open_then_any_key_dismisses
+-    with_tmp_dir do |dir|
+-      write_idea_md(dir, original_text: "Roundtrip idea")
+-      row = make_task_row(folder: dir)
+-
+-      _, open_cmd = @model.update(Hive::Tui::Messages::OpenIdeaPreview.new(row: row))
+-
+-      assert_nil open_cmd
+-      assert_equal :idea_preview, @model.hive_model.mode
+-      assert_equal "Roundtrip idea", @model.hive_model.idea_preview_text
++  def test_info_panel_load_failure_dispatches_typed_result_without_mutation
++    with_tmp_dir do |root|
++      folder = File.join(root, ".hive-state", "stages", "2-brainstorm", "some-slug")
++      FileUtils.mkdir_p(folder)
++      row = make_task_row(folder: folder)
+ 
+-      _, dismiss_cmd = @model.update(Bubbletea::KeyMessage.new(key_type: 0, runes: [ "x".ord ]))
++      _, cmd = @model.update(Hive::Tui::Messages::OpenInfoPanel.new(row: row))
++      assert_kind_of Proc, cmd
++      cmd.call
++      failed = @messages.shift
++      assert_kind_of Hive::Tui::Messages::InfoPanelLoadFailed, failed
++      @model.update(failed)
+ 
+-      assert_nil dismiss_cmd
+       assert_equal :grid, @model.hive_model.mode
+-      assert_nil @model.hive_model.idea_preview_text
+-      assert_nil @model.hive_model.idea_preview_slug
+-      assert_empty @messages
++      assert_match(/could not read idea/, @model.hive_model.flash)
++      assert_empty Dir.children(folder)
+     end
+   end
+ 
+diff --git a/test/unit/tui/info_panel_test.rb b/test/unit/tui/info_panel_test.rb
+new file mode 100644
+index 00000000..58ac4ab7
+--- /dev/null
++++ b/test/unit/tui/info_panel_test.rb
+@@ -0,0 +1,265 @@
++require "test_helper"
++require "fileutils"
++require "hive/tui/info_panel"
++require "hive/tui/model"
++require "hive/tui/snapshot"
++require "hive/tui/views/info_panel"
++
++class TuiInfoPanelTest < Minitest::Test
++  include HiveTestHelper
++
++  def with_task(stage: "2-brainstorm", slug: "info-task")
++    with_tmp_dir do |root|
++      folder = File.join(root, ".hive-state", "stages", stage, slug)
++      FileUtils.mkdir_p(folder)
++      row = Hive::Tui::Snapshot::Row.new(
++        project_name: "demo", stage: stage, slug: slug, folder: folder,
++        state_file: File.join(folder, "task.md"), marker: "waiting", attrs: {}, mtime: nil,
++        age_seconds: 0, claude_pid: nil, claude_pid_alive: nil,
++        action_key: "needs_input", action_label: "Needs input", suggested_command: nil,
++        next_action: nil, diagnostic: nil
++      )
++      yield(root, folder, row)
++    end
++  end
++
++  def write_idea(folder, original_text: "Build the dashboard", created_at: "2026-05-22T12:00:00Z")
++    File.write(File.join(folder, "idea.md"), <<~IDEA)
++      ---
++      slug: info-task
++      created_at: #{created_at}
++      original_text: |
++        #{original_text.gsub("\n", "\n  ")}
++      ---
++
++      # info-task
++    IDEA
++  end
++
++  def task_log_dir(root, slug = "info-task")
++    File.join(root, ".hive-state", "logs", slug).tap { |dir| FileUtils.mkdir_p(dir) }
++  end
++
++  def test_loads_brainstorm_common_fields_and_newest_log
++    with_task do |root, folder, row|
++      write_idea(folder, original_text: "First line\nSecond line")
++      File.write(File.join(folder, "brainstorm.md"), "# Questions\n- What ships?\n")
++      logs = task_log_dir(root)
++      older = File.join(logs, "older.log")
++      newest = File.join(logs, "newest.log")
++      File.write(older, "old\n")
++      File.write(newest, "new\n")
++      File.utime(Time.now - 10, Time.now - 10, older)
++
++      snapshot = Hive::Tui::InfoPanel.load(row)
++
++      assert_equal row.folder, snapshot.folder
++      assert_equal "info-task", snapshot.slug
++      assert_equal "2-brainstorm", snapshot.stage
++      assert_equal Time.utc(2026, 5, 22, 12), snapshot.created_at
++      assert_equal "First line\nSecond line", snapshot.original_text
++      assert_equal File.expand_path(folder), snapshot.working_directory
++      assert_equal newest, snapshot.latest_log_path
++      assert_equal "Brainstorm", snapshot.stage_extra.label
++      assert_equal "# Questions\n- What ships?\n", snapshot.stage_extra.text
++      assert_equal :available, snapshot.stage_extra.status
++    end
++  end
++
++  def test_inbox_without_log_has_no_extra_and_unavailable_log
++    with_task(stage: "1-inbox") do |_root, folder, row|
++      write_idea(folder)
++
++      snapshot = Hive::Tui::InfoPanel.load(row)
++
++      assert_nil snapshot.latest_log_path
++      assert_nil snapshot.stage_extra
++      assert_equal "Build the dashboard", snapshot.original_text
++    end
++  end
++
++  def test_plan_stage_uses_only_plan_artifact
++    with_task(stage: "3-plan") do |_root, folder, row|
++      write_idea(folder)
++      File.write(File.join(folder, "plan.md"), "# Plan\n")
++      File.write(File.join(folder, "brainstorm.md"), "must be ignored")
++
++      snapshot = Hive::Tui::InfoPanel.load(row)
++
++      assert_equal "Plan", snapshot.stage_extra.label
++      assert_equal "# Plan\n", snapshot.stage_extra.text
++      assert_equal File.join(folder, "plan.md"), snapshot.stage_extra.path
++    end
++  end
++
++  def test_execute_uses_newest_general_log_and_execute_log_tail_independently
++    with_task(stage: "4-execute") do |root, folder, row|
++      write_idea(folder)
++      logs = task_log_dir(root)
++      execute = File.join(logs, "execute-impl-01.log")
++      wrapper = File.join(logs, "daemon.log")
++      File.write(execute, "one\ntwo\n")
++      File.write(wrapper, "newer wrapper\n")
++      File.utime(Time.now - 10, Time.now - 10, execute)
++
++      snapshot = Hive::Tui::InfoPanel.load(row)
++
++      assert_equal wrapper, snapshot.latest_log_path
++      assert_equal "Execute log", snapshot.stage_extra.label
++      assert_equal execute, snapshot.stage_extra.path
++      assert_equal [ "one", "two" ], snapshot.stage_extra.lines
++    end
++  end
++
++  def test_bounds_oversized_text_and_marks_each_payload_truncated
++    with_task(stage: "4-execute") do |root, folder, row|
++      large = "x" * (Hive::Tui::InfoPanel::IDEA_BYTE_LIMIT + 20)
++      write_idea(folder, original_text: large)
++      File.write(File.join(folder, "execute-ignored.md"), "ignored")
++      logs = task_log_dir(root)
++      File.write(File.join(logs, "execute-impl.log"), ("line\n" * 10_000))
++
++      snapshot = Hive::Tui::InfoPanel.load(row)
++
++      assert snapshot.original_text_truncated
++      assert snapshot.stage_extra.truncated
++      assert_operator snapshot.original_text.bytesize, :<=, Hive::Tui::InfoPanel::IDEA_BYTE_LIMIT
++      assert_operator snapshot.stage_extra.lines.length, :<=, Hive::Tui::InfoPanel::EXECUTE_LINE_LIMIT
++    end
++  end
++
++  def test_bounded_tail_ignores_bytes_appended_after_the_size_snapshot
++    limit = Hive::Tui::InfoPanel::EXECUTE_LOG_BYTE_LIMIT
++    reader = StringIO.new("x" * limit)
++    reader.define_singleton_method(:size) do
++      captured_size = string.bytesize
++      string << ("y" * limit)
++      captured_size
++    end
++
++    replacement = ->(_path, _mode, &block) { block.call(reader) }
++    with_replaced_singleton_method(File, :open, replacement) do
++      text, truncated = Hive::Tui::InfoPanel.bounded_tail("active.log", limit)
++
++      assert_equal "x" * limit, text
++      refute truncated
++    end
++  end
++
++  def test_missing_or_invalid_required_idea_metadata_raises_typed_load_error
++    with_task do |_root, folder, row|
++      File.write(File.join(folder, "idea.md"), "---\ncreated_at: bad\n---\n")
++
++      error = assert_raises(Hive::Tui::InfoPanel::LoadError) { Hive::Tui::InfoPanel.load(row) }
++
++      assert_match(/could not read idea/, error.message)
++    end
++  end
++
++  def test_non_string_original_text_and_non_timestamp_created_at_raise_typed_load_error
++    malformed_ideas = [
++      <<~IDEA,
++        ---
++        created_at: 2026-05-22T12:00:00Z
++        original_text:
++          - Build the dashboard
++        ---
++      IDEA
++      <<~IDEA,
++        ---
++        created_at: 2026-05-22T12:00:00Z
++        original_text:
++          title: Build the dashboard
++        ---
++      IDEA
++      <<~IDEA
++        ---
++        created_at: 20260522
++        original_text: Build the dashboard
++        ---
++      IDEA
++    ]
++
++    malformed_ideas.each do |contents|
++      with_task do |_root, folder, row|
++        File.write(File.join(folder, "idea.md"), contents)
++
++        error = assert_raises(Hive::Tui::InfoPanel::LoadError) { Hive::Tui::InfoPanel.load(row) }
++
++        assert_match(/could not read idea/, error.message)
++      end
++    end
++  end
++
++  def test_unclosed_idea_frontmatter_raises_typed_load_error_at_eof
++    with_task do |_root, folder, row|
++      File.write(File.join(folder, "idea.md"), <<~IDEA)
++        ---
++        slug: info-task
++        created_at: 2026-05-22T12:00:00Z
++        original_text: Build the dashboard
++      IDEA
++
++      error = assert_raises(Hive::Tui::InfoPanel::LoadError) { Hive::Tui::InfoPanel.load(row) }
++
++      assert_match(/could not read idea/, error.message)
++    end
++  end
++
++  def test_missing_and_empty_expected_artifacts_stay_labeled
++    with_task(stage: "3-plan") do |_root, folder, row|
++      write_idea(folder)
++
++      missing = Hive::Tui::InfoPanel.load(row)
++      assert_equal "Plan", missing.stage_extra.label
++      assert_equal :unavailable, missing.stage_extra.status
++
++      File.write(File.join(folder, "plan.md"), "")
++      empty = Hive::Tui::InfoPanel.load(row)
++      assert_equal :empty, empty.stage_extra.status
++    end
++  end
++
++  def test_display_empty_stage_extras_are_labeled_empty
++    cases = [
++      [ "2-brainstorm", "brainstorm.md", "  \n\t\n" ],
++      [ "3-plan", "plan.md", "\e[31m\e[0m\n" ],
++      [ "4-execute", "execute-impl.log", " \n\e[2J\n" ]
++    ]
++
++    cases.each do |stage, filename, payload|
++      with_task(stage: stage) do |root, folder, row|
++        write_idea(folder)
++        path = if stage == "4-execute"
++          File.join(task_log_dir(root), filename)
++        else
++          File.join(folder, filename)
++        end
++        File.write(path, payload)
++
++        snapshot = Hive::Tui::InfoPanel.load(row)
++
++        assert_equal :empty, snapshot.stage_extra.status, stage
++      end
++    end
++  end
++
++  def test_invalid_bytes_in_resolved_log_path_are_scrubbed_during_render
++    with_task(stage: "1-inbox") do |root, folder, row|
++      write_idea(folder)
++      logs = task_log_dir(root)
++      invalid_path = File.join(logs.b, "latest-\xFF.log".b)
++      File.binwrite(invalid_path, "log\n")
++
++      snapshot = Hive::Tui::InfoPanel.load(row)
++      model = Hive::Tui::Model.initial(cols: 120, rows: 28).with(
++        mode: :info_panel,
++        info_panel_state: Hive::Tui::Model::InfoPanelState.new(row: row, snapshot: snapshot)
++      )
++      output = Hive::Tui::Views::InfoPanel.render(model)
++
++      assert_predicate output, :valid_encoding?
++      assert_includes output, "latest-?.log"
++    end
++  end
++end
+diff --git a/test/unit/tui/key_map_test.rb b/test/unit/tui/key_map_test.rb
+index d58b283e..323d8fb0 100644
+--- a/test/unit/tui/key_map_test.rb
++++ b/test/unit/tui/key_map_test.rb
+@@ -155,11 +155,11 @@ class TuiKeyMapMessageForTest < Minitest::Test
+     assert_same Hive::Tui::Messages::NOOP, msg
+   end
+ 
+-  def test_grid_i_with_row_returns_open_idea_preview
++  def test_grid_i_with_row_returns_open_info_panel
+     row = make_row(action_key: "ready_to_plan")
+     msg = Hive::Tui::KeyMap.message_for(mode: :grid, key: "i", row: row)
+ 
+-    assert_kind_of Hive::Tui::Messages::OpenIdeaPreview, msg
++    assert_kind_of Hive::Tui::Messages::OpenInfoPanel, msg
+     assert_equal row, msg.row
+   end
+ 
+@@ -258,10 +258,15 @@ class TuiKeyMapMessageForTest < Minitest::Test
+     assert_equal "i", msg.char
+   end
+ 
+-  def test_idea_preview_any_key_returns_back
+-    [ "i", "x", :key_enter, :key_escape, "q", :space ].each do |key|
+-      msg = Hive::Tui::KeyMap.message_for(mode: :idea_preview, key: key, row: nil)
+-      assert_same Hive::Tui::Messages::BACK, msg, "#{key.inspect} must dismiss idea preview"
++  def test_info_panel_only_close_keys_return_back
++    [ "i", :key_escape, "q" ].each do |key|
++      msg = Hive::Tui::KeyMap.message_for(mode: :info_panel, key: key, row: nil)
++      assert_same Hive::Tui::Messages::BACK, msg, "#{key.inspect} must close the info panel"
++    end
++
++    [ "x", "j", "k", :key_up, :key_down, :key_enter, "/", "?", "b", :space ].each do |key|
++      msg = Hive::Tui::KeyMap.message_for(mode: :info_panel, key: key, row: nil)
++      assert_same Hive::Tui::Messages::NOOP, msg, "#{key.inspect} must be inert in the info panel"
+     end
+   end
+ 
+@@ -933,7 +938,7 @@ class TuiKeyMapMessageForTest < Minitest::Test
+       [ :log_tail, "q",        make_row(action_key: "agent_running") ],
+       [ :log_tail, :key_escape, make_row(action_key: "agent_running") ],
+       [ :filter, :key_escape,  nil ],
+-      [ :idea_preview, "x",    nil ]
++      [ :info_panel, "x",      nil ]
+     ]
+ 
+     fixtures.each do |mode, key, row|
+diff --git a/test/unit/tui/messages_test.rb b/test/unit/tui/messages_test.rb
+index 322dce55..eed041b0 100644
+--- a/test/unit/tui/messages_test.rb
++++ b/test/unit/tui/messages_test.rb
+@@ -59,12 +59,22 @@ class HiveTuiMessagesTest < Minitest::Test
+     assert_same row, msg.row
+   end
+ 
+-  def test_open_idea_preview_carries_row
++  def test_open_info_panel_carries_row
+     row = Object.new
+-    msg = Hive::Tui::Messages::OpenIdeaPreview.new(row: row)
++    msg = Hive::Tui::Messages::OpenInfoPanel.new(row: row)
+ 
+     assert_same row, msg.row
+-    assert_includes Hive::Tui::Messages::OpenIdeaPreview.members, :row
++    assert_includes Hive::Tui::Messages::OpenInfoPanel.members, :row
++  end
++
++  def test_info_panel_result_messages_carry_correlation_data
++    snapshot = Struct.new(:folder).new("/tmp/task")
++    loaded = Hive::Tui::Messages::InfoPanelLoaded.new(snapshot: snapshot)
++    failed = Hive::Tui::Messages::InfoPanelLoadFailed.new(folder: "/tmp/task", error: "could not read")
++
++    assert_same snapshot, loaded.snapshot
++    assert_equal "/tmp/task", failed.folder
++    assert_equal "could not read", failed.error
+   end
+ 
+   def test_open_in_agent_carries_row
+diff --git a/test/unit/tui/model_test.rb b/test/unit/tui/model_test.rb
+index efcf5716..4736c509 100644
+--- a/test/unit/tui/model_test.rb
++++ b/test/unit/tui/model_test.rb
+@@ -26,8 +26,7 @@ class HiveTuiModelTest < Minitest::Test
+     assert_nil model.new_idea_staging_dir
+     assert_nil model.new_idea_staging_tmp_root
+     assert_equal [], model.new_idea_broken_labels
+-    assert_nil model.idea_preview_text
+-    assert_nil model.idea_preview_slug
++    assert_nil model.info_panel_state
+     assert_nil model.flash
+     assert_nil model.flash_set_at
+     assert_nil model.tail_state
+@@ -65,14 +64,14 @@ class HiveTuiModelTest < Minitest::Test
+     assert_equal 2, b.scope
+   end
+ 
+-  def test_with_updates_idea_preview_fields
++  def test_with_updates_info_panel_state
+     a = Hive::Tui::Model.initial
+-    b = a.with(idea_preview_text: "original idea", idea_preview_slug: "ship-preview")
++    state = Hive::Tui::Model::InfoPanelState.new(row: Object.new, snapshot: nil)
++    b = a.with(info_panel_state: state)
+ 
+-    assert_nil a.idea_preview_text
+-    assert_nil a.idea_preview_slug
+-    assert_equal "original idea", b.idea_preview_text
+-    assert_equal "ship-preview", b.idea_preview_slug
++    assert_nil a.info_panel_state
++    assert_same state, b.info_panel_state
++    assert b.info_panel_state.loading?
+     refute_same a, b
+   end
+ 
+@@ -129,7 +128,7 @@ class HiveTuiModelTest < Minitest::Test
+     expected = %i[mode snapshot cursor filter filter_buffer scope pane_focus new_idea_project_name
+                   new_idea_project_cursor new_idea_buffer new_idea_cursor
+                   new_idea_attachments new_idea_staging_dir new_idea_staging_tmp_root new_idea_attachment_counter
+-                  new_idea_broken_labels idea_preview_text idea_preview_slug flash flash_set_at
++                  new_idea_broken_labels info_panel_state flash flash_set_at
+                   tail_state red_status_detail_state
+                   cols rows last_error]
+     assert_equal expected, Hive::Tui::Model.members
+diff --git a/test/unit/tui/update_test.rb b/test/unit/tui/update_test.rb
+index 53fc23ab..16f7debe 100644
+--- a/test/unit/tui/update_test.rb
++++ b/test/unit/tui/update_test.rb
+@@ -1338,31 +1338,68 @@ class HiveTuiUpdateTest < Minitest::Test
+     assert_equal :grid, new_model.mode
+   end
+ 
+-  def test_back_from_idea_preview_clears_text_and_returns_to_grid
++  def test_open_info_panel_enters_loading_state
++    row = red_detail_row
++    new_model, cmd = Hive::Tui::Update.apply(model, Hive::Tui::Messages::OpenInfoPanel.new(row: row))
++
++    assert_nil cmd
++    assert_equal :info_panel, new_model.mode
++    assert_same row, new_model.info_panel_state.row
++    assert new_model.info_panel_state.loading?
++  end
++
++  def test_info_panel_loaded_only_applies_to_matching_open_panel
++    row = red_detail_row
++    starting, = Hive::Tui::Update.apply(model, Hive::Tui::Messages::OpenInfoPanel.new(row: row))
++    snapshot = Struct.new(:folder).new(row.folder)
++
++    loaded, _cmd = Hive::Tui::Update.apply(starting, Hive::Tui::Messages::InfoPanelLoaded.new(snapshot: snapshot))
++    assert_same snapshot, loaded.info_panel_state.snapshot
++
++    ignored, _cmd = Hive::Tui::Update.apply(loaded.with(mode: :grid), Hive::Tui::Messages::InfoPanelLoaded.new(snapshot: snapshot))
++    assert_equal :grid, ignored.mode
++    assert_same loaded.info_panel_state, ignored.info_panel_state
++  end
++
++  def test_back_from_info_panel_clears_state_and_returns_to_grid
++    row = red_detail_row
+     starting = model.with(
+-      mode: :idea_preview,
+-      idea_preview_text: "original idea",
+-      idea_preview_slug: "some-slug"
++      mode: :info_panel,
++      info_panel_state: Hive::Tui::Model::InfoPanelState.new(row: row, snapshot: Object.new)
+     )
+     new_model, _cmd = Hive::Tui::Update.apply(starting, Hive::Tui::Messages::BACK)
+ 
+     assert_equal :grid, new_model.mode
+-    assert_nil new_model.idea_preview_text
+-    assert_nil new_model.idea_preview_slug
++    assert_nil new_model.info_panel_state
+   end
+ 
+-  def test_back_from_idea_preview_preserves_cursor_and_scope
++  def test_back_from_info_panel_restores_row_by_folder_after_reorder
++    row = red_detail_row
++    moved = red_detail_row
++    other = red_detail_row
++    moved = moved.with(folder: "/tmp/moved", slug: "moved")
++    other = other.with(folder: row.folder, slug: row.slug)
++    snapshot = snapshot_with_rows(moved, other)
+     starting = model.with(
+-      mode: :idea_preview,
+-      idea_preview_text: "original idea",
+-      idea_preview_slug: "some-slug",
+-      cursor: [ 1, 2 ],
+-      scope: 2
++      snapshot: snapshot,
++      mode: :info_panel,
++      info_panel_state: Hive::Tui::Model::InfoPanelState.new(row: row, snapshot: Object.new),
++      cursor: [ 0, 0 ]
+     )
+     new_model, _cmd = Hive::Tui::Update.apply(starting, Hive::Tui::Messages::BACK)
+ 
+-    assert_equal [ 1, 2 ], new_model.cursor
+-    assert_equal 2, new_model.scope
++    assert_equal [ 0, 1 ], new_model.cursor
++  end
++
++  def test_info_panel_failure_closes_only_for_matching_folder
++    row = red_detail_row
++    starting = model.with(mode: :info_panel, info_panel_state: Hive::Tui::Model::InfoPanelState.new(row: row, snapshot: nil))
++    failed, _cmd = Hive::Tui::Update.apply(
++      starting, Hive::Tui::Messages::InfoPanelLoadFailed.new(folder: row.folder, error: "could not read idea")
++    )
++
++    assert_equal :grid, failed.mode
++    assert_match(/could not read idea/, failed.flash)
+   end
+ 
+   def test_project_scope_sets_scope_and_resets_cursor
+diff --git a/test/unit/tui/views/idea_preview_test.rb b/test/unit/tui/views/idea_preview_test.rb
+deleted file mode 100644
+index b18b8def..00000000
+--- a/test/unit/tui/views/idea_preview_test.rb
++++ /dev/null
+@@ -1,59 +0,0 @@
+-require "test_helper"
+-require "hive/tui/model"
+-require "hive/tui/views/idea_preview"
+-
+-class HiveTuiViewsIdeaPreviewTest < Minitest::Test
+-  include HiveTestHelper
+-
+-  def model_with(text: "Original idea", slug: "some-slug", cols: 80)
+-    Hive::Tui::Model.initial.with(
+-      mode: :idea_preview,
+-      idea_preview_text: text,
+-      idea_preview_slug: slug,
+-      cols: cols
+-    )
+-  end
+-
+-  def render_lines(**kwargs)
+-    Hive::Tui::Views::IdeaPreview.render(model_with(**kwargs), width: kwargs.fetch(:cols, 80)).lines(chomp: true)
+-  end
+-
+-  def test_renders_header_with_slug
+-    out = Hive::Tui::Views::IdeaPreview.render(model_with(slug: "preview-me"))
+-    assert_includes out, "Idea for preview-me:"
+-  end
+-
+-  def test_renders_original_text_verbatim
+-    out = Hive::Tui::Views::IdeaPreview.render(model_with(text: "keep [image1] plain"))
+-    assert_includes out, "keep [image1] plain"
+-  end
+-
+-  def test_renders_dismiss_hint
+-    out = Hive::Tui::Views::IdeaPreview.render(model_with)
+-    assert out.end_with?(Hive::Tui::Views::IdeaPreview::DISMISS_HINT),
+-           "dismiss hint must be the final rendered line"
+-  end
+-
+-  def test_truncates_long_lines_to_width
+-    lines = render_lines(text: "x" * 80, cols: 20)
+-
+-    assert lines.all? { |line| line.length <= 20 },
+-           "all rendered lines must fit width: #{lines.inspect}"
+-  end
+-
+-  def test_caps_visible_rows_for_oversized_text
+-    text = (1..10).map { |i| "line #{i}" }.join("\n")
+-    lines = render_lines(text: text)
+-    body_lines = lines[1...-1]
+-
+-    assert_operator body_lines.length, :<=, Hive::Tui::Views::IdeaPreview::MAX_VISIBLE_ROWS
+-  end
+-
+-  def test_handles_nil_text_gracefully
+-    lines = render_lines(text: nil, slug: "nil-text")
+-
+-    assert_equal 2, lines.length
+-    assert_includes lines.first, "Idea for nil-text:"
+-    assert_equal Hive::Tui::Views::IdeaPreview::DISMISS_HINT, lines.last
+-  end
+-end
+diff --git a/test/unit/tui/views/info_panel_test.rb b/test/unit/tui/views/info_panel_test.rb
+new file mode 100644
+index 00000000..24168bb7
+--- /dev/null
++++ b/test/unit/tui/views/info_panel_test.rb
+@@ -0,0 +1,217 @@
++require "test_helper"
++require "hive/tui/info_panel"
++require "hive/tui/model"
++require "hive/tui/snapshot"
++require "hive/tui/views/info_panel"
++
++class HiveTuiViewsInfoPanelTest < Minitest::Test
++  include HiveTestHelper
++
++  def row(stage: "2-brainstorm", slug: "info-task", folder: "/tmp/project/.hive-state/stages/2-brainstorm/info-task")
++    Hive::Tui::Snapshot::Row.new(
++      project_name: "demo", stage: stage, slug: slug, folder: folder,
++      state_file: File.join(folder, "task.md"), marker: "waiting", attrs: {}, mtime: nil,
++      age_seconds: 0, claude_pid: nil, claude_pid_alive: nil,
++      action_key: "needs_input", action_label: "Needs input", suggested_command: nil,
++      next_action: nil, diagnostic: nil
++    )
++  end
++
++  def snapshot(stage: "2-brainstorm", extra: nil, original: "Build useful task details", truncated: false)
++    task_row = row(stage: stage)
++    Hive::Tui::InfoPanel::Snapshot.new(
++      row: task_row, folder: task_row.folder, slug: task_row.slug, stage: stage,
++      created_at: Time.utc(2026, 5, 22, 12), original_text: original,
++      original_text_truncated: truncated, working_directory: task_row.folder,
++      latest_log_path: "/tmp/project/.hive-state/logs/info-task/latest.log", stage_extra: extra
++    )
++  end
++
++  def model_for(info_snapshot, cols: 100, rows: 28)
++    Hive::Tui::Model.initial(cols: cols, rows: rows).with(
++      mode: :info_panel,
++      info_panel_state: Hive::Tui::Model::InfoPanelState.new(row: info_snapshot.row, snapshot: info_snapshot)
++    )
++  end
++
++  def test_renders_brainstorm_common_fields_and_artifact
++    extra = Hive::Tui::InfoPanel::StageExtra.new(
++      label: "Brainstorm", path: "/tmp/project/brainstorm.md", text: "# Questions\nWhat matters?",
++      lines: [], status: :available, truncated: false
++    )
++    out = Hive::Tui::Views::InfoPanel.render(model_for(snapshot(extra: extra)))
++
++    %w[Slug Stage Created Working\ directory Latest\ log Original\ idea Brainstorm].each do |label|
++      assert_includes out, label
++    end
++    assert_includes out, "/tmp/project/.hive-state/stages/2-brainstorm/info-task"
++    assert_includes out, "What matters?"
++    assert_includes out, "[q] close"
++  end
++
++  def test_renders_plan_only_for_plan_stage
++    extra = Hive::Tui::InfoPanel::StageExtra.new(
++      label: "Plan", path: "/tmp/project/plan.md", text: "# Plan", lines: [], status: :available, truncated: false
++    )
++    out = Hive::Tui::Views::InfoPanel.render(model_for(snapshot(stage: "3-plan", extra: extra)))
++
++    assert_includes out, "Plan"
++    refute_includes out, "Brainstorm"
++    refute_includes out, "Execute log"
++  end
++
++  def test_renders_execute_log_with_formatter
++    extra = Hive::Tui::InfoPanel::StageExtra.new(
++      label: "Execute log", path: "/tmp/project/.hive-state/logs/info-task/execute-impl.log",
++      text: "", lines: [ "[hive] 2026-05-07T14:37:13Z build started" ], status: :available, truncated: false
++    )
++    out = Hive::Tui::Views::InfoPanel.render(model_for(snapshot(stage: "4-execute", extra: extra)))
++
++    assert_includes out, "Execute log"
++    assert_includes out, "14:37:13 hive build started"
++  end
++
++  def test_inbox_omits_extra_section_and_shows_unavailable_log
++    info = snapshot(stage: "1-inbox").with(latest_log_path: nil)
++    out = Hive::Tui::Views::InfoPanel.render(model_for(info))
++
++    assert_includes out, "Latest log: unavailable"
++    refute_includes out, "Brainstorm"
++    refute_includes out, "Plan"
++    refute_includes out, "Execute log"
++  end
++
++  def test_constrained_frame_keeps_close_hint_and_section_headings_with_ellipsis
++    extra = Hive::Tui::InfoPanel::StageExtra.new(
++      label: "Brainstorm", path: "/tmp/project/brainstorm.md", text: "extra " * 100,
++      lines: [], status: :available, truncated: true
++    )
++    out = Hive::Tui::Views::InfoPanel.render(
++      model_for(snapshot(extra: extra, original: "idea " * 100, truncated: true), cols: 50, rows: 20)
++    )
++
++    assert_includes out, "Original idea"
++    assert_includes out, "Brainstorm"
++    assert_includes out, "[q] close"
++    assert_includes out, "…"
++    assert out.lines(chomp: true).all? { |line| line.length <= 50 }, out
++  end
++
++  def test_minimum_height_keeps_each_stage_extra_heading_with_latest_log
++    stage_extras.each do |stage, extra|
++      out = Hive::Tui::Views::InfoPanel.render(
++        model_for(snapshot(stage: stage, extra: extra, original: "idea " * 100), cols: 50, rows: 17)
++      )
++
++      assert_includes out, extra.label, stage
++      assert_includes out, "Original idea", stage
++      assert_includes out, "[q] close", stage
++    end
++  end
++
++  def test_minimum_height_keeps_each_stage_extra_heading_without_latest_log
++    stage_extras.each do |stage, extra|
++      info = snapshot(stage: stage, extra: extra, original: "idea " * 100).with(latest_log_path: nil)
++      out = Hive::Tui::Views::InfoPanel.render(model_for(info, cols: 50, rows: 16))
++
++      assert_includes out, extra.label, stage
++      assert_includes out, "Original idea", stage
++      assert_includes out, "[q] close", stage
++    end
++  end
++
++  def test_exact_fit_zero_content_budgets_mark_each_hidden_section_as_truncated
++    extra = Hive::Tui::InfoPanel::StageExtra.new(
++      label: "Brainstorm", path: "/tmp/project/brainstorm.md", text: "hidden artifact content",
++      lines: [], status: :available, truncated: false
++    )
++    snapshots_and_heights = [
++      [ snapshot(extra: extra, original: "hidden idea content"), 18 ],
++      [ snapshot(extra: extra, original: "hidden idea content").with(latest_log_path: nil), 17 ]
++    ]
++
++    snapshots_and_heights.each do |info, rows|
++      out = Hive::Tui::Views::InfoPanel.render(model_for(info, cols: 50, rows: rows))
++
++      assert_match(/Original idea.*…/, out)
++      assert_match(/Brainstorm.*…/, out)
++      assert_includes out, "[q] close"
++    end
++  end
++
++  def test_content_wrapping_stops_after_the_budget_plus_overflow_row
++    info = snapshot(original: "x" * Hive::Tui::InfoPanel::IDEA_BYTE_LIMIT)
++    extra = Hive::Tui::InfoPanel::StageExtra.new(
++      label: "Plan", path: "/tmp/project/plan.md",
++      text: "y" * Hive::Tui::InfoPanel::ARTIFACT_BYTE_LIMIT,
++      lines: [], status: :available, truncated: false
++    )
++
++    assert_equal [ "xxxx", "xxxx", "xxxx" ], Hive::Tui::Views::InfoPanel.idea_content(info, 4, 2)
++    assert_equal [ "yyyy", "yyyy", "yyyy" ], Hive::Tui::Views::InfoPanel.extra_content(extra, 4, 2)
++  end
++
++  def test_normalizes_crlf_artifact_line_endings_before_sanitizing
++    %w[Brainstorm Plan].each do |label|
++      extra = Hive::Tui::InfoPanel::StageExtra.new(
++        label: label, path: "/tmp/project/artifact.md", text: "# Heading\r\nShip it\r\n",
++        lines: [], status: :available, truncated: false
++      )
++
++      assert_equal [ "# Heading", "Ship it", "" ], Hive::Tui::Views::InfoPanel.extra_content(extra, 40, 3), label
++    end
++  end
++
++  def test_sanitizes_control_sequences_from_all_content_sources
++    extra = Hive::Tui::InfoPanel::StageExtra.new(
++      label: "Execute log", path: "/tmp/p", text: "", lines: [ "log\e[2J\x00" ], status: :available, truncated: false
++    )
++    info = snapshot(extra: extra, original: "idea\e[2J\x01")
++    out = Hive::Tui::Views::InfoPanel.render(model_for(info))
++
++    refute_includes out, "\e[2J"
++    refute_includes out, "\x00"
++    assert_includes out, "idea?"
++    assert_includes out, "log?"
++  end
++
++  def test_loading_state_has_immediate_close_hint
++    task_row = row
++    model = Hive::Tui::Model.initial.with(
++      mode: :info_panel,
++      info_panel_state: Hive::Tui::Model::InfoPanelState.new(row: task_row, snapshot: nil)
++    )
++    out = Hive::Tui::Views::InfoPanel.render(model)
++
++    assert_includes out, "Loading info for info-task…"
++    assert_includes out, "[q] close"
++  end
++
++  private
++
++  def stage_extras
++    [
++      [
++        "2-brainstorm",
++        Hive::Tui::InfoPanel::StageExtra.new(
++          label: "Brainstorm", path: "/tmp/project/brainstorm.md",
++          text: "extra " * 100, lines: [], status: :available, truncated: true
++        )
++      ],
++      [
++        "3-plan",
++        Hive::Tui::InfoPanel::StageExtra.new(
++          label: "Plan", path: "/tmp/project/plan.md",
++          text: "extra " * 100, lines: [], status: :available, truncated: true
++        )
++      ],
++      [
++        "4-execute",
++        Hive::Tui::InfoPanel::StageExtra.new(
++          label: "Execute log", path: "/tmp/project/execute.log",
++          text: "", lines: [ "extra " * 100 ], status: :available, truncated: true
++        )
++      ]
++    ]
++  end
++end
+diff --git a/wiki/commands/tui.md b/wiki/commands/tui.md
+index f46a0504..c1a41dfb 100644
+--- a/wiki/commands/tui.md
++++ b/wiki/commands/tui.md
+@@ -3,7 +3,7 @@ title: hive tui
+ type: command
+ source: lib/hive/tui.rb
+ created: 2026-04-27
+-updated: 2026-05-22
++updated: 2026-07-13
+ tags: [command, tui, observability, interactive, diagnostics]
+ ---
+ 
+@@ -28,7 +28,8 @@ The legacy curses backend was removed in plan #003 U11. `HIVE_TUI_BACKEND=curses
+ │  myapp          │  ⚠  oauth-…       6-review      Needs recovery      1h │
+ │  appcrawl       │                                                        │
+ ├─────────────────┴────────────────────────────────────────────────────────┤
+-│ Footer: [Tab] switch  [Enter] action  [n] new  [/] filter  [?] help  [q]│
++│ Footer: [Tab] switch  [Enter] action  [n] new  [/] filter  [?] help  [i]│
++│         info  [q] quit                                                    │
+ └──────────────────────────────────────────────────────────────────────────┘
+ ```
+ 
+@@ -41,6 +42,7 @@ Pane focus is keyboard-only; the focused pane border is bright cyan, the inactiv
+ | Two-pane dashboard (default) | boot | `q` |
+ | Red-status detail | `Enter` on selected red recovery/error rows | `q` / `Esc` |
+ | Agent log tail | `Enter` on an `agent_running` row | `q` / `Esc` |
++| Task info panel | `i` on a selected right-pane task row | `q` / `Esc` / `i` |
+ | Input editor | `Enter` on a `needs_input` row | editor exit; completed brainstorm answers auto-continue; plan rows auto-advance to `develop` (or auto-revise if user added feedback) |
+ | Filter prompt | `/` | `Esc` (cancels typed buffer; any committed filter is preserved) / `Enter` (commits) |
+ | New idea project picker | `n` from `★ All projects` scope | `Esc` / `q` (cancels) / `Enter` (selects and advances to title prompt) |
+@@ -65,6 +67,7 @@ Pane focus is keyboard-only; the focused pane border is bright cyan, the inactiv
+ | `a` | run `hive archive` |
+ | `Enter` | from left pane: focus right pane. From right pane: perform the row's contextual action: input editor on `needs_input` (completed brainstorm answer rounds auto-run; plan rows auto-advance to `develop` or auto-revise on user feedback), log tail on `agent_running` (and on `error` rows still in a kill-class auto-heal window), red-status detail on selected review-recovery and non-kill-class `error` rows, direct retry/browse for the legacy review-stale exceptions, and suggested-command dispatch for ready rows |
+ | `o` | open the focused row's hive-state task folder in `$VISUAL` / `$EDITOR` / `vi` for read-only browsing — no marker change, no workflow dispatch. Distinct from `Enter` (workflow-contextual) and the verb keys (subprocess dispatch). Useful for revisiting investigation outputs in `9-done` (or any stage). |
++| `i` | open a full-screen, read-only information panel for the focused right-pane task row. It loads a bounded local snapshot without blocking the UI and has no scrolling or editing controls. |
+ | `s` | steer the focused task manually: open the configured `execute.agent` in the feature worktree with every existing stage folder for that slug passed as agent context, mark the row `MANUAL_STEERING`, and archive the slug under `archived-manual/` when the agent exits |
+ | `n` | open the new-idea flow; if scope is `★ All projects`, first show a project picker, then submit with `hive new <project> "<title>"` against the chosen concrete project |
+ | `/` | open filter prompt |
+@@ -77,6 +80,12 @@ Pane focus is keyboard-only; the focused pane border is bright cyan, the inactiv
+ 
+ Findings triage is no longer an in-TUI mode. Use `hive findings`, `hive accept-finding`, and `hive reject-finding` directly from a shell or coding agent; legacy `EXECUTE_WAITING findings_count` rows surface as `recover_execute` and point at `hive findings` from status JSON (see [[commands/findings]]). In red-status detail mode, `Enter` runs hive's automated recovery for the task and closes the detail screen (rows with no auto-recovery recipe surface a refusal flash that names `Open in agent` as the manual fallback before closing), `o` opens the task in the project's configured development agent and closes the detail screen, and `q` / `Esc` returns to the grid. The help overlay groups bindings by mode for the disambiguation.
+ 
++### Task information panel
++
++Press `i` only while the task pane is focused and a row is selected. The panel paints a loading frame immediately, then captures a bounded read-only snapshot on a Bubble Tea worker: slug, stage, `created_at`, original idea text, absolute task-folder path, and the newest direct `.hive-state/logs/<slug>/*.log` path (or `unavailable`). It adds `brainstorm.md` at `2-brainstorm`, `plan.md` at `3-plan`, and a static tail of the newest `execute-*.log` at `4-execute`; `1-inbox` and later stages have no extra section. Execute-log reads stay within the captured byte window even while the active file grows, and malformed idea frontmatter fails unless the snapshot actually hit its byte cap. Required metadata is type-checked rather than coerced: `original_text` must be a nonempty String, while `created_at` must be a Time or parseable timestamp String. Missing optional artifacts remain `unavailable`; artifacts with no displayable content after whitespace/terminal sanitization are `empty`, and CRLF artifact newlines are consumed before sanitization. Invalid filesystem bytes are scrubbed before display, constrained frames reserve both section headings, and rendering wraps only each section's viewport budget plus one overflow row. Clipped source or viewport content ends in `…`; when a section receives no content rows, its heading carries the marker instead.
++
++The panel is deliberately static: it neither scrolls nor live-tails and does not write markers, invoke workflows, spawn git/network work, or mutate task files. Only `q`, `Esc`, and `i` close it; every other key is inert. Closing restores the task selection by task-folder identity when the latest poll still contains it.
++
+ ## New Idea Prompt Editing
+ 
+ The `n` prompt is a cursor-aware single-line title editor. When the dashboard scope is `★ All projects`, `n` first opens a concrete project picker (`j`/`k` or arrows to move, `Enter` to choose, `Esc` to cancel) so task capture never silently lands in the first registered project; if the first status snapshot has not arrived yet, the picker stays open in a loading state until projects are available. After a project is chosen, printable typing inserts at the title cursor; `←` / `→` move within the title; `Home` / `End` and `Ctrl+A` / `Ctrl+E` jump to the start/end; `Backspace` deletes before the cursor; `Delete` deletes under the cursor. Paste is accepted as either ordinary terminal text chunks or bracketed paste; CR/LF/TAB in pasted payloads are normalized to spaces because `hive new` takes a single title. The prompt keeps a conservative 4 KiB title buffer cap and flashes `title too long` instead of accepting oversized clipboard dumps.
+@@ -195,7 +204,7 @@ Note that `REVIEW_STALE reason=wall_clock` deliberately retries even when no rev
+ 
+ - `test/integration/tui_command_test.rb` — Thor help-text registration, `--json` rejection, non-tty boundary check.
+ - `test/unit/tui/*_test.rb` — pure-Ruby state machines (`StateSource`, `Snapshot`, `KeyMap`, `GridState`, `LogTail::FileResolver`, `Help`, `Model`, `Messages`, `Update`, `BubbleModel`).
+-- `test/unit/tui/views/*_test.rb` — pure-function view tests for every Lipgloss-rendered frame (`ProjectsPane`, `TasksPane`, `LogTail`, `RedStatusDetail`, `HelpOverlay`, `FilterPrompt`, `NewIdeaPrompt`). Layout/text content is pinned; visual styling (color/bold/reverse) is validated by manual dogfood — lipgloss-ruby v0.2.2 strips ANSI in non-tty test environments (gap tracked in `docs/solutions/2026-04-27-charm-bubbletea-api-gaps.md`). Selection / cursor highlight predicates (`ProjectsPane#selected?`, `TasksPane#highlight?`) are exposed for unit-test assertion since the rendered output cannot distinguish them in non-tty.
++- `test/unit/tui/views/*_test.rb` — pure-function view tests for every Lipgloss-rendered frame (`ProjectsPane`, `TasksPane`, `LogTail`, `RedStatusDetail`, `InfoPanel`, `HelpOverlay`, `FilterPrompt`, `NewIdeaPrompt`). Layout/text content is pinned; visual styling (color/bold/reverse) is validated by manual dogfood — lipgloss-ruby v0.2.2 strips ANSI in non-tty test environments (gap tracked in `docs/solutions/2026-04-27-charm-bubbletea-api-gaps.md`). Selection / cursor highlight predicates (`ProjectsPane#selected?`, `TasksPane#highlight?`) are exposed for unit-test assertion since the rendered output cannot distinguish them in non-tty.
+ - `test/integration/tui_subprocess_test.rb` — `Subprocess.takeover_command` / `run_quiet!` against a fake child binary.
+ - `test/integration/tui_smoke_test.rb` + `test/integration/tui_smoke_charm_test.rb` — PTY-based boot smokes: `bin/hive tui` paints, the seeded project name appears, `q` exits 0.
+ 
+diff --git a/wiki/log.md b/wiki/log.md
+index 7c8465bc..42e33e3e 100644
+--- a/wiki/log.md
++++ b/wiki/log.md
+@@ -1855,3 +1855,24 @@ chruby and RVM are intentionally not handled — they modify PATH per-shell and
+ 
+ **Refreshed pages:**
+ - [[testing]] — documented the CI foreground/daemonization coverage pitfall and reload-safe enum caveat.
++
++## [2026-07-13T00:00:00Z] tui — asynchronous full-screen task information panel
++
++**Action:** Replaced the bottom-strip `i` idea preview with a full-screen, read-only task information panel. Opening `i` from a focused right-pane row enters a loading state immediately; a Bubble Tea worker captures bounded local `idea.md`, task-log, and stage-artifact data and dispatches a typed result back into the pure MVU update layer. The panel reports slug, stage, parsed creation time, original idea, absolute task folder, and newest log path; it adds `brainstorm.md`, `plan.md`, or a static `execute-*.log` tail only for stages 2–4. Missing/empty optional sources are explicit, long content is bounded and marked with `…`, terminal controls are sanitized, and stale worker results are ignored after close. `q`, `Esc`, and `i` close the panel and restore selection by folder identity.
++
++**Refreshed pages:**
++- [[commands/tui]] — documented the canonical `[i] info` footer legend, task-information mode, close/no-op contract, snapshot contents, and test surface.
++
++## [2026-07-13T22:46:39Z] tui — harden task information snapshots and rendering
++
++**Action:** Hardened the full-screen task information panel after review. Active execute-log tails now read only the byte count captured with the file-size snapshot, so concurrent appends cannot exceed the 16 KiB model cap. The idea parser accepts its EOF frontmatter fallback only after a capped read, leaving short unclosed frontmatter as a typed load failure. Optional brainstorm, plan, and execute sections classify whitespace-only or ANSI-only content as `empty`. The view scrubs invalid filesystem bytes, reserves both section headings at the minimum constrained heights, and lazily wraps only the visible row budget plus one overflow sentinel instead of materializing complete maximum-size payloads on every repaint.
++
++**Refreshed pages:**
++- [[commands/tui]] — recorded the bounded-read, typed-failure, display-empty, terminal-safe, constrained-heading, and lazy-wrapping contracts.
++
++## [2026-07-13T23:13:14Z] tui — close task information review gaps
++
++**Action:** Completed the second review fix pass for the task information panel. Idea loading now rejects collection-valued `original_text` and non-string/non-Time `created_at` metadata instead of coercing them into displayable text or fabricated dates. Exact-fit frames mark zero-content section budgets on their headings so hidden idea and artifact content still has a visible overflow signal. Shared artifact wrapping now consumes complete CRLF record separators before terminal sanitization, preventing ordinary Windows line endings from rendering as `?` in both brainstorm and plan sections.
++
++**Refreshed pages:**
++- [[commands/tui]] — documented strict required-metadata types, CRLF normalization, and zero-content-budget overflow markers.
