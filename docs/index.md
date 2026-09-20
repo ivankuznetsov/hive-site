@@ -31,3 +31,9 @@ service.
 Hive is open source (MIT) on [GitHub](https://github.com/ivankuznetsov/hive).
 The full engineering wiki lives in the repo; these docs are the curated,
 user-facing subset.
+
+## Workflows from private repositories
+
+See [Installing private workflows](/docs/private-workflows/) for repository
+access, Git authentication, exact-revision imports and runtime setup. This
+feature is unreleased; the guide explains how to check CLI availability.
