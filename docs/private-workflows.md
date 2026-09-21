@@ -18,6 +18,8 @@ this feature.
 1. TOC
 {:toc}
 
+Building your own repository? Follow [Build and share a private workflow](/docs/build-private-workflow/) first.
+
 ## Get repository access
 
 The repository owner must grant your GitHub account read access, for example

@@ -415,3 +415,8 @@ A few sharp edges. Each one is here because it bit someone first.
   [`status`](/docs/commands/status/).
 - The built-in `coding` and `content` workflows — full-featured descriptors to
   learn from when your own pipeline outgrows the basics.
+
+## Share a workflow privately
+
+Follow [Build and share a private workflow](/docs/build-private-workflow/) for a
+complete repository example, portability requirements and clean-project checks.
