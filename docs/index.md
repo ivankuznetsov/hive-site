@@ -12,10 +12,11 @@ Hive runs multi-step work as a **folder-as-agent pipeline**: each task moves
 through stage folders, an AI agent does the work at each stage, and a daemon
 advances it in the background, asking for answers only when it needs them. Its
 flagship **`coding`** workflow turns a rough idea into a merge-ready pull
-request — but `coding` is one of several workflows. Hive also ships `content`
-(research) and lets you author your own. These docs cover installing it, the
-ideas behind it, configuring it, the command surface, and running it as a
-service.
+request — but software delivery is proof, not the product boundary. Hive ships
+`coding`, `content`, and `bench`; installs reviewed
+[Honeycomb workflows]({{ '/honeycombs/' | relative_url }}); and runs workflows
+you author. These docs cover installing it, the ideas behind it, configuring
+it, the command and web surfaces, and running it as a service.
 
 ## Start here
 
@@ -25,6 +26,7 @@ service.
 - **[Command reference]({{ '/docs/commands/' | relative_url }})** — every user-facing `hive` command.
 - **[Custom workflows]({{ '/docs/custom-workflows/' | relative_url }})** — the engine is generic: author your own per-project pipeline in YAML.
 - **[Operating]({{ '/docs/operating/' | relative_url }})** — daemon, bot, and babysitter as services.
+- **[FAQ]({{ '/docs/faq/' | relative_url }})** — native web UI, workflow choices, and common recovery questions.
 
 ## Looking for the source?
 

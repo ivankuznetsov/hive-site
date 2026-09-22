@@ -1,41 +1,26 @@
-<section class="cards" id="capabilities">
+<section class="cards" id="pillars" aria-labelledby="pillars-title">
   <div class="wrap">
-    <h2 class="section-title">What you get</h2>
+    <p class="eyebrow">The product contract</p>
+    <h2 class="section-title" id="pillars-title">Three pillars, one workflow engine</h2>
+    <p class="section-lead">Every Hive workflow uses the same durable execution, inspectable state, and reviewed installation model.</p>
     <div class="cards__grid">
       <article class="card">
-        <h3>Reviewed Honeycombs</h3>
-        <p>Discover versioned workflows with exact package links, designated review evidence, and every requested permission shown before installation.</p>
-        <p><a href="{{ '/honeycombs/' | relative_url }}">Browse Honeycombs &rarr;</a></p>
+        <h3>Durable execution</h3>
+        <p>Tasks survive caller loss and restarts because stage state, approvals, retries, and outputs live in the workflow folder.</p>
+        <p><a href="https://github.com/ivankuznetsov/hive/blob/main/docs/concepts.md">Inspect the durable state model</a></p>
       </article>
       <article class="card">
-        <h3>Folder-as-agent transparency</h3>
-        <p>No database, no black box. Every artefact — idea, brainstorm, plan, reviews, PR
-           metadata — is a markdown file you can read, edit, or hand to another agent.</p>
+        <h3>Inspectable state</h3>
+        <p>Every artifact — idea, research, plan, review, benchmark result, or PR metadata — is a file you can inspect, edit, and audit.</p>
+        <p><a href="https://github.com/ivankuznetsov/hive/blob/main/docs/architecture.md">Inspect the folder-as-agent architecture</a></p>
       </article>
       <article class="card">
-        <h3>Multi-agent by design</h3>
-        <p>Stages run on configurable agent CLIs — Claude by default, Codex, or Pi — so each
-           step uses the model you trust for that job.</p>
-      </article>
-      <article class="card">
-        <h3>Async, parallel queue</h3>
-        <p>The daemon advances many tasks at once in the background. The live TUI flags the one
-           that needs an answer — answer in your editor, then get back to your day.</p>
-      </article>
-      <article class="card">
-        <h3>Patrol</h3>
-        <p>Opt-in autonomous repo patrol maps feature slices, reviews them, validates fixes,
-           and opens PRs for the ones that pass.</p>
-      </article>
-      <article class="card">
-        <h3>Babysitter</h3>
-        <p>Keeps open PRs green and mergeable — runs bounded repair attempts and auto-rebases
-           behind a moving <code>main</code>, then hands off when it's stuck.</p>
-      </article>
-      <article class="card">
-        <h3>Telegram bot</h3>
-        <p>Capture ideas, check the queue, and approve work from your phone — photos, documents,
-           and transcribed voice notes included.</p>
+        <h3>Installable workflows</h3>
+        <p>Reviewed Honeycombs disclose package identity, evidence, and requested permissions before installation.</p>
+        <p>
+          <a href="{{ '/honeycombs/' | relative_url }}">Inspect packages, permissions, and review evidence</a>
+          · <a href="https://github.com/ivankuznetsov/honeycomb">Inspect the registry source</a>
+        </p>
       </article>
     </div>
   </div>

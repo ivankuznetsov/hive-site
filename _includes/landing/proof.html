@@ -1,24 +1,57 @@
-<section class="proof" id="proof">
-  <div class="wrap proof__inner">
-    <div class="proof__copy">
-      <h2 class="section-title">It already ships real code</h2>
-      <p class="section-lead">
-        The reel above produced a real, public repository —
-        <a href="https://github.com/ivankuznetsov/shipped">ivankuznetsov/shipped</a> —
-        seeded with the one-sentence idea <em>"a Telegram bot that sends a daily digest of
-        what was shipped,"</em> driven through brainstorm → plan → execute → multi-agent
-        review → finalize, and landed as
-        <a href="https://github.com/ivankuznetsov/shipped/pull/1">PR #1</a>.
-      </p>
-      <p class="section-lead">
-        Hive's own releases are built the same way — this site included.
-      </p>
+<section class="proof" id="proof" aria-labelledby="proof-title">
+  <div class="wrap">
+    <div class="proof__header">
+      <p class="eyebrow">Evidence before features</p>
+      <h2 class="section-title" id="proof-title">Public proof, not promises</h2>
+      <p class="section-lead">Inspect the runs, patches, workflow artifacts, recovery paths, and limitations behind the product story.</p>
     </div>
-    <aside class="proof__community">
-      <h3>Join the build</h3>
-      <p>Questions, feedback, and release talk happen in the community.</p>
-      <a class="btn btn--ghost" href="https://discord.gg/Qg5E7rMt">{% include icons/discord.svg %}<span>Join the Discord</span></a>
-      <a class="btn btn--ghost" href="https://github.com/ivankuznetsov/hive">{% include icons/github.svg %}<span>Star on GitHub</span></a>
-    </aside>
+
+    <div class="proof__grid">
+      <article class="proof-card">
+        <p class="proof-card__metric" aria-hidden="true">36</p>
+        <h3>36 reproducible runs</h3>
+        <p>Six software tasks crossed with six agent configurations. All 36 cells produced scoreable exact patches; the results separate judge evidence from test-pass claims.</p>
+        <p class="proof-card__links">
+          <a href="{{ '/bench/' | relative_url }}">Inspect all 36 benchmark results</a>
+          <a href="{{ '/bench/methodology/' | relative_url }}">Read the benchmark methodology</a>
+        </p>
+      </article>
+
+      <article class="proof-card">
+        <p class="proof-card__metric" aria-hidden="true">PR</p>
+        <h3>Real PRs and inspectable artifacts</h3>
+        <p>The xbookmark replay links a shipped pull request to its idea, plan, worktree, four review passes, and recorded PR metadata.</p>
+        <p class="proof-card__links">
+          <a href="https://github.com/ivankuznetsov/xbookmark/pull/1">Inspect xbookmark pull request #1</a>
+          <a href="https://github.com/ivankuznetsov/hive/blob/main/docs/recipes.md#xbookmark-end-to-end">Read the artifact-backed replay</a>
+        </p>
+      </article>
+
+      <article class="proof-card">
+        <p class="proof-card__metric" aria-hidden="true">↻</p>
+        <h3>Adversarial review and recovery</h3>
+        <p>The coding workflow records multi-agent review, triage, fixes, and escalation artifacts. Typed recovery recipes show how an interrupted stage resumes from durable state.</p>
+        <p class="proof-card__links">
+          <a href="https://github.com/ivankuznetsov/hive/blob/main/docs/workflows.md">Inspect the review workflow contract</a>
+          <a href="https://github.com/ivankuznetsov/hive/blob/main/docs/recipes.md#recover-from-review_stale">Read a bounded recovery recipe</a>
+        </p>
+      </article>
+
+      <article class="proof-card">
+        <p class="proof-card__metric" aria-hidden="true">LOG</p>
+        <h3>Dogfood reports and limitations</h3>
+        <p>Durable dogfood reports preserve observed successes, failures, and verification. The benchmark publishes known limitations beside its results.</p>
+        <p class="proof-card__links">
+          <a href="https://github.com/ivankuznetsov/hive/tree/main/docs/dogfood-reports">Browse Hive dogfood reports</a>
+          <a href="{{ '/bench/methodology/#known-limitations' | relative_url }}">Read the published benchmark limitations</a>
+        </p>
+      </article>
+    </div>
+
+    <p class="proof__note">
+      Evidence is versioned and inspectable. Start with the
+      <a href="https://github.com/ivankuznetsov/hive/releases/tag/v{{ site.hive_version }}">current v{{ site.hive_version }} release</a>
+      when comparing a claim with the shipped product.
+    </p>
   </div>
 </section>
