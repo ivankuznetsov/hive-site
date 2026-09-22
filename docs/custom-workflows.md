@@ -24,6 +24,9 @@ the steps; the daemon runs the pipeline.
 
 This guide takes you from the mental model to an owner-authored workflow you can
 run today and separates that path from installing a reviewed package.
+To reuse a workflow from a repository, see
+[Installing private workflows](/docs/private-workflows/), which describes the
+unreleased direct Git importer and its setup requirements.
 If you're new to Hive's core ideas, read [Concepts](/docs/concepts/) and
 [Getting started](/docs/getting-started/) first.
 
@@ -445,3 +448,8 @@ A few sharp edges. Each one is here because it bit someone first.
 - The built-in `coding`, `content`, and `bench` workflows — full-featured
   descriptors to learn from when your own pipeline outgrows the basics.
 - [Honeycombs](/honeycombs/) — installable workflows with package and review evidence.
+
+## Share a workflow privately
+
+Follow [Build and share a private workflow](/docs/build-private-workflow/) for a
+complete repository example, portability requirements and clean-project checks.
