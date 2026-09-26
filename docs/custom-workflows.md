@@ -23,7 +23,9 @@ an AI agent does the work at each step, is a workflow Hive can run. You describe
 the steps; the daemon runs the pipeline.
 
 This guide takes you from the mental model to a custom workflow you can run
-today. Every code block, command, and output here is copy-pasteable and real.
+today. To reuse a workflow from a repository, see
+[Installing private workflows](/docs/private-workflows/), which describes the
+unreleased direct Git importer and its setup requirements.
 If you're new to Hive's core ideas, read [Concepts](/docs/concepts/) and
 [Getting started](/docs/getting-started/) first.
 
@@ -413,3 +415,8 @@ A few sharp edges. Each one is here because it bit someone first.
   [`status`](/docs/commands/status/).
 - The built-in `coding` and `content` workflows — full-featured descriptors to
   learn from when your own pipeline outgrows the basics.
+
+## Share a workflow privately
+
+Follow [Build and share a private workflow](/docs/build-private-workflow/) for a
+complete repository example, portability requirements and clean-project checks.
