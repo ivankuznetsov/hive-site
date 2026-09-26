@@ -1,34 +1,58 @@
-<section class="pipeline" id="how-it-works">
+<section class="workflow-explainer" id="how-it-works">
   <div class="wrap">
-    <h2 class="section-title">How it works: nine stages, one task folder</h2>
+    <h2 class="section-title">A workflow turns one brief into a durable outcome</h2>
     <p class="section-lead">
-      Every task is a folder. Its location <em>is</em> the state — moving it to the next
-      stage is the approval gesture, and each stage leaves a durable artefact the next
-      one can trust. That practice is called <a href="{{ '/docs/concepts/' | relative_url }}">compound engineering</a>.
+      A Hive workflow is a <strong>reusable, ordered process</strong>. The workflow
+      definition names the stages; each task run carries one brief through them.
+      The result is agent work you can inspect, resume, and steer.
     </p>
 
-    <figure class="pipeline__diagram" aria-hidden="true">
-      <img src="{{ '/assets/img/pipeline-1-to-9.svg' | relative_url }}"
-           alt="" width="1480" height="130" loading="lazy">
-    </figure>
-
-    <ol class="pipeline__stages">
-      <li><span class="stage-no">1</span><strong>inbox</strong><span class="stage-verb">capture</span><p>Jot the rough idea — one sentence is enough.</p></li>
-      <li><span class="stage-no">2</span><strong>brainstorm</strong><span class="stage-verb">refine</span><p>An agent pins down what you actually want.</p></li>
-      <li><span class="stage-no">3</span><strong>plan</strong><span class="stage-verb">design</span><p>Scope, implementation units, and risks get fixed.</p></li>
-      <li><span class="stage-no">4</span><strong>execute</strong><span class="stage-verb">build</span><p>The code is written in an isolated feature worktree.</p></li>
-      <li><span class="stage-no">5</span><strong>open-pr</strong><span class="stage-verb">draft PR</span><p>The branch is pushed and a draft PR opened.</p></li>
-      <li><span class="stage-no">6</span><strong>review</strong><span class="stage-verb">harden</span><p>CI fixes, multi-agent review, triage, and fixes.</p></li>
-      <li><span class="stage-no">7</span><strong>artifacts</strong><span class="stage-verb">collect</span><p>Release and handoff artefacts are gathered.</p></li>
-      <li><span class="stage-no">8</span><strong>finalize</strong><span class="stage-verb">publish</span><p>The PR body is refreshed and marked ready.</p></li>
-      <li><span class="stage-no">9</span><strong>done</strong><span class="stage-verb">archive</span><p>The task is archived with cleanup commands.</p></li>
+    <ol class="workflow-explainer__steps">
+      <li>
+        <h3>Start with a brief</h3>
+        <p>Hive creates a task folder, preserving the request that entered this run.</p>
+      </li>
+      <li>
+        <h3>Produce one useful artifact</h3>
+        <p>An assigned agent or human reads the durable context and writes the stage's named output.</p>
+      </li>
+      <li>
+        <h3>Cross an explicit checkpoint</h3>
+        <p>A status marker tells Hive to advance, pause for a human, retry, or return the work for revision.</p>
+      </li>
+      <li>
+        <h3>Reach a defined outcome</h3>
+        <p>The daemon repeats that loop until the workflow's terminal stage says what “done” means.</p>
+      </li>
     </ol>
 
-    <p class="section-lead">
-      These nine stages are Hive's flagship <strong>coding</strong> workflow. The
-      same engine runs other workflows on the same folder-as-agent mechanics — a
-      built-in <code>content</code> pipeline, or one you
-      <a href="{{ '/docs/custom-workflows/' | relative_url }}">author yourself</a>.
-    </p>
+    <div class="workflow-explainer__why">
+      <div>
+        <h3>Why not one giant prompt?</h3>
+        <p>
+          A single prompt keeps progress in a transient conversation. Hive records
+          artifacts and transitions on disk, so an interruption does not erase the
+          work and a person can review the exact handoff before autonomy continues.
+        </p>
+      </div>
+      <ul>
+        <li>Repeat the same team process without rebuilding the prompt.</li>
+        <li>Choose the right agent, model, and permissions for each stage.</li>
+        <li>See what happened, resume safely, and intervene at bounded checkpoints.</li>
+      </ul>
+    </div>
+
+    <div class="workflow-explainer__examples">
+      <h3>One engine, many processes</h3>
+      <ul>
+        <li><strong>The flagship coding workflow:</strong> an idea becomes a reviewed pull request.</li>
+        <li><strong>Editorial work:</strong> a brief becomes researched, approved, publish-ready copy.</li>
+        <li><strong>Research or triage:</strong> evidence becomes a recorded recommendation or decision.</li>
+      </ul>
+    </div>
+
+    <a class="workflow-explainer__cta" href="{{ '/docs/concepts/' | relative_url }}">
+      Learn how Hive workflows work
+    </a>
   </div>
 </section>

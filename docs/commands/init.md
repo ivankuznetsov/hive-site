@@ -23,6 +23,12 @@ hive init
 # Initialize a specific project path
 hive init ~/Dev/your-project
 
+# Select an existing built-in or project-authored workflow
+hive init --workflow <id> ~/Dev/your-project
+
+# Scaffold a project-authored workflow and make it the default
+hive init --new-workflow <id> ~/Dev/your-project
+
 # Skip the clean-tree check and emit the resolved setup as JSON
 hive init --force --json
 ```
@@ -34,6 +40,9 @@ hive init --force --json
 | Flag | What it does |
 |------|--------------|
 | `--force` | Skip the "working tree must be clean" check. |
+| `--workflow <id>` | Select `coding`, `content`, `bench`, or an existing project-authored workflow. |
+| `--new-workflow <id>` | Scaffold a blank custom workflow and bind it as the project default. It cannot be combined with `--workflow`. |
+| `--[no-]refactor-patrol` | Enable or disable post-merge architecture discovery for a fresh project. |
 | `--json` | Emit a typed `hive-init` envelope with the project metadata and your resolved setup answers, instead of the human summary. |
 
 ## What it sets up
@@ -56,6 +65,13 @@ full list of knobs.
 
 When you run it in a script or pipe (non-interactive), it skips every question
 and uses the recommended defaults.
+
+`--new-workflow` creates
+`.hive-state/workflows/<id>.yml` and a placeholder
+`.hive-state/workflows/<id>/work.md`, then records `<id>` as
+`default_workflow`. Replace the placeholder before the first run. See
+[Custom workflows]({{ '/docs/custom-workflows/' | relative_url }}) for a
+complete example.
 
 ## Requirements
 

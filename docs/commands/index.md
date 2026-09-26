@@ -10,8 +10,10 @@ description: Every user-facing hive command, grouped by what it's for.
 # Command reference
 
 Every Hive workflow verb runs on `bin/hive` (or the `hv` shim when Apache Hive
-shadows the name). Each verb supports `--json` and returns a typed envelope, so
-an agent can drive Hive with structured output instead of scraping text.
+shadows the name). Commands whose pages document a typed `--json` result can be
+driven without scraping text. Support is command-specific: in Hive 0.6.5,
+`hive new` accepts the global flag but still prints human prose, and `hive tui`
+is human-only.
 
 The TUI is the recommended human interface and an agent-driven CLI is the
 recommended automation surface — but every command below is available directly
@@ -19,7 +21,7 @@ for scripting, debugging, and recovery.
 
 | Group | Commands |
 |-------|----------|
-| **Workflow** | [`new`]({{ '/docs/commands/new/' | relative_url }}), [`run`]({{ '/docs/commands/run/' | relative_url }}), [`approve`]({{ '/docs/commands/approve/' | relative_url }}) |
+| **Workflow** | [`new`]({{ '/docs/commands/new/' | relative_url }}), [`run`]({{ '/docs/commands/run/' | relative_url }}), [`approve`]({{ '/docs/commands/approve/' | relative_url }}), and [`workflow new`]({{ '/docs/custom-workflows/' | relative_url }}#create-the-files) |
 | **Dashboard** | [`tui`]({{ '/docs/commands/tui/' | relative_url }}), [`status`]({{ '/docs/commands/status/' | relative_url }}) |
 | **Review** | [`findings`]({{ '/docs/commands/findings/' | relative_url }}) |
 | **Autonomy** | [`patrol`]({{ '/docs/commands/patrol/' | relative_url }}), [`babysit`]({{ '/docs/commands/babysit/' | relative_url }}), [`daemon`]({{ '/docs/commands/daemon/' | relative_url }}), [`bot`]({{ '/docs/commands/bot/' | relative_url }}) |

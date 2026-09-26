@@ -27,6 +27,17 @@ $hive-accent-hover: #f6c453;
 .main-content {
   a:not(.btn) { color: $hive-accent; }
   a:not(.btn):hover { color: $hive-accent-hover; }
+  min-width: 0;
+  overflow-wrap: anywhere;
+
+  pre,
+  .table-wrapper {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  pre code { overflow-wrap: normal; }
 }
 
 .site-nav .nav-list .nav-list-item .nav-list-link.active {
@@ -34,6 +45,10 @@ $hive-accent-hover: #f6c453;
   &::before { background-color: $hive-accent; }
 }
 .site-nav .nav-list .nav-list-item .nav-list-link:hover { color: $hive-accent-hover; }
+.site-nav .nav-list .nav-list-item .nav-list-link:focus-visible {
+  outline: 2px solid $hive-accent;
+  outline-offset: -2px;
+}
 
 // Theme toggle button — matched to the search input height (#47).
 .theme-toggle {
@@ -51,6 +66,10 @@ $hive-accent-hover: #f6c453;
   padding: 0 0.6rem;
 }
 .theme-toggle:hover { border-color: $hive-accent; color: $hive-accent-hover; }
+.theme-toggle:focus-visible {
+  outline: 2px solid $hive-accent;
+  outline-offset: 2px;
+}
 
 // Header-custom area: search box grows, toggle sits to its right.
 // Left margin keeps the search off the sidebar edge (#47).
@@ -127,7 +146,10 @@ $hive-accent-hover: #f6c453;
   margin: 0 0 1.25rem;
 }
 .llm-actions .llm-btn {
+  align-items: center;
+  display: inline-flex;
   font-size: 0.8rem;
+  min-height: 44px;
   padding: 0.3rem 0.7rem;
   border: 1px solid $hive-accent;
   border-radius: 8px;
@@ -137,3 +159,7 @@ $hive-accent-hover: #f6c453;
   text-decoration: none;
 }
 .llm-actions .llm-btn:hover { background: $hive-accent; color: #1a1205; text-decoration: none; }
+.llm-actions .llm-btn:focus-visible {
+  outline: 2px solid $hive-accent;
+  outline-offset: 2px;
+}

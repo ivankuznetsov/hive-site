@@ -17,6 +17,10 @@ is the best first run.) The happy path is **daemon-first**: the daemon advances
 ready tasks, and the TUI is where you watch the queue and answer only when Hive
 needs you. You do not need to learn the stage commands on day one.
 
+The reusable process is a **workflow definition**; the idea you create below is
+one **task run** through it. [How workflows work]({{ '/docs/concepts/' | relative_url }})
+explains that model before you author a process of your own.
+
 1. TOC
 {:toc}
 
@@ -134,8 +138,8 @@ advancing the same task toward code, a pull request, review, and archive.
 
 ## Where to go next
 
-- **[Concepts]({{ '/docs/concepts/' | relative_url }})** — why it's shaped this way: folder-as-agent, the nine stages, the marker protocol.
+- **[How workflows work]({{ '/docs/concepts/' | relative_url }})** — workflow definitions, task runs, durable artifacts, checkpoints, and outcomes.
 - **[Configuration]({{ '/docs/configuration/' | relative_url }})** — patrol, reviewers, agent profiles, budgets, and the daemon.
 - **[Command reference]({{ '/docs/commands/' | relative_url }})** — drive any stage by hand, or script Hive from an agent.
 - **[Operating]({{ '/docs/operating/' | relative_url }})** — run the daemon, Telegram bot, and babysitter as services.
-- **[Custom workflows]({{ '/docs/custom-workflows/' | relative_url }})** — the pipeline isn't just for code. Author your own per-project workflow — writing, research, triage, anything — in a few lines of YAML.
+- **[Custom workflows]({{ '/docs/custom-workflows/' | relative_url }})** — author and run a safe project-local editorial workflow in YAML.

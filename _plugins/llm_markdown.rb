@@ -76,10 +76,12 @@ module HiveLlm
   def llms_txt(site, pages)
     out = +"# Hive\n\n"
     out << "> #{site.config['description'].to_s.strip}\n\n"
-    out << "Hive is an open-source (MIT) command-line tool that turns a rough idea " \
-           "into a merge-ready pull request through a multi-agent pipeline " \
-           "(brainstorm → plan → execute → review → finalize) you watch and can " \
-           "step into. Each page below is also available as raw markdown.\n\n"
+    out << "Hive is an open-source (MIT) command-line workflow engine that runs " \
+           "reusable, multi-stage processes as durable task folders. Agents and " \
+           "people leave reviewable artifacts at each handoff. Its flagship coding " \
+           "workflow turns a rough idea into a merge-ready pull request; the same " \
+           "engine also runs content, benchmark, and project-authored workflows. " \
+           "Each page below is also available as raw markdown.\n\n"
     out << "## Docs\n\n"
     section_pages(pages).each { |p| out << "#{link_line(p)}\n" }
     out << "\n## Command reference\n\n"

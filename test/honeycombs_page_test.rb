@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require "open3"
 require_relative "test_helper"
 
 class HoneycombsPageTest < Minitest::Test
+  include SiteTestHelpers
   def test_populated_page_renders_discoverable_entries_permissions_trust_and_no_js_baseline
     community = CatalogFixtures.entry(
       name: "alpha-tool",
@@ -93,24 +93,9 @@ class HoneycombsPageTest < Minitest::Test
   end
 
   def build_site(snapshot)
-    Dir.mktmpdir do |directory|
-      source = File.join(directory, "source")
-      destination = File.join(directory, "site")
-      FileUtils.mkdir_p(source)
-      copy_site(source)
-      File.binwrite(File.join(source, "_data", "honeycombs.json"), JSON.pretty_generate(snapshot) + "\n")
-
-      env = {"BUNDLE_GEMFILE" => File.join(ROOT, "Gemfile"), "JEKYLL_ENV" => "test"}
-      command = [RbConfig.ruby, Gem.bin_path("bundler", "bundle"), "exec", "jekyll", "build",
-                 "--source", source, "--destination", destination, "--quiet"]
-      stdout, stderr, status = Open3.capture3(env, *command)
-      assert status.success?, "Jekyll build failed:\n#{stdout}\n#{stderr}"
+    overrides = {"_data/honeycombs.json" => JSON.pretty_generate(snapshot) + "\n"}
+    with_built_site(overrides) do |destination|
       File.binread(File.join(destination, "honeycombs", "index.html"))
     end
-  end
-
-  def copy_site(destination)
-    entries = Dir.children(ROOT) - %w[.git .jekyll-cache .sass-cache _site node_modules test vendor]
-    entries.each { |entry| FileUtils.cp_r(File.join(ROOT, entry), destination) }
   end
 end
