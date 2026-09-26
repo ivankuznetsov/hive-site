@@ -1,0 +1,616 @@
+diff --git a/hive.gemspec b/hive.gemspec
+index d1e8c7c..2bf21a2 100644
+--- a/hive.gemspec
++++ b/hive.gemspec
+@@ -35,6 +35,12 @@ Gem::Specification.new do |spec|
+     "bin/hive-babysitter-stub-git",
+     "bin/hv",
+     "lib/**/*.rb",
++    # Shell scripts referenced at runtime by packaged lib code:
++    # lib/hive/scripts/interactive_claude_wrapper.sh (ClaudeLauncher.wrapper_command)
++    # and lib/hive/scripts/stop_hook.sh (StopHookInstaller::HOOK_PATH).
++    # Without this glob an installed gem's wrapper_command points at a
++    # missing file and every Claude tmux launch dies instantly.
++    "lib/hive/scripts/**/*",
+     "templates/**/*",
+     "schemas/**/*.json",
+     "examples/systemd/*",
+diff --git a/lib/hive/claude_launcher.rb b/lib/hive/claude_launcher.rb
+index 742bbdc..b9d981c 100644
+--- a/lib/hive/claude_launcher.rb
++++ b/lib/hive/claude_launcher.rb
+@@ -31,21 +31,38 @@ module Hive
+     CLAUDE_READY_POLL_INTERVAL_SEC = 0.25
+     MIN_TMUX_VERSION = "3.0"
+     TERMINAL_MARKERS = %i[waiting complete error execute_complete review_complete review_waiting review_error].freeze
+-    # Observed against Claude Code 2.1.133 (2026-05-25 dogfood) and the
++    # Observed against Claude Code 2.1.133 (2026-05-25 dogfood), the
+     # 2026-05-27 build that moved the input caret to the end of a
+-    # context-prefixed line and added a hint footer beneath it.
++    # context-prefixed line and added a hint footer beneath it, and the
++    # 2.1.179 build (incident: task add-local-hive-web-install-260629-f4ca
++    # stuck in claude_launch_failed) that renders the idle caret with a
++    # NON-BREAKING SPACE after it inside a separator/footer sandwich:
++    # `─` row / `❯\u00A0Try "…"` / `─` row / `⏵⏵ … ← for agents` footer.
+     #
+     # Robustness note: readiness detection keys on the `❯` input caret, the
+     # most stable signal across the Claude Code TUI revisions seen so far.
+     # What churns between releases is the caret's POSITION on its line
+     # (older builds: `❯ Try …` at line start; newer: `<cwd> <git-status>  ❯`
+-    # at line end) and what renders BELOW it (e.g. a `⏵⏵ bypass permissions …`
+-    # hint footer, so the caret is no longer the last line). To tolerate that
+-    # without treating a `❯` Claude prints in its OWN output (shell snippets,
+-    # prose, bullets) as ready, we (a) require the caret to be the first or
+-    # last glyph of its line — never mid-prose — and (b) only look at the
+-    # bottom of the input box: the last non-blank line, or the line above it
+-    # when a one-line hint footer renders beneath the caret.
++    # at line end), what renders BELOW it (hint footers, box-drawing
++    # separator rows, so the caret is no longer the last or second-to-last
++    # line), and how many lines up from the pane bottom the live caret sits.
++    # To tolerate that without treating a `❯` Claude prints in its OWN output
++    # (shell snippets, prose, bullets) as ready we
++    #   (a) anchor the caret to a line edge — first or last glyph, never
++    #       mid-prose,
++    #   (b) scan only the bottom CLAUDE_PROMPT_TAIL_LINES nonblank lines of
++    #       the current region and take the LOWEST qualifying caret there
++    #       (version-tolerant window; no fixed footer/separa­tor offset),
++    #   (c) apply the below-blocking rule: trust-prompt or permission copy
++    #       rendering strictly BELOW the chosen caret means an ACTIVE modal
++    #       owns the bottom of the pane — the caret above it is dead output,
++    #       not the live prompt, so the pane is not ready.
++    # Whitespace note: Ruby's ASCII-only `\s` does NOT match NBSP/U+00A0 or
++    # U+3000 where 2.1.179 pads the caret and menus, so every whitespace
++    # class below uses `[[:space:]]`, which Onigmo defines over Unicode
++    # separators (`[[:space:]]` matches \u00A0 and \u3000; `\s` matches
++    # neither). Pinned by fixtures carrying literal NBSP bytes so any
++    # engine drift fails loudly in CI instead of in operator runs.
+     #
+     # Copy strings still gate readiness in two places, both version-coupled
+     # and both to update when Claude Code changes them: the positive
+@@ -58,16 +75,29 @@ module Hive
+     CLAUDE_PERMISSION_PROMPT_MARKER = "Do you want to".freeze
+     CLAUDE_READY_BANNER_MARKER = "Claude Code".freeze
+     CLAUDE_READY_FOOTER_MARKER = "for agents".freeze
+-    # The caret as the FIRST glyph (`❯ …`, older builds) or the LAST glyph
++    # The caret as the FIRST glyph (`❯ …`, older builds), the LAST glyph
+     # (`… ?  ❯`, the line-end caret newer builds render after the cwd/git
+-    # context). A caret embedded mid-line is Claude's own output, not the
++    # context), or the first glyph followed by Unicode whitespace
++    # (`❯\u00A0Try …`, the NBSP form 2.1.179 renders before its hint
++    # text). A caret embedded mid-line is Claude's own output, not the
+     # idle prompt, so it is intentionally not matched.
+-    CLAUDE_READY_PROMPT_LINE = /\A❯(?:\s|\z)|\s❯\z/.freeze
+-    CLAUDE_MENU_OPTION_LINE = /\A\s*❯\s*\d+\./.freeze
+-    CLAUDE_PROMPT_CONTEXT_LINES = 4
+-    # Lines at the bottom of the input box to inspect for the idle caret:
+-    # the caret line itself plus at most one hint footer rendered below it.
+-    CLAUDE_PROMPT_TAIL_LINES = 2
++    CLAUDE_READY_PROMPT_LINE = /\A❯(?:[[:space:]]|\z)|[[:space:]]❯\z/.freeze
++    # A numbered menu option (`❯ 1.`, optionally padded — including NBSP /
++    # U+3000 indentation) is an interactive selection, not the idle
++    # prompt. Same Unicode-whitespace classes as CLAUDE_READY_PROMPT_LINE;
++    # keep them in step.
++    CLAUDE_MENU_OPTION_LINE = /\A[[:space:]]*❯[[:space:]]*\d+\./.freeze
++    # Nonblank lines retained around the bottom for the trust/permission/
++    # menu gates. Must satisfy CONTEXT_LINES >= TAIL_LINES or the context
++    # truncation would silently clip the tail window below — pinned by a
++    # test asserting that invariant.
++    CLAUDE_PROMPT_CONTEXT_LINES = 12
++    # Bottom-of-pane scan window for the idle caret: wide enough to bridge
++    # release-dependent decoration (separators, footers, box borders)
++    # between the live caret and the pane floor without reaching into old
++    # scrollback output. Clamp to roughly one TUI-screen-bottom band —
++    # grow only alongside new fixture evidence from real panes.
++    CLAUDE_PROMPT_TAIL_LINES = 10
+     # Allowed-tool sets shared by every stage that spawns Claude. Keeping
+     # them as constants means a policy change lands in one place; previous
+     # PRs inlined the string literal across 11 sites and silently drifted
+@@ -616,15 +646,35 @@ module Hive
+       return false unless pane.include?(CLAUDE_READY_BANNER_MARKER) ||
+                           current_text.include?(CLAUDE_READY_FOOTER_MARKER)
+ 
+-      # The idle caret sits at the bottom of the input box: it is the last
+-      # non-blank line, or the line above it when a one-line hint footer
+-      # renders beneath it. Limiting the scan to those two lines (rather than
+-      # the whole region) keeps a caret Claude printed earlier in its own
+-      # output from reading as ready. A numbered menu option (`❯ 1.`) is an
+-      # interactive selection, not the idle prompt, so it never counts.
+-      current_lines.last(CLAUDE_PROMPT_TAIL_LINES).any? do |line|
++      # The idle caret sits at the bottom of the input box, but HOW FAR up
++      # from the pane floor depends on the release's decoration (separator
++      # rows, hint footers). Scan the bottom TAIL_LINES nonblank lines and
++      # take the LOWEST qualified caret there; anything higher inside the
++      # window stays unexamined while a lower candidate exists. A numbered
++      # menu option (`❯ 1.`) is an interactive selection, not the idle
++      # prompt, so it never qualifies.
++      tail_lines = current_lines.last(CLAUDE_PROMPT_TAIL_LINES)
++      caret_index = tail_lines.rindex do |line|
+         line.match?(CLAUDE_READY_PROMPT_LINE) && !line.match?(CLAUDE_MENU_OPTION_LINE)
+       end
++      return false unless caret_index
++
++      # Below-blocking rule: an ACTIVE modal always paints at the very
++      # bottom of the pane. Trust/permission copy strictly BELOW the chosen
++      # caret therefore means that caret has scrolled up out of the live
++      # surface — the pane is waiting on a dialog, not idling at our input
++      # box. (Numbered menu options without marker copy still read as the
++      # accepted residual risk; see the plan's risk notes.)
++      below_caret = tail_lines[(caret_index + 1)..] || []
++      below_caret.none? { |line| blocking_marker_line?(line) }
++    end
++
++    # Trust OR permission marker anywhere on a line is enough: modals can
++    # lose their header (or their options) past the top of the scan window
++    # while their body remains visible below a stale caret.
++    def blocking_marker_line?(line)
++      CLAUDE_TRUST_PROMPT_MARKERS.any? { |marker| line.include?(marker) } ||
++        line.include?(CLAUDE_PERMISSION_PROMPT_MARKER)
+     end
+ 
+     def current_prompt_text(pane)
+@@ -635,7 +685,11 @@ module Hive
+       start_index = [ last_banner_index, last_blank_start, 0 ].compact.max
+       current_lines = raw_lines[start_index..] || []
+ 
+-      current_lines.reject(&:empty?).last(CLAUDE_PROMPT_CONTEXT_LINES).join("\n")
++      # Truncation order matters with the tail window: this cap feeds
++    # claude_ready_prompt?'s scan of the bottom TAIL_LINES nonblank lines,
++    # so CLAUDE_PROMPT_CONTEXT_LINES must stay >= CLAUDE_PROMPT_TAIL_LINES
++    # or the context cut would silently clip the readiness window.
++    current_lines.reject(&:empty?).last(CLAUDE_PROMPT_CONTEXT_LINES).join("\n")
+     end
+ 
+     def wait_for_terminal_marker(task, runner, timeout)
+diff --git a/test/integration/run_brainstorm_tmux_test.rb b/test/integration/run_brainstorm_tmux_test.rb
+index d4d846b..ede749f 100644
+--- a/test/integration/run_brainstorm_tmux_test.rb
++++ b/test/integration/run_brainstorm_tmux_test.rb
+@@ -54,6 +54,30 @@ class RunBrainstormTmuxTest < Minitest::Test
+     end
+   end
+ 
++  # E2E regression net for the 2.1.179 incident: the fake renders the exact
++  # NBSP-caret / separator-footer sandwich layout, so readiness must be
++  # detected through the real tmux launch path (prepare_claude_session!) and
++  # the stage still reaches WAITING. This test timed out pre-fix — with the
++  # old two-line/ASCII-whitespace detector the pane never read as ready.
++  def test_waiting_marker_reached_through_2_1_179_nbsp_pane_layout
++    with_tmp_global_config do
++      with_tmp_git_repo do |dir|
++        fake = write_fake_interactive_claude(dir)
++        ENV["HIVE_CLAUDE_BIN"] = fake
++        ENV["HIVE_FAKE_INTERACTIVE_SCENARIO"] = "waiting_2179"
++        folder = make_task_at_brainstorm(dir, timeout: 3)
++
++        capture_io { Hive::Commands::Run.new(folder).call }
++
++        marker = Hive::Markers.current(File.join(folder, "brainstorm.md"))
++        assert_equal :waiting, marker.name,
++                     "the 2.1.179 pane layout must drive a brainstorm stage to WAITING"
++        assert_empty tmux_sessions
++        refute File.exist?(File.join(folder, ".claude", "settings.json"))
++      end
++    end
++  end
++
+   def test_complete_marker_returns_complete_commit_action
+     with_tmp_global_config do
+       with_tmp_git_repo do |dir|
+@@ -269,10 +293,33 @@ class RunBrainstormTmuxTest < Minitest::Test
+         exit 0
+       end
+ 
+-      puts "Claude Code v2.1.118"
+-      puts "❯"
+-      STDOUT.flush
+       scenario = ENV.fetch("HIVE_FAKE_INTERACTIVE_SCENARIO")
++      if scenario == "waiting_2179"
++        # Claude Code 2.1.179 idle layout: the input caret is followed by a
++        # NON-BREAKING SPACE (U+00A0) hint and sits inside a separator/
++        # footer sandwich three rows above the pane floor. This layout
++        # drives readiness through Hive::ClaudeLauncher's widened Unicode
++        # window; it timed out pre-fix.
++        nbsp = [0xA0].pack("U")
++        bar = "%c" % 0x2500
++        separator = bar * 46
++        footer = "⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents"
++        box_top = "│╭" + bar * 37 + "╮│"
++        box_bottom = " ╰" + bar * 37 + "╯"
++        puts "█▘▛███▜▌   Claude Code v2.1.179"
++        puts ""
++        puts box_top
++        puts " ││ Research mode · sonnet            ││"
++        puts box_bottom
++        puts separator
++        puts "❯\#{nbsp}Try \\"fix lint errors in ./lib\\""
++        puts separator
++        puts footer
++      else
++        puts "Claude Code v2.1.118"
++        puts "❯"
++      end
++      STDOUT.flush
+       if scenario == "exit_before_submit"
+         system("stty raw -echo")
+         deadline = Time.now + 2
+@@ -315,7 +362,7 @@ class RunBrainstormTmuxTest < Minitest::Test
+       end
+ 
+       case scenario
+-      when "waiting"
++      when "waiting", "waiting_2179"
+         File.write(state_file, "## Round 1\\n### Q1. Scope?\\n### A1.\\n\\n<!-- WAITING -->\\n")
+         puts "<!-- WAITING -->"
+         fire_hook("waiting")
+diff --git a/test/unit/claude_launcher_test.rb b/test/unit/claude_launcher_test.rb
+index e9c71b6..55dee4b 100644
+--- a/test/unit/claude_launcher_test.rb
++++ b/test/unit/claude_launcher_test.rb
+@@ -576,15 +576,18 @@ class ClaudeLauncherTest < Minitest::Test
+            "a caret embedded mid-line is Claude's own output, not the idle prompt"
+   end
+ 
+-  # The idle caret is at the BOTTOM of the input box. A caret with two or
+-  # more non-footer lines below it is stale output, not the live prompt, so
+-  # restricting the scan to the last two lines must exclude it.
+-  def test_claude_ready_prompt_rejects_caret_above_the_input_box_tail
+-    pane = "Claude Code v2.1.133\n\n❯ Try \"refactor <filepath>\"\n" \
+-           "running build step 1\nrunning build step 2"
++  # REPURPOSED for the widened window (was: caret + 2 running-output lines,
++  # excluded by the old 2-line tail). The invariant “old carets far above
++  # the input-box tail are stale” survives, but pushing a caret out of the
++  # view now takes MORE than TAIL_LINES nonblank lines of fresher output:
++  # the caret falls out of `current_lines.last(TAIL_LINES)` exactly when
++  # the trailing activity count reaches the window size.
++  def test_claude_ready_prompt_rejects_caret_pushed_out_of_the_bottom_window
++    fresh_activity = Array.new(Hive::ClaudeLauncher::CLAUDE_PROMPT_TAIL_LINES) { |i| "running build step #{i}" }
++    pane = (["Claude Code v2.1.133", "", "❯ Try \"refactor <filepath>\""] + fresh_activity).join("\n")
+ 
+     refute Hive::ClaudeLauncher.claude_ready_prompt?(pane),
+-           "a caret with non-footer output below it is not the live idle prompt"
++           "a caret pushed farther than the tail window by fresher output is stale, not ready"
+   end
+ 
+   # A bare caret line is a legitimate idle prompt; lock it as intentional.
+@@ -594,6 +597,154 @@ class ClaudeLauncherTest < Minitest::Test
+     assert Hive::ClaudeLauncher.claude_ready_prompt?(pane)
+   end
+ 
++  SEP2179 = "─" * 46
++  # Exact hand-authored regression shape for Claude Code 2.1.179 (incident:
++  # add-local-hive-web-install-260629-f4ca): the idle caret line carries a
++  # NON-BREAKING SPACE (U+00A0) after the `❯` glyph and sits inside a
++  # separator/footer sandwich three lines above the pane floor.
++  PANE_2_1_179_READY = [
++    "▛███▜▌   Claude Code v2.1.179",
++    "",
++    " │╭─────────────────────────────────────╮│",
++    " ││ Research mode · sonnet               ││",
++    " ╰─────────────────────────────────────╯",
++    SEP2179,
++    "❯\u00A0Try \"fix lint errors in ./lib\"",
++    SEP2179,
++    "⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents",
++  ].join("\n").freeze
++
++  # Accept the 2.1.179 pane shape: NBSP caretted hint inside the
++  # separator/footer sandwich, three rows above the pane floor.
++  def test_claude_ready_prompt_accepts_2_1_179_nbsp_caret_in_separator_footer_sandwich
++    assert Hive::ClaudeLauncher.claude_ready_prompt?(PANE_2_1_179_READY),
++           "the shipped 2.1.179 pane shape must read as ready"
++  end
++
++  # Byte-level pin: the fixture really carries U+00A0 after the caret, and
++  # plain ASCII `\\s` canNOT consume it — the ready regex depends on
++  # Onigmo's Unicode-aware `[[:space:]]`. If engines drift, these two
++  # assertions fail loudly in CI instead of breaking operator launches.
++  def test_2_1_179_fixture_pins_literal_nbsp_bytes_requiring_unicode_space_class
++    caret_line = PANE_2_1_179_READY.each_line.find { |line| line.include?("❯") }
++
++    assert_operator caret_line.index("\u00A0"), :>, caret_line.index("❯"),
++                   "the fixture must carry literal NBSP bytes after the caret glyph"
++    refute caret_line.match?(/\A❯\s/),
++           "ASCII \\s alone cannot match the NBSP after the caret; only [[:space:]] reaches it"
++  end
++
++  # Widened-window acceptance: a line-start caret still reads as ready when
++  # a separator row AND a hint footer render below it inside the scan
++  # window (the old two-line tail view would have missed this shape).
++  def test_claude_ready_prompt_accepts_caret_within_window_with_separator_and_footer_below
++    pane = [
++      "Claude Code v2.1.179",
++      SEP2179,
++      "❯ Try \"continue where you left off\"",
++      SEP2179,
++      "⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents",
++    ].join("\n")
++
++    assert Hive::ClaudeLauncher.claude_ready_prompt?(pane)
++  end
++
++  # Rejection: the permission dialog owns the pane floor — standalone and
++  # when its copy is buried among other busy output inside the scan window.
++  def test_claude_ready_prompt_rejects_permission_dialog_at_pane_floor
++    pane = [
++      "Claude Code v2.1.179",
++      "The file config/example.yml has been edited locally.",
++      "Do you want to reload the config from disk?",
++      "❯ 1. Yes",
++      "  2. Yes, and always allow config reloads",
++      "  3. No, and tell Claude what to do differently (esc)",
++    ].join("\n")
++
++    refute Hive::ClaudeLauncher.claude_ready_prompt?(pane),
++           "an active permission dialog is not the idle prompt"
++  end
++
++  def test_claude_ready_prompt_rejects_permission_dialog_buried_inside_scan_window
++    busy_tail = Array.new(6) { |i| "editing src/auth/token_#{i}.rb…" }
++    pane = ([
++      "Claude Code v2.1.179",
++      "reading src/auth/session.ts…",
++      "Do you want to proceed with replacing session.ts?",
++      "❯ 1. Yes",
++      "  2. No (esc)",
++    ] + busy_tail).join("\n")
++
++    refute Hive::ClaudeLauncher.claude_ready_prompt?(pane),
++           "dialog copy anywhere in the scanned band must keep the pane unready"
++  end
++
++  # Rejection: the folder-trust modal must stay rejected AND classified as
++  # a trust prompt (not merely unready).
++  def test_claude_ready_prompt_rejects_standalone_trust_dialog
++    pane = [
++      "Claude Code v2.1.175",
++      "New folder detected",
++      "Quick safety check",
++      "❯ 1. Yes, I trust this folder",
++      "  2. No, choose different folders",
++      "Enter to confirm",
++    ].join("\n")
++
++    refute Hive::ClaudeLauncher.claude_ready_prompt?(pane)
++    assert Hive::ClaudeLauncher.claude_trust_prompt?(pane)
++  end
++
++  # Rejection: numbered menu selections — including NBSP-padded variants.
++  # The NBSP-after-caret option is the dangerous case: it is shaped exactly
++  # like the 2.1.179 idle caret, so only the widened Unicode menu-option
++  # class excludes it.
++  def test_claude_ready_prompt_rejects_numbered_menus_with_unicode_whitespace
++    intro = [ "Claude Code v2.1.179", "Choose how to proceed:" ]
++    nbsp_after_caret = [
++      "❯\u00A01.\u00A0Continue with recommended settings",
++      "  2. Customize rules manually",
++    ]
++    nbsp_indented = [
++      "\u00A0❯ 1. Continue with recommended settings",
++      "\u00A0\u00A02. Customize rules manually",
++    ]
++
++    [ nbsp_after_caret, nbsp_indented ].each do |options|
++      refute Hive::ClaudeLauncher.claude_ready_prompt?((intro + options).join("\n")),
++             "a numbered selection state must never read as the idle prompt (#{options.first.inspect})"
++    end
++  end
++
++  # Below-blocking proof: a partially-scrolled trust modal loses its header
++  # (and its ❯-digit options) past the top of the scan window, leaving only
++  # copy without any caret-shaped line of its own. The stale idle caret
++  # ABOVE the modal must still be rejected — an active modal owns the pane
++  # floor, and typing there silently loses keystrokes.
++  def test_claude_ready_prompt_rejects_caret_above_numberless_active_modal
++    pane = [
++      "Claude Code v2.1.133",
++      "❯ Try \"previous task work\"",
++      "Review the folders Claude will access:",
++      "Yes, I trust this folder",
++      "Enter to confirm",
++    ].join("\n")
++
++    refute Hive::ClaudeLauncher.claude_ready_prompt?(pane),
++           "modal copy strictly below the only caret means the caret is dead output"
++  end
++
++  # Constants invariant (brainstorm A1): the context cap feeds the tail
++  # scan, so letting CONTEXT_LINES drop below TAIL_LINES would silently
++  # clip the readiness window. Also pins the deliberate 8–12 band choice.
++  def test_prompt_context_window_never_clips_the_tail_scan_window
++    assert_operator Hive::ClaudeLauncher::CLAUDE_PROMPT_CONTEXT_LINES, :>=,
++                    Hive::ClaudeLauncher::CLAUDE_PROMPT_TAIL_LINES,
++                    "CONTEXT_LINES < TAIL_LINES clips the readiness scan window"
++    assert_includes 8..12, Hive::ClaudeLauncher::CLAUDE_PROMPT_TAIL_LINES,
++                    "the tail window was sized to the 8–12 band from the brainstorm"
++  end
++
+   def test_claude_trust_prompt_matches_observed_folder_trust_prompt
+     pane = "Quick safety check\n❯ 1. Yes, I trust this folder\nEnter to confirm"
+ 
+diff --git a/test/unit/gemspec_test.rb b/test/unit/gemspec_test.rb
+index c4cd96d..792ebd1 100644
+--- a/test/unit/gemspec_test.rb
++++ b/test/unit/gemspec_test.rb
+@@ -10,6 +10,18 @@ class GemspecTest < Minitest::Test
+     assert_includes spec.files, "bin/hive-babysitter-stub-git"
+   end
+ 
++  # Every script referenced at runtime from packaged lib code must ship
++  # inside the gem. ClaudeLauncher.wrapper_command expands
++  # scripts/interactive_claude_wrapper.sh relative to its __dir__ and
++  # StopHookInstaller resolves HOOK_PATH the same way; omitting them made
++  # `bash <missing-file>` kill every Claude tmux launch on install.
++  def test_gem_package_includes_hive_scripts_dir
++    spec = Gem::Specification.load(GEMSPEC_PATH)
++
++    assert_includes spec.files, "lib/hive/scripts/interactive_claude_wrapper.sh"
++    assert_includes spec.files, "lib/hive/scripts/stop_hook.sh"
++  end
++
+   def test_gem_executables_exclude_bash_hv_launcher
+     spec = Gem::Specification.load(GEMSPEC_PATH)
+ 
+diff --git a/test/unit/packaging/built_gem_scripts_test.rb b/test/unit/packaging/built_gem_scripts_test.rb
+new file mode 100644
+index 0000000..0e3cd89
+--- /dev/null
++++ b/test/unit/packaging/built_gem_scripts_test.rb
+@@ -0,0 +1,96 @@
++require "test_helper"
++require "open3"
++require "rubygems/package"
++require "stringio"
++require "tmpdir"
++require "zlib"
++
++# Release gate (U2): fail whenever a script referenced by packaged
++# lib/hive/**/*.rb code is missing from the ACTUALLY BUILT .gem artifact.
++#
++# Unlike GemspecTest (which inspects spec.files before any build), this
++# test shells out to `gem build`, opens the resulting tarball, extracts
++# data.tar.gz and asserts member names — proving a release build would
++# ship every runtime script, not merely that the glob looks right.
++# Offline-safe: no install step, no network, all output under a tempdir.
++class BuiltGemScriptsTest < Minitest::Test
++  PROJECT_ROOT = File.expand_path("../../..", __dir__)
++  GEMSPEC_PATH = File.join(PROJECT_ROOT, "hive.gemspec")
++  LIB_DIR = File.join(PROJECT_ROOT, "lib")
++
++  # Runtime consumers reference scripts relative to their own __dir__
++  # (e.g. File.expand_path("scripts/stop_hook.sh", __dir__)), so packaged
++  # lib sources carry literal `scripts/<name>.sh` substrings. Scanning for
++  # that pattern keeps this guard self-extending: a future consumer of a
++  # new script is picked up without touching this test.
++  SCRIPT_REF_PATTERN = %r{scripts/[\w.\-]+\.sh}.freeze
++
++  def test_every_script_referenced_by_packaged_lib_ships_inside_the_built_gem
++    referenced = referenced_scripts
++    assert referenced.any?,
++           "sanity guard: script-reference enumeration found nothing under lib/hive/**/*.rb " \
++           "(a product-code refactor changed how scripts are located — update this scanner)"
++
++    unpacked_gem_artifact do |member_names|
++      # Archive-integrity sanity: the obvious always-shipped entry proves we
++      # read real member names instead of passing against an empty reader.
++      assert_includes member_names, "lib/hive.rb",
++                      "built artifact does not look like a hive-cli gem"
++
++      referenced.each do |member_path|
++        assert File.exist?(File.join(PROJECT_ROOT, member_path)),
++               "#{member_path} is referenced by packaged lib code but missing from the source tree"
++        assert_includes member_names, member_path,
++                        "#{member_path} is referenced by packaged lib code but was NOT shipped in the built gem"
++      end
++    end
++  end
++
++  private
++
++  # Returns gem-member paths like "lib/hive/scripts/stop_hook.sh". The
++  # in-code literals are relative to lib/hive (the consumers' __dir__),
++  # so the resolution mirrors File.expand_path(ref, "<lib/hive>").
++  def referenced_scripts
++    refs = Dir.glob(File.join(LIB_DIR, "hive/**/*.rb")).flat_map do |source|
++      File.read(source).scan(SCRIPT_REF_PATTERN)
++    end.uniq.sort
++    flunk "malformed script reference(s): #{refs.inspect}" unless refs.all? { |r| r.start_with?("scripts/") }
++
++    refs.map { |ref| File.join("lib", "hive", ref) }
++  end
++
++  # Builds the real gem into a private tempdir, reads every data.tar.gz
++  # member name, and guarantees the tempdir is removed afterwards.
++  def unpacked_gem_artifact
++    Dir.mktmpdir("hive-built-gem-guard") do |dir|
++      gem_path = File.join(dir, "hive-cli.gem")
++      out, err, status = Open3.capture3("gem", "build", GEMSPEC_PATH,
++                                        "--output", gem_path,
++                                        chdir: PROJECT_ROOT)
++      unless status.success?
++        flunk "gem build failed (exit=#{status.exitstatus}): #{err} #{out}"
++      end
++
++      yield data_tar_member_names(gem_path)
++    end
++  end
++
++  def data_tar_member_names(gem_path)
++    names = []
++    File.open(gem_path, "rb") do |outer|
++      Gem::Package::TarReader.new(outer) do |tar|
++        tar.each do |entry|
++          next unless entry.full_name == "data.tar.gz"
++
++          Zlib::GzipReader.wrap(StringIO.new(entry.read)) do |gz|
++            Gem::Package::TarReader.new(gz) do |inner|
++              inner.each { |member| names << member.full_name }
++            end
++          end
++        end
++      end
++    end
++    names
++  end
++end
+diff --git a/wiki/e2e.md b/wiki/e2e.md
+index c3c3e05..40df858 100644
+--- a/wiki/e2e.md
++++ b/wiki/e2e.md
+@@ -7,7 +7,7 @@ updated: 2026-06-21
+ tags: [test, e2e, tui, artifacts]
+ ---
+ 
+-**TLDR**: `test/e2e/` is the outer test layer. It drives the real `bin/hive` binary in a copied Ruby sample project, uses tmux for TUI scenarios, validates JSON output against published schemas, and writes versioned run artifacts for later debugging. The `bin/hive-e2e` Thor executable is also a small public harness surface with pinned exit codes and JSON error envelopes for wrapper/CI callers.
++**TLDR**: `test/e2e/` is the outer test layer. It drives the real `bin/hive` binary in a copied Ruby sample project, uses tmux for TUI scenarios, validates JSON output against published schemas, and writes versioned run artifacts for later debugging. The `bin/hive-e2e` Thor executable is also a small public harness surface with pinned exit codes and JSON error envelopes for wrapper/CI callers. Inner-layer note: the offline tmux-path launch regression for Claude readiness (scenario-controlled fake interactive claude, including a Claude Code 2.1.179 NBSP-caret layout) lives in `test/integration/run_brainstorm_tmux_test.rb`, not here.
+ 
+ ## Commands
+ 
+diff --git a/wiki/log.d/20260701T000000Z-claude-tmux-ready-detector-nbsp.md b/wiki/log.d/20260701T000000Z-claude-tmux-ready-detector-nbsp.md
+new file mode 100644
+index 0000000..189440f
+--- /dev/null
++++ b/wiki/log.d/20260701T000000Z-claude-tmux-ready-detector-nbsp.md
+@@ -0,0 +1,8 @@
++---
++timestamp: 2026-07-01T00:00:00Z
++title: Claude tmux ready detector tolerates 2.1.179 NBSP caret; gem ships scripts
++---
++
++- `Hive::ClaudeLauncher` ready detector widened: bottom-of-region scan window `CLAUDE_PROMPT_TAIL_LINES=10` (context cap 12, invariant-pinned), `[[:space:]]` Unicode whitespace classes (2.1.179 pads the caret with U+00A0; `\s` matches neither NBSP nor U+3000), lowest-anchored-caret selection plus below-blocking on trust/permission copy. Rejections for permission/trust/menu states preserved; see [[modules/agent]].
++- `hive.gemspec` now packages `lib/hive/scripts/**/*` (wrapper + stop hook were missing from installed gems — root cause of the add-local-hive-web-install-260629-f4ca `claude_launch_failed` incident); new built-artifact guard `test/unit/packaging/built_gem_scripts_test.rb` enumerates every `scripts/*.sh` reference in packaged lib sources and asserts each inside a real built `.gem`.
++- Offline integration regression: fake interactive claude gains the exact 2.1.179 pane layout (`waiting_2179` scenario) and drives a brainstorm stage to WAITING through real tmux in `test/integration/run_brainstorm_tmux_test.rb`.
+diff --git a/wiki/modules/agent.md b/wiki/modules/agent.md
+index 2538ebb..f6bf818 100644
+--- a/wiki/modules/agent.md
++++ b/wiki/modules/agent.md
+@@ -3,7 +3,7 @@ title: Hive::Agent
+ type: module
+ source: lib/hive/agent.rb, lib/hive/agent_limit.rb, lib/hive/claude_launcher.rb, lib/hive/scripts/interactive_claude_wrapper.sh
+ created: 2026-04-25
+-updated: 2026-06-21
++updated: 2026-07-01
+ tags: [agent, claude, subprocess]
+ ---
+ 
+@@ -40,6 +40,12 @@ Hive::Agent.new(
+ 
+ Headless `Hive::Agent#spawn_and_wait` scans each raw stream line for limit text while still preserving the structured final message and bounded plain tail. That raw-stream path catches CLIs that emit usage walls as JSON error events which `MessageExtractor` does not surface as a final assistant message; `handle_exit` then prefers `result[:limit_text]` and falls back to scanning `final_message`. The classifier still only controls failure/timeout handling: a clean `exit_code == 0` result is not reclassified. For `:state_file_marker` spawns it stamps `ERROR reason=limits_reached`; for `:exit_code_only` and `:output_file_exists` spawns it returns the limit message without overwriting the orchestrator-owned marker. `Hive::ClaudeLauncher` uses the same classifier while waiting for tmux readiness, terminal markers, and expected-output files, so a visible provider-limit pane wins over readiness timeout, tmux-session-death, and missing-output fallbacks.
+ 
++## Tmux readiness detection
++
++`Hive::ClaudeLauncher.prepare_claude_session!` polls the pane tail until `claude_ready_prompt?` accepts it. Detection keys on the `❯` input caret anchored to a line edge (first glyph, last glyph, or Unicode whitespace after it), scanned across the bottom `CLAUDE_PROMPT_TAIL_LINES` (10) nonblank lines of the region that starts after the last blank line or `Claude Code` banner; the LOWEST anchored, non-menu-option caret wins, and trust (`Quick safety check`, `Yes, I trust this folder`) or permission (`Do you want to…`) copy strictly below that caret blocks readiness, because an active modal owns the pane floor (below-blocking rule). All whitespace classes use `[[:space:]]`, never `\s`: Claude Code 2.1.179 pads the caret hint with a non-breaking space (U+00A0) inside a separator/footer sandwich, and Ruby's ASCII-only `\s` matches neither NBSP nor U+3000 — hand-authored fixtures carry the literal NBSP bytes so engine drift fails in CI rather than in operator launches. Copy anchors (`Claude Code` banner, `for agents` footer, trust/permission strings) remain version-coupled surfaces to refresh when Claude Code renames its chrome.
++
++Packaging counterpart: `hive.gemspec` ships `lib/hive/scripts/**/*` so `wrapper_command`'s `interactive_claude_wrapper.sh` and `StopHookInstaller::HOOK_PATH` resolve inside installed gems; `test/unit/packaging/built_gem_scripts_test.rb` builds the real `.gem` into a tempdir and asserts every `scripts/*.sh` reference found in packaged lib sources appears among the artifact's `data.tar.gz` members.
++
+ ## `run!` (the main entry)
+ 
+ 1. `ensure_log_dir`.
+@@ -164,7 +170,7 @@ The default Claude permission path still uses `--dangerously-skip-permissions` (
+ ## Tests
+ 
+ - `test/unit/agent_test.rb` and `test/fixtures/fake-claude` exercise the spawn/wait/timeout logic without a real claude binary, including configurable Claude permission-mode argv and model/effort `cli_flags` reaching the headless command.
+-- `test/unit/claude_launcher_test.rb` covers the tmux wrapper argv carrying model/effort pins and omitting them when no flags are configured.
++- `test/unit/claude_launcher_test.rb` covers the tmux wrapper argv carrying model/effort pins and omitting them when no flags are configured, plus the version-tolerant ready detector fixtures (2.1.179 NBSP sandwich acceptances; permission/trust/menu/below-blocking rejections).
+ - `test/unit/spawn_agent_test.rb` covers `Stages::Base.spawn_agent` forwarding `claude.permission_mode` from config into headless Claude spawns and the stage permission-scope helper preserving yolo defaults.
+ - `test/smoke/permission_scope_headless_smoke_test.rb` is a live Claude smoke proving a read-only headless write attempt completes without timeout and does not create the file, while yolo creates it.
+ 

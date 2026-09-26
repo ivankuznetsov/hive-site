@@ -7,17 +7,13 @@ require_relative "test_helper"
 
 class WorkflowDocumentationTest < Minitest::Test
   include SiteTestHelpers
-  STABLE_HIVE_VERSION = "0.6.5"
-
   def test_site_and_command_pages_match_the_stable_workflow_surface
-    config = YAML.safe_load(read("_config.yml"))
     init = read("docs/commands/init.md")
     new_command = read("docs/commands/new.md")
     approve = read("docs/commands/approve.md")
     command_index = read("docs/commands/index.md")
     operating = read("docs/operating.md")
 
-    assert_equal STABLE_HIVE_VERSION, config.fetch("hive_version")
     assert_includes init, "--workflow <id>"
     assert_includes init, "--new-workflow <id>"
     assert_includes new_command, "--workflow <id>"

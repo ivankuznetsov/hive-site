@@ -1,0 +1,188 @@
+diff --git a/lib/hive/tui/bubble_model.rb b/lib/hive/tui/bubble_model.rb
+index d42249e34..d80f99500 100644
+--- a/lib/hive/tui/bubble_model.rb
++++ b/lib/hive/tui/bubble_model.rb
+@@ -2944,8 +2944,8 @@ module Hive
+         # Reserve a 1-cell right margin across every section so no row
+         # ever lands a glyph in the terminal's last column. Header and
+         # footer strips are width-aware — the fixed hint footer was
+-        # 75 chars regardless of terminal width and overflowed at
+-        # cols<76 before this clamp.
++        # 79 chars regardless of terminal width and overflowed at
++        # cols<80 before this clamp.
+         usable = [ cols - 1, 1 ].max
+         sections = [ header_strip(usable) ]
+         sections << stalled_banner(usable) if stalled?
+@@ -3002,7 +3002,7 @@ module Hive
+       # Default footer — context-aware key hints + flash decay (the
+       # status line). v1 had this in Views::Grid#status_line; lifted here
+       # so the panes stay layout-only. `usable_width` clamps the line
+-      # so the fixed 75-char hint string doesn't overflow narrow
++      # so the fixed 79-char hint string doesn't overflow narrow
+       # terminals (e.g. cols=70 used to wrap onto a second visible row).
+       def default_footer(usable_width = nil)
+         if @hive_model.flash_active?
+@@ -3017,7 +3017,7 @@ module Hive
+       end
+ 
+       def footer_hint
+-        "[Tab] switch  [Enter] action  [n] new  [/] filter  [?] help  [q] quit"
++        "[Tab] switch  [Enter] action  [n] new  [/] filter  [?] help  [i] idea  [q] quit"
+       end
+ 
+       # Compute pane widths and join horizontally. Left pane is clamped
+diff --git a/lib/hive/tui/styles.rb b/lib/hive/tui/styles.rb
+index 10d9a20d4..62ba3f463 100644
+--- a/lib/hive/tui/styles.rb
++++ b/lib/hive/tui/styles.rb
+@@ -107,7 +107,7 @@ module Hive
+       # render loop is showing a snapshot older than the staleness threshold.
+       STALLED = Lipgloss::Style.new.foreground(color(:yellow)).reverse(true)
+ 
+-      # Hint footer ("[?] help [/] filter [q] quit") — faint default-fg so
++      # Hint footer ("[Tab] switch … [q] quit") — faint default-fg so
+       # it recedes against the active grid content.
+       HINT = Lipgloss::Style.new.faint(true)
+ 
+diff --git a/test/unit/tui/bubble_model_test.rb b/test/unit/tui/bubble_model_test.rb
+index bfc3e63b9..c3a9ec981 100644
+--- a/test/unit/tui/bubble_model_test.rb
++++ b/test/unit/tui/bubble_model_test.rb
+@@ -600,31 +600,66 @@ class HiveTuiBubbleModelTest < Minitest::Test
+     assert_includes out, "Tasks ·",       "tasks pane title must render"
+     assert_includes out, "[Tab] switch",  "default footer hints must appear"
+     assert_includes out, "[Enter] action", "Enter footer hint must describe contextual behavior"
++    assert_includes out, "[i] idea",       "i idea hint must appear once in the footer"
+     refute_includes out, "[Enter] open",   "Enter is not only an open action"
+   end
+ 
+-  def test_default_footer_hint_omits_o_at_70_col_budget
+-    # Plan R6: `[o] open` is included in the footer only if it fits
+-    # the 70-col budget without wrapping or pushing primary actions
+-    # onto a second line. At 70 cols the current hint string is
+-    # already ~69 chars; adding ten more (separator + "[o] open")
+-    # would exceed the budget. We rely on the `?` overlay for
+-    # discoverability instead. This test pins that decision so a
+-    # future contributor doesn't silently re-add the hint and break
+-    # 70-col rendering.
++  def test_default_footer_hint_surfaces_i_within_79_col_budget
++    # Plan R6: the footer must fit on one line at the two-pane breakpoint
++    # without wrapping or pushing primary actions onto a second line. The
++    # `i` (idea preview) entry is now surfaced between `[?] help` and
++    # `[q] quit`, growing the literal from 69 to 79 chars. `[o] open` is
++    # still excluded and documented in `?` only; `default_footer` truncates
++    # gracefully with `…` at widths below 79 cols (see the width guard
++    # below and `test_default_footer_truncates_with_ellipsis_at_cols_70`).
++    # This test pins that decision so a future contributor doesn't silently
++    # drop `[i]` or re-add `[o]`.
+     hint = @model.send(:footer_hint)
+-    assert_equal "[Tab] switch  [Enter] action  [n] new  [/] filter  [?] help  [q] quit",
++    assert_equal "[Tab] switch  [Enter] action  [n] new  [/] filter  [?] help  [i] idea  [q] quit",
+                  hint,
+-                 "footer hint must remain the pre-`o` literal; `o` is documented in `?` only"
++                 "footer hint must surface `[i] idea` between `[?] help` and `[q] quit`"
++    # Ordering discipline: `[i]` sits after `[?] help` and before `[q] quit`.
++    assert hint.index("[?] help") < hint.index("[i] idea"),
++           "`[i]` must come after `[?] help`"
++    assert hint.index("[i] idea") < hint.index("[q] quit"),
++           "`[i]` must come before `[q] quit`"
+     refute_includes hint, "[o] open",
+-                    "70-col budget can't absorb `[o] open` alongside primary hints"
+-    # Width guard: pin the actual character count so a future contributor
+-    # who adds a hint and (correctly) bumps the literal above also has to
+-    # acknowledge they're spending bytes against the 70-col budget. If
+-    # this assertion fires alongside an updated literal, the contributor
+-    # MUST verify default_footer truncation behavior at cols == 70.
+-    assert hint.length <= 70,
+-           "footer hint must fit the 70-col budget without truncation; got #{hint.length} chars"
++                    "79-col budget can't absorb `[o] open` alongside primary hints"
++    # Width guard: pin the footer budget as a bound (<= 79) so a future
++    # label re-wording that stays within budget doesn't fail the test
++    # just because the exact literal length changed. The exact literal and
++    # the `[?] help` < `[i] idea` < `[q] quit` ordering are already pinned
++    # above; if a contributor grows the hint past the budget,
++    # `default_footer` truncation at cols == 79 must be re-verified
++    # (see the truncation test below).
++    assert_operator hint.length, :<=, 79,
++           "footer hint must stay within the 79-char budget; got #{hint.length} chars"
++  end
++
++  def test_default_footer_truncates_with_ellipsis_at_cols_70
++    # Plan U1: at the two-pane breakpoint (cols == 70) the 79-char hint
++    # exceeds the 69-cell usable width (cols - 1 right margin), so
++    # `default_footer` must truncate with `…` instead of wrapping onto a
++    # second visible row or crashing. `[q] quit` is clipped off the
++    # visible tail, but the `q` keystroke still quits — the keymap is
++    # width-independent, so a narrow terminal never loses the quit path.
++    @model = Hive::Tui::BubbleModel.new(
++      hive_model: Hive::Tui::Model.initial.with(mode: :grid, cols: 70),
++      dispatch: @dispatch
++    )
++
++    out = @model.view
++    footer_line = out.lines.last.to_s.chomp
++
++    assert_includes footer_line, "…",
++                    "79-char hint must truncate with ellipsis at cols == 70"
++    refute_includes footer_line, "[q] quit",
++                    "`[q] quit` is clipped at cols == 70 (79 chars > 69 usable cells)"
++
++    # `q` still quits even though its legend label is clipped.
++    _, cmd = @model.update(key_message(0, runes: [ "q".ord ]))
++    assert_kind_of Bubbletea::QuitCommand, cmd,
++                  "`q` must still dispatch quit at cols == 70"
+   end
+ 
+   def test_grid_mode_collapses_to_single_pane_below_min_cols
+diff --git a/wiki/commands/tui.md b/wiki/commands/tui.md
+index f46a05044..3afa8dfff 100644
+--- a/wiki/commands/tui.md
++++ b/wiki/commands/tui.md
+@@ -3,7 +3,7 @@ title: hive tui
+ type: command
+ source: lib/hive/tui.rb
+ created: 2026-04-27
+-updated: 2026-05-22
++updated: 2026-08-13
+ tags: [command, tui, observability, interactive, diagnostics]
+ ---
+ 
+@@ -18,18 +18,18 @@ The legacy curses backend was removed in plan #003 U11. `HIVE_TUI_BACKEND=curses
+ ## Layout
+ 
+ ```
+-┌─ Header: hive tui · scope=★ All projects · filter=- · generated_at=…  ──┐
+-├─────────────────┬────────────────────────────────────────────────────────┤
+-│  ProjectsPane   │  TasksPane                                             │
+-│  (left, 18-28)  │  (right, cols - left)                                  │
+-│                 │                                                        │
+-│  ★ All projects │  ▶  fix-cache-…   2-brainstorm  Ready to plan      2h │
+-│  hive           │  🤖 metrics-…     4-execute     Agent running       1m │
+-│  myapp          │  ⚠  oauth-…       6-review      Needs recovery      1h │
+-│  appcrawl       │                                                        │
+-├─────────────────┴────────────────────────────────────────────────────────┤
+-│ Footer: [Tab] switch  [Enter] action  [n] new  [/] filter  [?] help  [q]│
+-└──────────────────────────────────────────────────────────────────────────┘
++┌─ Header: hive tui · scope=★ All projects · filter=- · generated_at=…  ──────────────────┐
++├─────────────────┬───────────────────────────────────────────────────────────────────────┤
++│  ProjectsPane   │  TasksPane                                                            │
++│  (left, 18-28)  │  (right, cols - left)                                                 │
++│                 │                                                                       │
++│  ★ All projects │  ▶  fix-cache-…   2-brainstorm  Ready to plan      2h                 │
++│  hive           │  🤖 metrics-…     4-execute     Agent running       1m                │
++│  myapp          │  ⚠  oauth-…       6-review      Needs recovery      1h                │
++│  appcrawl       │                                                                       │
++├─────────────────┴───────────────────────────────────────────────────────────────────────┤
++│ Footer: [Tab] switch  [Enter] action  [n] new  [/] filter  [?] help  [i] idea  [q] quit │
++└─────────────────────────────────────────────────────────────────────────────────────────┘
+ ```
+ 
+ Pane focus is keyboard-only; the focused pane border is bright cyan, the inactive pane border is faint. Below 70 cols the project pane is suppressed and the tasks pane occupies the full width — narrow terminals still get a usable view, just without the left-pane drill-down.
+@@ -64,6 +64,7 @@ Pane focus is keyboard-only; the focused pane border is bright cyan, the inactiv
+ | `F` | run `hive finalize` |
+ | `a` | run `hive archive` |
+ | `Enter` | from left pane: focus right pane. From right pane: perform the row's contextual action: input editor on `needs_input` (completed brainstorm answer rounds auto-run; plan rows auto-advance to `develop` or auto-revise on user feedback), log tail on `agent_running` (and on `error` rows still in a kill-class auto-heal window), red-status detail on selected review-recovery and non-kill-class `error` rows, direct retry/browse for the legacy review-stale exceptions, and suggested-command dispatch for ready rows |
++| `i` | preview the original idea text for the focused task in the bottom strip (read-only idea preview; right-pane focus only) |
+ | `o` | open the focused row's hive-state task folder in `$VISUAL` / `$EDITOR` / `vi` for read-only browsing — no marker change, no workflow dispatch. Distinct from `Enter` (workflow-contextual) and the verb keys (subprocess dispatch). Useful for revisiting investigation outputs in `9-done` (or any stage). |
+ | `s` | steer the focused task manually: open the configured `execute.agent` in the feature worktree with every existing stage folder for that slug passed as agent context, mark the row `MANUAL_STEERING`, and archive the slug under `archived-manual/` when the agent exits |
+ | `n` | open the new-idea flow; if scope is `★ All projects`, first show a project picker, then submit with `hive new <project> "<title>"` against the chosen concrete project |

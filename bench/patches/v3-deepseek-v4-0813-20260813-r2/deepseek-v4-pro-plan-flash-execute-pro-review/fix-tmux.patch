@@ -1,0 +1,711 @@
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+index 39fa61fba..05d2740b2 100644
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -46,6 +46,17 @@ jobs:
+             --no-document \
+             --source https://rubygems.org
+           GEM_HOME="$sandbox" GEM_PATH="$sandbox" "$sandbox/bin/hive" --version
++      - name: Guard: every runtime script is packaged in the built gem
++        # Prevents the live bug where lib/**/*.rb-only globbing dropped
++        # lib/hive/scripts/*.sh, so a clean `gem install` shipped a launcher
++        # that could not find its wrapper / stop-hook. Runs the same checker
++        # the PR suite runs (test/integration/packaged_gem_test.rb) against
++        # THIS release artifact, and also asserts direct-invocation scripts
++        # (stop_hook.sh) stay +x.
++        run: |
++          gem_file="$(ls hive-cli-*.gem | head -n 1)"
++          [[ -s "$gem_file" ]] || { echo "no hive-cli-*.gem in workspace" >&2; exit 1; }
++          ruby packaging/check_packaged_scripts.rb "$gem_file"
+       - uses: actions/upload-artifact@v7
+         with:
+           name: hive-cli-gem
+diff --git a/hive.gemspec b/hive.gemspec
+index d1e8c7cf4..05ee399dd 100644
+--- a/hive.gemspec
++++ b/hive.gemspec
+@@ -35,6 +35,13 @@ Gem::Specification.new do |spec|
+     "bin/hive-babysitter-stub-git",
+     "bin/hv",
+     "lib/**/*.rb",
++    # Runtime shell scripts (interactive_claude_wrapper.sh is invoked by
++    # ClaudeLauncher via `bash`; stop_hook.sh is invoked directly as the
++    # generated Stop-hook command). The `lib/**/*.rb` glob alone omits *.sh,
++    # so a clean `gem install` would ship a launcher that fails to find its
++    # wrapper. The packaging guard (test/integration/packaged_gem_test.rb)
++    # asserts every runtime-referenced script is present in the built gem.
++    "lib/hive/scripts/**/*",
+     "templates/**/*",
+     "schemas/**/*.json",
+     "examples/systemd/*",
+diff --git a/lib/hive/claude_launcher.rb b/lib/hive/claude_launcher.rb
+index 742bbdc50..6579e40f2 100644
+--- a/lib/hive/claude_launcher.rb
++++ b/lib/hive/claude_launcher.rb
+@@ -8,6 +8,7 @@ require "hive/agent_limit"
+ require "hive/config"
+ require "hive/lock"
+ require "hive/markers"
++require "hive/packaged_scripts"
+ require "hive/permission_scope"
+ require "hive/stop_hook_installer"
+ require "hive/tmux_runner"
+@@ -43,9 +44,11 @@ module Hive
+     # hint footer, so the caret is no longer the last line). To tolerate that
+     # without treating a `❯` Claude prints in its OWN output (shell snippets,
+     # prose, bullets) as ready, we (a) require the caret to be the first or
+-    # last glyph of its line — never mid-prose — and (b) only look at the
+-    # bottom of the input box: the last non-blank line, or the line above it
+-    # when a one-line hint footer renders beneath the caret.
++    # last glyph of its line — never mid-prose — and (b) scan only the bottom
++    # CLAUDE_PROMPT_TAIL_LINES non-blank lines of the input box, with no fixed
++    # footer offset: across builds the caret sits on the last line, one line
++    # up behind a one-line hint footer, or a couple of lines up behind a
++    # separator (2.1.179 renders separator / caret / separator / footer).
+     #
+     # Copy strings still gate readiness in two places, both version-coupled
+     # and both to update when Claude Code changes them: the positive
+@@ -58,16 +61,32 @@ module Hive
+     CLAUDE_PERMISSION_PROMPT_MARKER = "Do you want to".freeze
+     CLAUDE_READY_BANNER_MARKER = "Claude Code".freeze
+     CLAUDE_READY_FOOTER_MARKER = "for agents".freeze
+-    # The caret as the FIRST glyph (`❯ …`, older builds) or the LAST glyph
+-    # (`… ?  ❯`, the line-end caret newer builds render after the cwd/git
+-    # context). A caret embedded mid-line is Claude's own output, not the
+-    # idle prompt, so it is intentionally not matched.
+-    CLAUDE_READY_PROMPT_LINE = /\A❯(?:\s|\z)|\s❯\z/.freeze
+-    CLAUDE_MENU_OPTION_LINE = /\A\s*❯\s*\d+\./.freeze
+-    CLAUDE_PROMPT_CONTEXT_LINES = 4
+-    # Lines at the bottom of the input box to inspect for the idle caret:
+-    # the caret line itself plus at most one hint footer rendered below it.
+-    CLAUDE_PROMPT_TAIL_LINES = 2
++    # The caret as the FIRST glyph (`❯ …`) or the LAST glyph (`… ?  ❯`, the
++    # line-end caret newer builds render after the cwd/git context). The
++    # separator after a line-start `❯` may be a plain ASCII space OR a
++    # Unicode separator (Claude Code 2.1.179 renders a non-breaking space,
++    # U+00A0, which Ruby's `\s` does NOT match) — `\p{Zs}` covers both.
++    # A caret embedded mid-line is Claude's own output, not the idle prompt,
++    # so it is intentionally not matched.
++    CLAUDE_READY_PROMPT_LINE = /\A❯(?:[\p{Zs}\s]|\z)|[\p{Zs}\s]❯\z/.freeze
++    # Numbered menu options (`❯ 1. …`). Must use the SAME separator class as
++    # CLAUDE_READY_PROMPT_LINE — `\s` alone misses the U+00A0 NBSP Claude Code
++    # 2.1.179 renders after `❯`, so an NBSP-numbered menu would match the ready
++    # regex yet pass this guard, misclassifying an interactive selection as the
++    # idle prompt (a dangerous auto-Enter false positive).
++    CLAUDE_MENU_OPTION_LINE = /\A[\p{Zs}\s]*❯[\p{Zs}\s]*\d+\./.freeze
++    # Number of non-blank lines of the input-box tail extracted for
++    # inspection. Slightly larger than the scan window below so the banner /
++    # footer markers that gate readiness stay inside the extracted region.
++    CLAUDE_PROMPT_CONTEXT_LINES = 12
++    # Number of bottom non-blank lines of the extracted prompt region to scan
++    # for the idle caret. No fixed footer offset is assumed: across Claude
++    # Code builds the caret sits on the last line, one line up (older hint
++    # footer), or a couple of lines up behind a separator (2.1.179 renders
++    # separator / caret / separator / footer). A window of ~10 comfortably
++    # covers every observed shape. A caret further up with more non-blank
++    # lines below it is stale output, not the live prompt.
++    CLAUDE_PROMPT_TAIL_LINES = 10
+     # Allowed-tool sets shared by every stage that spawns Claude. Keeping
+     # them as constants means a policy change lands in one place; previous
+     # PRs inlined the string literal across 11 sites and silently drifted
+@@ -468,7 +487,7 @@ module Hive
+                         mcp_config_path: nil, strict_mcp_config: false)
+       command = [
+         "bash",
+-        File.expand_path("scripts/interactive_claude_wrapper.sh", __dir__),
++        Hive::PackagedScripts.path("scripts/interactive_claude_wrapper.sh"),
+         "--cwd", cwd
+       ]
+       Array(add_dirs).each { |dir| command.concat([ "--add-dir", dir ]) }
+@@ -616,12 +635,14 @@ module Hive
+       return false unless pane.include?(CLAUDE_READY_BANNER_MARKER) ||
+                           current_text.include?(CLAUDE_READY_FOOTER_MARKER)
+ 
+-      # The idle caret sits at the bottom of the input box: it is the last
+-      # non-blank line, or the line above it when a one-line hint footer
+-      # renders beneath it. Limiting the scan to those two lines (rather than
+-      # the whole region) keeps a caret Claude printed earlier in its own
+-      # output from reading as ready. A numbered menu option (`❯ 1.`) is an
+-      # interactive selection, not the idle prompt, so it never counts.
++      # The idle caret sits at the bottom of the input box, but its exact
++      # offset from the box's last line varies by Claude Code build (last
++      # line; above a one-line hint footer; or two lines up behind separator /
++      # caret / separator / footer in 2.1.179). Scan the last
++      # CLAUDE_PROMPT_TAIL_LINES non-blank lines of the extracted region
++      # (no fixed footer offset). A caret with MORE non-blank output lines
++      # below it than the window is stale scrollback, and a numbered menu
++      # option (`❯ 1.`) is an interactive selection, so neither counts.
+       current_lines.last(CLAUDE_PROMPT_TAIL_LINES).any? do |line|
+         line.match?(CLAUDE_READY_PROMPT_LINE) && !line.match?(CLAUDE_MENU_OPTION_LINE)
+       end
+diff --git a/lib/hive/packaged_scripts.rb b/lib/hive/packaged_scripts.rb
+new file mode 100644
+index 000000000..63b815a02
+--- /dev/null
++++ b/lib/hive/packaged_scripts.rb
+@@ -0,0 +1,43 @@
++module Hive
++  # Single source of truth for every runtime-invoked shell script under
++  # lib/hive/scripts/. The gemspec packages lib/hive/scripts/**/* and the
++  # packaging guard (test/integration/packaged_gem_test.rb) asserts each
++  # entry here is present inside the ACTUALLY built gem, so a script
++  # referenced at runtime can never be silently omitted from a clean
++  # `gem install` (the historical bug where only lib/**/*.rb shipped).
++  #
++  # Add a new script that the runtime invokes by (1) placing it under
++  # lib/hive/scripts/, (2) listing it here, and (3) referencing it through
++  # Hive::PackagedScripts.path — then the built-gem guard fails loudly if it
++  # is not packaged, instead of breaking silently at launch time.
++  module PackagedScripts
++    # Relative paths (from lib/hive/) of every script the runtime invokes.
++    # Details of who references each:
++    #   scripts/interactive_claude_wrapper.sh — ClaudeLauncher.wrapper_command
++    #     invokes it via `bash <this>` (readability suffices, but it ships +x).
++    #   scripts/stop_hook.sh — StopHookInstaller::HOOK_PATH, invoked directly
++    #     as the generated Stop-hook command, so it must stay executable.
++    SCRIPTS = [
++      "scripts/interactive_claude_wrapper.sh",
++      "scripts/stop_hook.sh"
++    ].freeze
++
++    # Subset of SCRIPTS invoked directly (not via `bash <script>`) by the
++    # generated hook/settings command, so the built gem must preserve their
++    # +x bit. The wrapper is `bash`-invoked and only needs to be readable;
++    # it is intentionally not listed here. Single source of truth for both
++    # test/integration/packaged_gem_test.rb and the release guard
++    # packaging/check_packaged_scripts.rb so a future +x script (or rename)
++    # updates the enumeration in exactly one place.
++    EXEC_REQUIRED = [
++      "scripts/stop_hook.sh"
++    ].freeze
++
++    module_function
++
++    # Absolute path under lib/hive/ for a relative scripts/ entry.
++    def path(relative)
++      File.expand_path(relative, __dir__)
++    end
++  end
++end
+diff --git a/lib/hive/stop_hook_installer.rb b/lib/hive/stop_hook_installer.rb
+index 237887af1..746e2cd72 100644
+--- a/lib/hive/stop_hook_installer.rb
++++ b/lib/hive/stop_hook_installer.rb
+@@ -1,10 +1,11 @@
+ require "fileutils"
+ require "json"
+ require "shellwords"
++require "hive/packaged_scripts"
+ 
+ module Hive
+   module StopHookInstaller
+-    HOOK_PATH = File.expand_path("scripts/stop_hook.sh", __dir__)
++    HOOK_PATH = Hive::PackagedScripts.path("scripts/stop_hook.sh")
+     BACKUP_SUFFIX = ".hive-pre-install"
+ 
+     module_function
+diff --git a/packaging/check_packaged_scripts.rb b/packaging/check_packaged_scripts.rb
+new file mode 100644
+index 000000000..5e9ec39a1
+--- /dev/null
++++ b/packaging/check_packaged_scripts.rb
+@@ -0,0 +1,63 @@
++#!/usr/bin/env ruby
++# frozen_string_literal: true
++
++# Packaging guard for runtime-invoked shell scripts. Verifies that every
++# Hive::PackagedScripts::SCRIPTS entry is present inside an already-built
++# hive-cli .gem, and that scripts invoked directly (not via `bash …`) still
++# ship with the executable bit preserved. Used by
++# test/integration/packaged_gem_test.rb (which builds the gem) and by
++# release.yml (against the artifact it just built), so a script referenced at
++# runtime but omitted from spec.files fails the gate instead of breaking a
++# clean `gem install` at launch time.
++#
++#   ruby packaging/check_packaged_scripts.rb <path-to-.gem>
++
++require_relative "../lib/hive/packaged_scripts"
++require "rubygems/package"
++require "zlib"
++require "stringio"
++
++gem_file = ARGV.fetch(0) { abort "usage: ruby packaging/check_packaged_scripts.rb <gem-file>\n" }
++abort "gem file not found: #{gem_file}\n" unless File.file?(gem_file)
++
++# Scripts invoked directly by the generated hook/settings command (not via
++# `bash <script>`), so the built gem must preserve their +x bit. This
++# enumeration lives in Hive::PackagedScripts::EXEC_REQUIRED — the single
++# source of truth shared with the integration test.
++EXEC_REQUIRED = Hive::PackagedScripts::EXEC_REQUIRED
++
++# Map of full tar paths ("lib/hive/scripts/…") -> header (for mode bits).
++entries = {}
++File.open(gem_file) do |io|
++  Gem::Package::TarReader.new(io) do |outer|
++    outer.each do |entry|
++      next unless entry.full_name == "data.tar.gz"
++
++      gz = Zlib::GzipReader.new(StringIO.new(entry.read))
++      Gem::Package::TarReader.new(gz) do |data|
++        data.each { |inner| entries[inner.full_name] = inner.header }
++      end
++    end
++  end
++end
++
++missing = Hive::PackagedScripts::SCRIPTS.reject do |relative|
++  entries.key?("lib/hive/#{relative}")
++end
++
++unless missing.empty?
++  abort "BUNDLED gem #{gem_file} is missing runtime script(s): #{missing.join(', ')}\n" \
++        "Add them to spec.files (lib/hive/scripts/**/* glob) — see hive.gemspec.\n"
++end
++
++EXEC_REQUIRED.each do |relative|
++  mode = entries.fetch("lib/hive/#{relative}").mode
++  next if (mode & 0o111) != 0
++
++  abort "BUNDLED gem #{gem_file} ships #{relative} without the executable bit " \
++        "(mode 0#{mode.to_s(8)}); it is invoked directly by the Stop-hook command " \
++        "and must remain +x — see Hive::StopHookInstaller / hive.gemspec.\n"
++end
++
++puts "ok: built gem #{gem_file} packages every runtime script " \
++     "(#{Hive::PackagedScripts::SCRIPTS.join(', ')})"
+diff --git a/test/fixtures/panes/claude_menu_2_1_179.txt b/test/fixtures/panes/claude_menu_2_1_179.txt
+new file mode 100644
+index 000000000..0129439ce
+--- /dev/null
++++ b/test/fixtures/panes/claude_menu_2_1_179.txt
+@@ -0,0 +1,7 @@
++Claude Code v2.1.179
++Proceed with the action?
++────
++❯ 1. Yes
++  2. No
++────
++⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents
+diff --git a/test/fixtures/panes/claude_permission_2_1_179.txt b/test/fixtures/panes/claude_permission_2_1_179.txt
+new file mode 100644
+index 000000000..3167edc8b
+--- /dev/null
++++ b/test/fixtures/panes/claude_permission_2_1_179.txt
+@@ -0,0 +1,4 @@
++Claude Code v2.1.179
++Do you want to allow Claude to use Bash for this command?
++❯ 1. Yes, allow
++  2. No
+diff --git a/test/fixtures/panes/claude_ready_2_1_179.txt b/test/fixtures/panes/claude_ready_2_1_179.txt
+new file mode 100644
+index 000000000..feec4434c
+--- /dev/null
++++ b/test/fixtures/panes/claude_ready_2_1_179.txt
+@@ -0,0 +1,6 @@
++Claude Code v2.1.179
++Tip: try "fix lint errors"
++────
++❯ Try "fix lint errors"
++────
++⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents
+diff --git a/test/fixtures/panes/claude_trust_2_1_179.txt b/test/fixtures/panes/claude_trust_2_1_179.txt
+new file mode 100644
+index 000000000..013518b2f
+--- /dev/null
++++ b/test/fixtures/panes/claude_trust_2_1_179.txt
+@@ -0,0 +1,5 @@
++Claude Code v2.1.179
++Quick safety check
++❯ 1. Yes, I trust this folder
++✓ Trust
++Enter to continue
+diff --git a/test/integration/packaged_gem_test.rb b/test/integration/packaged_gem_test.rb
+new file mode 100644
+index 000000000..5b11a7661
+--- /dev/null
++++ b/test/integration/packaged_gem_test.rb
+@@ -0,0 +1,217 @@
++require "test_helper"
++require "open3"
++require "rubygems/package"
++require "zlib"
++require "stringio"
++require "hive/packaged_scripts"
++
++# Packaging guard: builds the ACTUAL .gem (the same `gem build` release.yml
++# runs) and asserts every runtime-invoked script is packaged inside it, with
++# the direct-invocation scripts still executable. The unit-level counterpart
++# in gemspec_test.rb locks spec.files; this integration test is the ground
++# truth that the shipped artifact really carries the scripts, so a future
++# script added to Hive::PackagedScripts but omitted from the gemspec fails CI
++# on every PR instead of silently breaking a clean `gem install`.
++class PackagedGemTest < Minitest::Test
++  include HiveTestHelper
++
++  REPO_ROOT = File.expand_path("../..", __dir__)
++  CHECKER = File.join(REPO_ROOT, "packaging", "check_packaged_scripts.rb")
++
++  # Scripts invoked directly (not via `bash …`) by the generated hook /
++  # settings command — the built gem must preserve their +x bit. The
++  # enumeration is shared with the release guard via
++  # Hive::PackagedScripts::EXEC_REQUIRED (single source of truth).
++  EXEC_REQUIRED = Hive::PackagedScripts::EXEC_REQUIRED
++
++  def test_built_gem_packages_every_runtime_script_and_preserves_exec_bit
++    with_built_gem do |gem_path|
++      contents = gem_contents(gem_path)
++      Hive::PackagedScripts::SCRIPTS.each do |relative|
++        assert_includes contents, "lib/hive/#{relative}",
++                        "#{relative} is referenced at runtime (PackagedScripts) " \
++                        "but missing from the built gem"
++      end
++
++      entries = data_tar_entries(gem_path)
++      EXEC_REQUIRED.each do |relative|
++        mode = entries.fetch("lib/hive/#{relative}").mode
++        assert (mode & 0o111) != 0,
++               "built gem ships #{relative} without +x (mode 0#{mode.to_s(8)}); " \
++               "it is invoked directly by the Stop-hook command"
++      end
++    end
++  end
++
++  # The guard must fail loudly when a script reference is added without a
++  # corresponding packaged file — that is exactly the regression this suite
++  # exists to prevent. Build the real gem, tamper it to drop one runtime
++  # script, and run the ACTUAL guard (check_packaged_scripts.rb) against it so
++  # the abort path is exercised, not just re-asserted as a tautology.
++  def test_guard_fails_when_a_script_reference_is_missing_from_the_built_gem
++    missing_script = "scripts/stop_hook.sh"
++    with_built_gem do |gem_path|
++      with_tmp_dir do |dir|
++        tampered = File.join(dir, "tampered.gem")
++        write_tampered_gem_without(gem_path, missing_script, tampered)
++        out, status = Open3.capture2e(RbConfig.ruby, CHECKER, tampered)
++        refute status.success?,
++               "checker must fail on a gem missing #{missing_script}:\n#{out}"
++        assert_match(/missing runtime script/, out)
++        assert_includes out, missing_script
++      end
++    end
++  end
++
++  # release.yml runs the checker against its own freshly built artifact; lock
++  # that the script is runnable here too so a refactor of the guard never
++  # silently desyncs the workflow step.
++  def test_checker_script_is_runnable_and_passes_on_the_built_gem
++    with_built_gem do |gem_path|
++      out, status = Open3.capture2e(RbConfig.ruby, CHECKER, gem_path)
++      assert status.success?, "checker script failed:\n#{out}"
++      assert_match(/ok: built gem .* packages every runtime script/, out)
++    end
++  end
++
++  # The +x abort branch is the other half of the guard: a script shipped in
++  # the gem but without the executable bit breaks a clean `gem install` at
++  # launch time, when the Stop-hook command invokes it directly. Build the
++  # real gem, strip +x from stop_hook.sh, and run the ACTUAL guard so the
++  # exec-bit abort path is exercised rather than only re-asserted via the
++  # direct mode math in test_built_gem_packages_every_runtime_script_and_preserves_exec_bit.
++  def test_guard_fails_when_an_exec_script_loses_its_exec_bit
++    relative = "scripts/stop_hook.sh"
++    with_built_gem do |gem_path|
++      with_tmp_dir do |dir|
++        tampered = File.join(dir, "no-exec.gem")
++        write_tampered_gem_with_mode(gem_path, relative, 0o644, tampered)
++        out, status = Open3.capture2e(RbConfig.ruby, CHECKER, tampered)
++        refute status.success?,
++               "checker must fail on a gem shipping #{relative} without +x:\n#{out}"
++        assert_match(/without the executable bit/, out)
++        assert_includes out, relative
++      end
++    end
++  end
++
++  private
++
++  # Build the real gem from the repo root (Gemfile globs resolve against cwd,
++  # exactly like release.yml's `gem build hive.gemspec`), yield the resulting
++  # path, then remove the artifact we created.
++  def with_built_gem
++    Dir.chdir(REPO_ROOT) do
++      before = Dir.glob("hive-cli-*.gem")
++      out, status = Open3.capture2e("gem", "build", "hive.gemspec")
++      assert status.success?, "gem build failed:\n#{out}"
++      created = Dir.glob("hive-cli-*.gem") - before
++      refute_empty created, "gem build produced no hive-cli-*.gem"
++      yield File.expand_path(created.first)
++    ensure
++      Array(created).each { |f| File.delete(f) if File.exist?(f) }
++    end
++  end
++
++  def gem_contents(gem_path)
++    Gem::Package.new(gem_path).contents
++  end
++
++  # Full tar path -> header, read directly from data.tar.gz (Gem::Package's
++  # extract_files normalizes every mode to 0644, so we must read the tar).
++  def data_tar_entries(gem_path)
++    entries = {}
++    File.open(gem_path) do |io|
++      Gem::Package::TarReader.new(io) do |outer|
++        outer.each do |entry|
++          next unless entry.full_name == "data.tar.gz"
++
++          gz = Zlib::GzipReader.new(StringIO.new(entry.read))
++          Gem::Package::TarReader.new(gz) do |data|
++            data.each { |inner| entries[inner.full_name] = inner.header }
++          end
++        end
++      end
++    end
++    entries
++  end
++
++  # Yield each `full_name` -> raw bytes entry inside data.tar.gz. Unlike
++  # data_tar_entries (headers only), this carries the file contents so we can
++  # re-pack a deliberately tampered gem that omits one runtime script.
++  def each_data_tar_entry(gem_path)
++    File.open(gem_path) do |io|
++      Gem::Package::TarReader.new(io) do |outer|
++        outer.each do |entry|
++          next unless entry.full_name == "data.tar.gz"
++
++          gz = Zlib::GzipReader.new(StringIO.new(entry.read))
++          Gem::Package::TarReader.new(gz) do |data|
++            data.each { |inner| yield inner.full_name, inner.read }
++          end
++        end
++      end
++    end
++  end
++
++  # Rebuild a .gem whose data.tar.gz carries every original entry EXCEPT
++  # `lib/hive/<relative>`, leaving that runtime-referenced script genuinely
++  # absent. The checker only inspects data.tar.gz, so a minimal outer tar with
++  # just that entry is sufficient to exercise its abort path. The inner tar is
++  # written to a StringIO first: TarWriter needs `pos=` to backfill headers,
++  # which Zlib::GzipWriter does not support.
++  def write_tampered_gem_without(gem_path, relative, out_path)
++    retained = {}
++    each_data_tar_entry(gem_path) do |name, bytes|
++      retained[name] = bytes unless name == "lib/hive/#{relative}"
++    end
++
++    inner_tar = StringIO.new
++    Gem::Package::TarWriter.new(inner_tar) do |inner|
++      retained.each { |name, bytes| inner.add_file(name, 0o644) { |f| f.write(bytes) } }
++    end
++    inner_tar.rewind
++
++    File.open(out_path, "wb") do |io|
++      Gem::Package::TarWriter.new(io) do |writer|
++        writer.add_file("data.tar.gz", 0o644) do |tar|
++          gz = Zlib::GzipWriter.new(tar)
++          gz.write(inner_tar.read)
++          gz.close
++        end
++      end
++    end
++  end
++
++  # Rebuild a .gem whose data.tar.gz carries every original entry, but write
++  # `lib/hive/<relative>` with the given (non-executable) mode while leaving
++  # every other entry at 0644. This simulates a script that shipped in the gem
++  # but lost its +x bit, exercising the checker's exec-bit abort path. Same
++  # StringIO-first strategy as write_tampered_gem_without (TarWriter needs
++  # `pos=` to backfill headers, which Zlib::GzipWriter does not support).
++  def write_tampered_gem_with_mode(gem_path, relative, mode, out_path)
++    bytes_by_name = {}
++    each_data_tar_entry(gem_path) do |name, bytes|
++      bytes_by_name[name] = bytes
++    end
++
++    inner_tar = StringIO.new
++    Gem::Package::TarWriter.new(inner_tar) do |inner|
++      bytes_by_name.each do |name, bytes|
++        entry_mode = name == "lib/hive/#{relative}" ? mode : 0o644
++        inner.add_file(name, entry_mode) { |f| f.write(bytes) }
++      end
++    end
++    inner_tar.rewind
++
++    File.open(out_path, "wb") do |io|
++      Gem::Package::TarWriter.new(io) do |writer|
++        writer.add_file("data.tar.gz", 0o644) do |tar|
++          gz = Zlib::GzipWriter.new(tar)
++          gz.write(inner_tar.read)
++          gz.close
++        end
++      end
++    end
++  end
++end
+diff --git a/test/unit/claude_launcher_test.rb b/test/unit/claude_launcher_test.rb
+index e9c71b65c..fcc879781 100644
+--- a/test/unit/claude_launcher_test.rb
++++ b/test/unit/claude_launcher_test.rb
+@@ -534,6 +534,18 @@ class ClaudeLauncherTest < Minitest::Test
+     refute Hive::ClaudeLauncher.claude_ready_prompt?(pane)
+   end
+ 
++  # Claude Code 2.1.179 renders a non-breaking space (U+00A0) after `❯`, not
++  # the ASCII space the older menu guard's `\s*` would match. The menu guard
++  # must reject an NBSP-numbered option too, or `❯\u00A01.` would match the
++  # ready regex (via `\p{Zs}`) while slipping past the menu guard — the
++  # dangerous auto-Enter-on-a-menu false positive.
++  def test_claude_ready_prompt_rejects_numbered_menu_option_with_nbsp
++    pane = "Claude Code v2.1.179\nProceed with the action?\n❯\u00A01. Yes"
++
++    refute Hive::ClaudeLauncher.claude_ready_prompt?(pane),
++           "an NBSP-numbered menu option must stay rejected"
++  end
++
+   # 2026-05-27 Claude Code build: the input caret moved to the END of a
+   # context-prefixed line (`<cwd> <git-status>  ❯`) and a hint footer renders
+   # BENEATH it, so the caret is no longer the last line. The previous
+@@ -576,15 +588,19 @@ class ClaudeLauncherTest < Minitest::Test
+            "a caret embedded mid-line is Claude's own output, not the idle prompt"
+   end
+ 
+-  # The idle caret is at the BOTTOM of the input box. A caret with two or
+-  # more non-footer lines below it is stale output, not the live prompt, so
+-  # restricting the scan to the last two lines must exclude it.
+-  def test_claude_ready_prompt_rejects_caret_above_the_input_box_tail
+-    pane = "Claude Code v2.1.133\n\n❯ Try \"refactor <filepath>\"\n" \
+-           "running build step 1\nrunning build step 2"
++  # The idle caret is at the BOTTOM of the input box, at a build-dependent
++  # offset (last line … up to a couple of lines up behind a separator/footer).
++  # A caret with MORE non-blank output lines below it than the scan window is
++  # stale scrollback, not the live prompt. (The historical fixed 2-line window
++  # is gone — 2.1.179 places the caret two lines up behind a separator/footer,
++  # which is exactly what the wider window exists to accept.)
++  def test_claude_ready_prompt_rejects_caret_far_above_the_input_box_tail
++    tail = Hive::ClaudeLauncher::CLAUDE_PROMPT_TAIL_LINES
++    pane = "Claude Code v2.1.133\n\n❯ Try \"refactor <filepath>\"\n" +
++           ("running build step\n" * (tail + 3))
+ 
+     refute Hive::ClaudeLauncher.claude_ready_prompt?(pane),
+-           "a caret with non-footer output below it is not the live idle prompt"
++           "a caret with more output lines below it than the scan window is not the live idle prompt"
+   end
+ 
+   # A bare caret line is a legitimate idle prompt; lock it as intentional.
+@@ -600,6 +616,56 @@ class ClaudeLauncherTest < Minitest::Test
+     assert Hive::ClaudeLauncher.claude_trust_prompt?(pane)
+   end
+ 
++  # --- Claude Code 2.1.179 regression fixtures (hand-authored from the
++  # incident shape) ------------------------------------------------
++  #
++  # 2.1.179 moved the caret line to `❯\u00A0…` (non-breaking space after
++  # the glyph, which Ruby's `\s` does NOT match) and renders the input-box
++  # tail as separator / caret / separator / footer. The detector must lock
++  # acceptance of that shape and keep rejecting permission / trust / menu
++  # states. The `_2_1_179` fixture files are plain-text copies of these
++  # shapes under test/fixtures/panes/.
++
++  def test_claude_ready_prompt_accepts_2_1_179_ready_fixture
++    pane = pane_fixture("claude_ready_2_1_179.txt")
++
++    assert Hive::ClaudeLauncher.claude_ready_prompt?(pane),
++           "the 2.1.179 caret (NBSP after ❯; separator/caret/separator/footer) must read as ready"
++  end
++
++  # The window widening (TAIL_LINES 2 → 10) must not regress the prior ready
++  # shapes: line-end caret with hint footer, and the bare `❯` line.
++  def test_claude_ready_prompt_accepts_prior_ready_shapes_with_wider_window
++    line_end_footer = "Claude Code v2.1.133\n\n" \
++                      ".hive-state/stages/x hive/state ?  ❯\n" \
++                      "⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents"
++    bare = "Claude Code v2.1.133\n\n❯"
++
++    assert Hive::ClaudeLauncher.claude_ready_prompt?(line_end_footer)
++    assert Hive::ClaudeLauncher.claude_ready_prompt?(bare)
++  end
++
++  def test_claude_ready_prompt_rejects_2_1_179_permission_fixture
++    pane = pane_fixture("claude_permission_2_1_179.txt")
++
++    refute Hive::ClaudeLauncher.claude_ready_prompt?(pane)
++  end
++
++  def test_claude_ready_prompt_rejects_2_1_179_trust_fixture
++    pane = pane_fixture("claude_trust_2_1_179.txt")
++
++    refute Hive::ClaudeLauncher.claude_ready_prompt?(pane)
++    assert Hive::ClaudeLauncher.claude_trust_prompt?(pane)
++  end
++
++  # A numbered menu state must stay rejected even when a hint footer renders
++  # beneath it within the wider scan window.
++  def test_claude_ready_prompt_rejects_2_1_179_menu_fixture
++    pane = pane_fixture("claude_menu_2_1_179.txt")
++
++    refute Hive::ClaudeLauncher.claude_ready_prompt?(pane)
++  end
++
+   def test_spawn_claude_bang_propagates_agent_error_unchanged
+     # `spawn_claude!` no longer catches tmux-unavailable AgentErrors;
+     # the propagation is what lets the review stage's outer rescue
+diff --git a/test/unit/gemspec_test.rb b/test/unit/gemspec_test.rb
+index c4cd96ddb..cd2cd1ee6 100644
+--- a/test/unit/gemspec_test.rb
++++ b/test/unit/gemspec_test.rb
+@@ -29,4 +29,27 @@ class GemspecTest < Minitest::Test
+     refute spec.files.any? { |f| f.start_with?("public/") },
+            "no Sinatra-era static assets should be packaged"
+   end
++
++  # Both runtime shell scripts live under lib/hive/scripts/ and are invoked
++  # by a clean `gem install`: interactive_claude_wrapper.sh via `bash <...>`
++  # in ClaudeLauncher.wrapper_command, and stop_hook.sh directly as the
++  # generated Stop-hook command. The `lib/**/*.rb` glob alone omitted them,
++  # so the built gem could not launch a Claude tmux stage. Iterate the
++  # Hive::PackagedScripts enumeration — the single source of truth for every
++  # runtime script — so a future script added there is asserted here too,
++  # without a gem build. The packaged-gem integration guard
++  # (test/integration/packaged_gem_test.rb) additionally inspects the ACTUAL
++  # built gem.
++  def test_gem_package_includes_runtime_scripts
++    require "hive/packaged_scripts"
++    spec = Gem::Specification.load(GEMSPEC_PATH)
++
++    Hive::PackagedScripts::SCRIPTS.each do |relative|
++      packaged = "lib/hive/#{relative}"
++      assert_includes spec.files, packaged,
++                      "#{relative} is referenced at runtime (PackagedScripts) but missing from spec.files"
++      assert File.file?(File.expand_path("../../#{packaged}", __dir__)),
++             "#{relative} is enumerated but the source file is missing on disk"
++    end
++  end
+ end
+diff --git a/wiki/gaps.md b/wiki/gaps.md
+index 2d71cc615..98a659f83 100644
+--- a/wiki/gaps.md
++++ b/wiki/gaps.md
+@@ -219,6 +219,10 @@ from the v0.3.1 dependency/security-bump claim or still needs a follow-up relock
+   provider usage/credit limit; it does not close this lost-tmux/liveness
+   detection gap.
+ 
++- **Claude ready-detection still has version-coupled markers** — the positive gate (`Claude Code` banner / `for agents` footer) and the caret-heuristic remain copied Claude-Code release strings. The 0.3.3 detector fix (commit in `fix-claude-tmux-ready-detector`) made caret/whitespace detection tolerant (accepts `\p{Zs}`/NBSP after `❯`, scans the last ~10 nonblank lines with no fixed footer offset), so the 2.1.179 separator/caret/separator/footer shape reads as ready. But a future Claude Code release that changes the banner or `for agents` footer text will still break readiness (a safe false-negative — the launcher repolls, it never mis-launches). A more robust signal (e.g. matching on the input-box tail region only, or `tmux` screen geometry) remains open. Fixtures under `test/fixtures/panes/claude_*_2_1_179.txt` lock the current shape so a layout change fails loudly.
++
++- **Fresh-gem tmux launch end-to-end validation is gated by daemon binary drift** — the packaging + detector fix (0.3.3) restores `lib/hive/scripts/*.sh` into the built gem and recognizes the 2.1.179 idle prompt, but end-to-end `hive run` acceptance still depends on the running daemon/systemd path resolving the freshly installed gem, not the stale `/usr/bin/hive` 0.3.1 binary. That drift/recovery belongs to the separate local-setup / daemon auto-retry work and is explicitly out of scope here.
++
+ - **Brainstorm answers written within one daemon tick of round-end are
+   swallowed** — found by the hivebox golden-path E2E. The resume watcher
+   only sees state-file edits NEWER than its baseline, and the baseline is
+diff --git a/wiki/log.d/20260813T000000Z-claude-ready-detector-packaging.md b/wiki/log.d/20260813T000000Z-claude-ready-detector-packaging.md
+new file mode 100644
+index 000000000..471b87f0a
+--- /dev/null
++++ b/wiki/log.d/20260813T000000Z-claude-ready-detector-packaging.md
+@@ -0,0 +1,7 @@
++---
++timestamp: 2026-08-13T00:00:00Z
++title: fix-claude-tmux-ready-detector — gem packaging + version-tolerant ready detection
++---
++
++- **Packaging fix:** `hive.gemspec` now globs `lib/hive/scripts/**/*` so a clean `gem install` ships `interactive_claude_wrapper.sh` and `stop_hook.sh` (previously only `lib/**/*.rb` shipped, silently breaking tmux-mode launcher and the Stop hook). New `Hive::PackagedScripts` is the single source of truth for every runtime-invoked script; `ClaudeLauncher.wrapper_command` and `StopHookInstaller` reference it now. Guarded by an extended `gemspec_test` unit check plus a new built-gem integration test (`test/integration/packaged_gem_test.rb`) and a `packaging/check_packaged_scripts.rb` gate wired into `release.yml`.
++- **Detector fix:** `Hive::ClaudeLauncher` now accepts a Unicode separator / NBSP (U+00A0) after `❯` (Claude Code 2.1.179 renders a non-breaking space) and scans the last ~10 nonblank lines of the input-box tail instead of a fixed 2-line/footer offset, so the separator/caret/separator/footer shape reads as ready. Menu-option / permission / trust rejections are unchanged. Regression fixtures under `test/fixtures/panes/claude_*_2_1_179.txt` lock the 2.1.179 shapes. See [[gaps]] for the residual version-coupled positive-marker risk and the out-of-scope daemon binary-drift e2e note.

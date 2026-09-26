@@ -23,8 +23,10 @@ decides whether and where to publish.
 
 Read [How workflows work]({{ '/docs/concepts/' | relative_url }}) first if
 workflow definitions, task runs, stages, artifacts, or markers are new terms.
-Commands and descriptor fields below were verified with Hive 0.6.5, the current
-stable release when this page was updated.
+Commands and descriptor fields below were verified with Hive 0.6.5.
+To reuse a workflow from a repository, see
+[Installing private workflows]({{ '/docs/private-workflows/' | relative_url }}),
+which describes the unreleased direct Git importer and its setup requirements.
 
 Hive 0.6.5 also needs the `base64` gem when it runs under Ruby 3.4, where
 `base64` is no longer a default gem. Check the Ruby environment that launches
@@ -510,3 +512,30 @@ See [`hive init`]({{ '/docs/commands/init/' | relative_url }}),
 [`hive run`]({{ '/docs/commands/run/' | relative_url }}), and
 [`hive approve`]({{ '/docs/commands/approve/' | relative_url }}) for the command
 contracts used above.
+
+Follow [Build and share a private workflow]({{ '/docs/build-private-workflow/' | relative_url }})
+for a repository example, portability requirements, and clean-project checks.
+
+---
+
+## Gotchas (learned the hard way)
+
+A few sharp edges. Each one is here because it bit someone first.
+
+- **Edit the scaffolded instruction before running.** A blank `hive workflow new`
+  leaves a placeholder, and running it as-is hands the agent the literal text
+  *"Edit this file…"* — which it will dutifully not act on. The `edit:` line in
+  the command output tells you exactly what to open. (Seeding with `--template`
+  sidesteps this entirely: you get real instructions.)
+- **The last stage must be `terminal`.** Otherwise a finished task can neither
+  advance nor drop — it's stranded at a stage with nowhere to go.
+- **`state_file` is a bare filename.** Something like `sub/idea.md` passes
+  validation but fails at runtime. Keep it flat: `idea.md`, `work.md`.
+- **`id` can't shadow a built-in** (`coding`, `content`), and it must match the
+  descriptor filename.
+- **Custom workflows are per project.** Hive discovers them from
+  `<hive_state_path>/workflows/*.yml`, and once discovered they're available to
+  `hive new --workflow`, `status`, `run`, `approve`, and the daemon — the same
+  surfaces the built-ins use.
+
+---

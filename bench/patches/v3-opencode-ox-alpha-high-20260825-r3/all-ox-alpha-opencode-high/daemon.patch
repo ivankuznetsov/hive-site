@@ -1,0 +1,2431 @@
+diff --git a/lib/hive/config.rb b/lib/hive/config.rb
+index c686876bc..d5c5ae914 100644
+--- a/lib/hive/config.rb
++++ b/lib/hive/config.rb
+@@ -354,6 +354,22 @@ module Hive
+         "child_timeout_sec" => 0,
+         "child_kill_grace_sec" => 30,
+         "child_verb_timeouts" => { "digest" => 3600, "answer-digest" => 3600 },
++        # Daemon auto-retry for recoverable terminal error markers
++        # (plan: daemon auto-retry for recoverable terminal error markers).
++        # When enabled (the default), the daemon evaluates parked tasks
++        # whose ERROR marker carries a v1-allowlisted reason with a
++        # confirmed diagnostic signature (`implementer_failed` codex-401
++        # auth; `claude_launch_failed` launcher/wrapper/readiness), probes
++        # external dependency health (`hive doctor`, `codex login status`
++        # + smoke test, claude wrapper/tmux readiness), proves the retry
++        # cannot discard user work, then clears the marker exactly like a
++        # manual `hive markers clear` and re-enqueues the stage. Bounded:
++        # 2 auto-retries per task per reason, immediate → 30-minute
++        # backoff, permanent park on exhaustion. `enabled: false` is the
++        # global kill-switch — zero probe cost, zero events.
++        "auto_retry" => {
++          "enabled" => true
++        },
+         "log_max_bytes" => 10_485_760,
+         "log_max_files" => 5
+       },
+@@ -2225,6 +2241,20 @@ module Hive
+               "(true / false); got #{autostart.inspect} (#{autostart.class})"
+       end
+ 
++      auto_retry = daemon["auto_retry"]
++      if auto_retry.is_a?(Hash)
++        enabled = auto_retry["enabled"]
++        unless enabled.nil? || enabled == true || enabled == false
++          raise ConfigError,
++                "daemon.auto_retry.enabled in #{describe_source(source_path)} must be a boolean " \
++                "(true / false); got #{enabled.inspect} (#{enabled.class})"
++        end
++      elsif !auto_retry.nil?
++        raise ConfigError,
++              "daemon.auto_retry in #{describe_source(source_path)} must be a Hash; " \
++              "got #{auto_retry.inspect} (#{auto_retry.class})"
++      end
++
+       DAEMON_NUMERIC_BOUNDS.each do |key, min|
+         value = daemon[key]
+         next if value.nil?
+diff --git a/lib/hive/daemon/auto_retry.rb b/lib/hive/daemon/auto_retry.rb
+new file mode 100644
+index 000000000..5d6f2e508
+--- /dev/null
++++ b/lib/hive/daemon/auto_retry.rb
+@@ -0,0 +1,8 @@
++# frozen_string_literal: true
++
++require "hive/daemon/auto_retry/classify"
++require "hive/daemon/auto_retry/probes"
++require "hive/daemon/auto_retry/fingerprint"
++require "hive/daemon/auto_retry/safety"
++require "hive/daemon/auto_retry/state_store"
++require "hive/daemon/auto_retry/engine"
+diff --git a/lib/hive/daemon/auto_retry/classify.rb b/lib/hive/daemon/auto_retry/classify.rb
+new file mode 100644
+index 000000000..e3271154c
+--- /dev/null
++++ b/lib/hive/daemon/auto_retry/classify.rb
+@@ -0,0 +1,132 @@
++# frozen_string_literal: true
++
++module Hive
++  module Daemon
++    module AutoRetry
++      # U1: recoverable-marker classification.
++      #
++      # A closed v1 allowlist of terminal ERROR marker reasons the daemon may
++      # auto-retry, each with a REQUIRED diagnostic signature matched against
++      # the failure evidence captured on disk (the marker's own `message`
++      # attribute plus `diagnostics/red-status.md` and the newest task log).
++      # Anything else — other reasons, unrecognized signatures, missing
++      # diagnostics — classifies as NOT recoverable and stays parked for
++      # manual `hive markers clear`.
++      #
++      # Pure function: no I/O in `classify` itself. The `diagnostics_text`
++      # helper is the only filesystem-touching part and is best-effort /
++      # never-raising so callers can treat it as a total function.
++      module Classifier
++        # reason => probe-kind that must pass before a retry (U3/U4).
++        RECOVERABLE_REASONS_V1 = {
++          "implementer_failed" => :codex_auth,
++          "claude_launch_failed" => :claude_launcher
++        }.freeze
++
++        # Codex auth failure: the 401 / missing-bearer / missing-basic-auth
++        # shape Codex emits when its credentials are absent or expired.
++        CODEX_AUTH_SIGNATURE = /(\b401\b|unauthorized|missing bearer|missing basic auth|invalid api key|not logged in)/i
++
++        # Claude launcher/wrapper/readiness failures: session did not start,
++        # readiness detector never became ready, wrapper could not be
++        # inspected, tmux unavailable. Mirrors the AgentError messages
++        # ClaudeLauncher raises and spawn_claude_with_tmux_marker! stamps
++        # into reason=claude_launch_failed markers.
++        CLAUDE_LAUNCH_SIGNATURE = /(tmux|wrapper|did not start|already exists|become ready|ready|could not inspect|launch)/i
++
++        # Outcome of classification: `recoverable?` verdict, the probe kind
++        # to satisfy (:codex_auth / :claude_launcher), and the audit-facing
++        # rationale.
++        class Result
++          attr_reader :kind, :rationale
++
++          def initialize(recoverable:, kind:, rationale:)
++            @recoverable = recoverable
++            @kind = kind
++            @rationale = rationale
++          end
++
++          def recoverable?
++            @recoverable
++          end
++        end
++
++        module_function
++
++        def classify(marker_name:, marker_attrs:, diagnostics: "")
++          attrs = marker_attrs.to_h
++          reason = attrs["reason"].to_s
++
++          kind = RECOVERABLE_REASONS_V1[reason]
++          unless kind
++            return Result.new(recoverable: false, kind: nil,
++                              rationale: "reason #{reason.inspect} is not in the recoverable allowlist")
++          end
++
++          evidence = [attrs["message"].to_s, diagnostics.to_s].join("\n")
++          if evidence.strip.empty?
++            return Result.new(recoverable: false, kind: kind,
++                              rationale: "no stored diagnostics to confirm the #{reason} signature")
++          end
++
++          case kind
++          when :codex_auth
++            if evidence.match?(CODEX_AUTH_SIGNATURE)
++              Result.new(recoverable: true, kind: kind,
++                         rationale: "#{reason} carries the codex 401/missing-auth signature")
++            else
++              Result.new(recoverable: false, kind: kind,
++                         rationale: "#{reason} without the codex 401/missing-auth signature")
++            end
++          when :claude_launcher
++            if evidence.match?(CLAUDE_LAUNCH_SIGNATURE)
++              Result.new(recoverable: true, kind: kind,
++                         rationale: "#{reason} carries the launcher/wrapper/readiness signature")
++            else
++              Result.new(recoverable: false, kind: kind,
++                         rationale: "#{reason} without the launcher/wrapper/readiness signature")
++            end
++          else
++            Result.new(recoverable: false, kind: kind, rationale: "unknown probe kind #{kind.inspect}")
++          end
++        end
++
++        # Best-effort concatenation of every on-disk diagnostic source the
++        # signature match may inspect. Never raises; unreadable or missing
++        # sources contribute nothing. Bounded reads keep a giant log from
++        # being slurped whole.
++        DIAGNOSTICS_TAIL_BYTES = 16 * 1024
++
++        def diagnostics_text(folder, marker_attrs)
++          parts = []
++          red_status = File.join(folder.to_s, "diagnostics", "red-status.md")
++          parts << tail_of(red_status) if File.file?(red_status)
++          newest_log(folder)&.then { |path| parts << tail_of(path) }
++          parts.join("\n")
++        rescue StandardError
++          ""
++        end
++
++        def tail_of(path)
++          size = File.size(path)
++          offset = [size - DIAGNOSTICS_TAIL_BYTES, 0].max
++          File.open(path, "rb") do |file|
++            file.seek(offset)
++            file.read.to_s
++          end
++        rescue SystemCallError
++          ""
++        end
++
++        def newest_log(folder)
++          candidates = Dir[File.join(folder.to_s, "logs", "*.log")]
++          return nil if candidates.empty?
++
++          candidates.max_by { |path| File.mtime(path) rescue Time.at(0) }
++        rescue SystemCallError
++          nil
++        end
++      end
++    end
++  end
++end
+diff --git a/lib/hive/daemon/auto_retry/engine.rb b/lib/hive/daemon/auto_retry/engine.rb
+new file mode 100644
+index 000000000..9e5b2f1ba
+--- /dev/null
++++ b/lib/hive/daemon/auto_retry/engine.rb
+@@ -0,0 +1,291 @@
++# frozen_string_literal: true
++
++require "time"
++require "hive/markers"
++require "hive/events"
++require "hive/daemon/auto_retry/classify"
++require "hive/daemon/auto_retry/probes"
++require "hive/daemon/auto_retry/health_probes"
++require "hive/daemon/auto_retry/fingerprint"
++require "hive/daemon/auto_retry/safety"
++require "hive/daemon/auto_retry/state_store"
++
++module Hive
++  module Daemon
++    module AutoRetry
++      # U4/U6/U7: the daemon-tick decision loop.
++      #
++      # Per tick, every parked task whose current ERROR marker classifies as
++      # recoverable (U1) is evaluated under:
++      #   * fingerprint gating — probes only re-run when the health-signal
++      #     fingerprint changed since the last probe, or the low-frequency
++      #     fallback interval elapsed (R6);
++      #   * a fresh ProbeRunner per tick, giving tick-scoped probe caching
++      #     across rows (R5);
++      #   * limits/backoff — max 2 auto-retries per task per reason; retry
++      #     #1 fires on the first healthy signal, retry #2 needs ANOTHER
++      #     healthy signal AND >= 30 minutes since retry #1; the third
++      #     strike marks the task exhausted => permanently parked until a
++      #     manual `hive markers clear` (R7);
++      #   * the safety guard (U5/R8) — default-deny;
++      #   * manual-clear-equivalent mechanics (U6/R9) — the marker is
++      #     cleared through the same locked `Hive::Markers.clear_current`
++      #     primitive `hive markers clear` uses, then the stage rerun is
++      #     enqueued through the normal dispatch-request queue so it passes
++      #     the usual concurrency gates. No resume path.
++      # Every decision — positive and throttled negative — is audited both
++      # to the daemon log and to the task's events.jsonl (U7/R10).
++      class Engine
++        MAX_ATTEMPTS_PER_REASON = 2
++        SECOND_RETRY_BACKOFF_SEC = 1800
++        FALLBACK_PROBE_INTERVAL_SEC = 1800
++
++        def initialize(controller:, logger:, request_queue:, state_store:, config_loader:,
++                       safety: SafetyGuard.new, classifier: Classifier,
++                       max_attempts: MAX_ATTEMPTS_PER_REASON,
++                       backoff_sec: SECOND_RETRY_BACKOFF_SEC,
++                       fallback_interval_sec: FALLBACK_PROBE_INTERVAL_SEC,
++                       probe_suite_factory: nil)
++          @controller = controller
++          @logger = logger
++          @request_queue = request_queue
++          @state_store = state_store
++          @config_loader = config_loader
++          @safety = safety
++          @classifier = classifier
++          @max_attempts = max_attempts
++          @backoff_sec = backoff_sec
++          @fallback_interval_sec = fallback_interval_sec
++          @probe_suite_factory = probe_suite_factory || ->(runner, config, project_root) {
++            HealthProbes::Suite.new(runner: runner, config: config, project_root: project_root)
++          }
++        end
++
++        # `enabled:` comes from the global `daemon.auto_retry.enabled`
++        # kill-switch (U8). When false this is a cheap early return with
++        # zero probe cost and zero events (AE7).
++        def tick(rows, now: Time.now, enabled: true, legacy_layout_projects: {})
++          return unless enabled
++
++          runner = ProbeRunner.new
++          configs = {}
++          project_roots = {}
++          rows.each do |row|
++            next if legacy_layout_projects.include?(row.project)
++            next if @controller.running_task?(project: row.project, slug: row.slug)
++            next if row.live_task_lock == true
++            next unless row.marker.to_s == "error"
++
++            config = configs[row.project] ||= @config_loader.call(row.project)
++            root = project_roots[row.project] ||= resolve_project_root(row.project, config)
++            evaluate_row(row, config, root, runner, now)
++          end
++        rescue StandardError => e
++          @logger.event(:fatal,
++                        message: "auto_retry engine raised: #{e.class}: #{e.message}",
++                        keeping_previous: true)
++        end
++
++        private
++
++        def evaluate_row(row, config, project_root, runner, now)
++          attrs = row.marker_attrs.to_h
++          verdict = @classifier.classify(
++            marker_name: row.marker.to_s,
++            marker_attrs: attrs,
++            diagnostics: Classifier.diagnostics_text(row.folder, attrs)
++          )
++          return unless verdict.recoverable?
++
++          key = [row.project.to_s, row.slug.to_s, row.stage.to_s, attrs["reason"].to_s]
++          state = @state_store[key]
++          if state.exhausted
++            return # permanently parked; manual clear resets by removing the marker's reason match target
++          end
++
++          if state.attempts >= @max_attempts
++            exhaust!(row, key, state, verdict, now)
++            return
++          end
++
++          fingerprint = Fingerprint.compute(config: config, project_root: project_root)
++          return unless probe_due?(state, fingerprint, now)
++
++          healthy, probe_results = probe_suite(runner, config, project_root).evaluate(verdict.kind)
++          @state_store.update(key) do |entry|
++            entry.last_fingerprint = fingerprint
++            entry.last_probed_at = now
++          end
++
++          unless healthy
++            emit_negative(row, key, verdict, probe_results, fingerprint, state.attempts,
++                          rationale: "not retried: health probes failed " \
++                                     "(#{probe_results.reject(&:ok).map(&:summary).join('; ')})",
++                          now: now)
++            return
++          end
++
++          unless backoff_satisfied?(state, now)
++            emit_negative(row, key, verdict, probe_results, fingerprint, state.attempts,
++                          rationale: "healthy but #{SECOND_RETRY_BACKOFF_SEC}s backoff after attempt " \
++                                     "#{state.attempts} has not elapsed",
++                          now: now)
++            return
++          end
++
++          safety_verdict = @safety.safe?(row: row, config: config)
++          unless safety_verdict.safe?
++            emit_negative(row, key, verdict, probe_results, fingerprint, state.attempts,
++                          rationale: "not retried: #{safety_verdict.rationale}",
++                          now: now)
++            return
++          end
++
++          retry_stage!(row, key, state, verdict, probe_results, fingerprint, now)
++        end
++
++        def probe_due?(state, fingerprint, now)
++          return true if state.last_fingerprint.nil? && state.last_probed_at.nil? # first evaluation
++          return true if fingerprint.nil? # cannot prove sameness => probe
++          return true if state.last_fingerprint != fingerprint
++
++          last_probe = state.last_probed_at
++          return true if last_probe.nil?
++          return true if (now - last_probe) >= @fallback_interval_sec
++
++          false
++        end
++
++        def backoff_satisfied?(state, now)
++          return true if state.attempts.zero?
++
++          last_attempt = state.last_attempt_at
++          return true if last_attempt.nil?
++
++          (now - last_attempt) >= @backoff_sec
++        end
++
++        def probe_suite(runner, config, project_root)
++          @probe_suite_factory.call(runner, config, project_root)
++        end
++
++        def resolve_project_root(project, config)
++          root = config["project_root"]
++          return File.expand_path(root) if root
++
++          Hive::Config.find_project(project)&.fetch("path", nil)
++        end
++
++        # U6 mechanics: clear via the same locked primitive `hive markers
++        # clear` uses, then enqueue the rerun through the normal dispatch-
++        # request queue (requestor=healer) so caps/cooldown/in-flight gates
++        # still apply. A failed clear (concurrent writer changed the marker)
++        # consumes nothing and logs nothing — the next tick reconciles.
++        def retry_stage!(row, key, state, verdict, probe_results, fingerprint, now)
++          attrs = row.marker_attrs.to_h
++          match_attrs = { "reason" => attrs["reason"].to_s }
++          marker_id = attrs["marker_id"].to_s
++          match_attrs["marker_id"] = marker_id.empty? ? nil : marker_id
++
++          cleared = Hive::Markers.clear_current(
++            row.state_file, expected_name: :error, match_attrs: match_attrs
++          )
++          return unless cleared
++
++          attempts = state.attempts + 1
++          argv = [ "hive", "run", row.slug, "--project", row.project ]
++          begin
++            request_id = @request_queue.write_request!(
++              project: row.project, slug: row.slug, argv: argv,
++              requestor: "healer", trigger: "auto_retry"
++            )
++          rescue StandardError => e
++            audit(row, verdict, probe_results, fingerprint, attempts, "retry_enqueue_failed",
++                  "#{verdict.rationale}; marker cleared but rerun enqueue FAILED " \
++                  "(#{e.class}: #{e.message}) — run `#{argv.join(' ')}` manually",
++                  now: now, request_id: nil)
++            raise e
++          end
++
++          @state_store.update(key) do |entry|
++            entry.attempts = attempts
++            entry.last_attempt_at = now
++            entry.last_fingerprint = fingerprint
++            entry.last_probed_at = now
++          end
++
++          audit(row, verdict, probe_results, fingerprint, attempts, "retried",
++                "#{verdict.rationale}; attempt #{attempts}/#{@max_attempts} " \
++                "enqueued via #{argv.join(' ')}",
++                now: now, request_id: request_id)
++        end
++
++        def exhaust!(row, key, state, verdict, now)
++          return if state.last_attempt_at.nil?
++
++          @state_store.update(key) { |entry| entry.exhausted = true }
++          audit(row, verdict, [], state.last_fingerprint, state.attempts, "parked_exhausted",
++                "exhausted #{@max_attempts} auto-retries; permanently parked — recover with `hive markers clear`",
++                now: now, request_id: nil)
++        end
++
++        # Throttled negative decisions (R10): emit at most once per
++        # fingerprint change or per fallback interval per task/reason.
++        def emit_negative(row, key, verdict, probe_results, fingerprint, attempts, rationale:, now:)
++          state = @state_store[key]
++          throttle_changed = state.last_negative_fingerprint != fingerprint
++          stale = state.last_negative_at.nil? ||
++                  ((now - state.last_negative_at) >= @fallback_interval_sec)
++          unless throttle_changed || stale
++            @state_store.update(key) do |entry|
++              entry.last_fingerprint = fingerprint
++              entry.last_probed_at = now
++            end
++            return
++          end
++
++          @state_store.update(key) do |entry|
++            entry.last_negative_fingerprint = fingerprint
++            entry.last_negative_at = now
++          end
++          audit(row, verdict, probe_results, fingerprint, attempts, "not_retried",
++                rationale, now: now, request_id: nil)
++        end
++
++        # U7 dual-channel audit: one structured line in the daemon log plus
++        # an event in the task's own events.jsonl (best-effort; Events.emit
++        # never raises).
++        def audit(row, verdict, probe_results, fingerprint, attempts, action, rationale, now:, request_id:)
++          payload = {
++            project: row.project,
++            slug: row.slug,
++            stage: row.stage,
++            marker_reason: row.marker_attrs.to_h["reason"].to_s,
++            marker_id: row.marker_attrs.to_h["marker_id"].to_s,
++            kind: verdict.kind&.to_s,
++            action: action,
++            auto_retry_attempts: attempts,
++            max_attempts: @max_attempts,
++            health_fingerprint: fingerprint,
++            probes: probe_results.map(&:summary),
++            rationale: rationale,
++            request_id: request_id,
++            decision_ts: now.utc.iso8601
++          }
++          @logger.event(:auto_retry_decision, **payload)
++
++          message = "auto_retry[#{action}] #{rationale} (probes: " \
++                    "#{probe_results.map(&:summary).join('; ')}; fingerprint: #{fingerprint})"
++          Events.emit(
++            task_folder: row.folder.to_s,
++            slug: row.slug.to_s,
++            stage: row.stage.to_s,
++            event_type: :auto_retry_decision,
++            agent: "daemon-auto-retry",
++            message: message
++          )
++        end
++      end
++    end
++  end
++end
+diff --git a/lib/hive/daemon/auto_retry/fingerprint.rb b/lib/hive/daemon/auto_retry/fingerprint.rb
+new file mode 100644
+index 000000000..d80481222
+--- /dev/null
++++ b/lib/hive/daemon/auto_retry/fingerprint.rb
+@@ -0,0 +1,87 @@
++# frozen_string_literal: true
++
++require "digest"
++require "hive/agent_profiles"
++
++module Hive
++  module Daemon
++    module AutoRetry
++      # Health-signal fingerprint (R6): a cheap hash over everything that,
++      # when it CHANGES, justifies a fresh probe round — daemon binary
++      # path/version fingerprint, agent binaries + wrapper mtimes, relevant
++      # config blocks, the env slice probes/stages inherit, and the
++      # plugin/skill inventory directory mtimes. Stat-only: no CLI calls.
++      # State-only signals that have no on-disk artifact (e.g. Codex login
++      # revocation without any file change) are covered by the engine's
++      # low-frequency periodic fallback re-probe instead.
++      module Fingerprint
++        ENV_KEYS = %w[CODEX_HOME HIVE_CODEX_BIN HIVE_CLAUDE_BIN HIVE_PI_BIN HIVE_HOME].freeze
++
++        # Skill/plugin inventory roots worth watching. Only their mtimes are
++        # stat'ed; missing roots contribute nothing.
++        SKILL_INVENTORY_ROOTS = [
++          -> { File.join(Dir.home, ".claude", "skills") },
++          -> { File.join(Dir.home, ".codex", "prompts") },
++          ->(project_root) { File.join(project_root.to_s, ".claude", "skills") }
++        ].freeze
++
++        CONFIG_KEYS = %w[agents claude brainstorm plan execute].freeze
++
++        module_function
++
++        def compute(config:, project_root:)
++          parts = [
++            Hive::VERSION,
++            daemon_binary_signal,
++            env_slice,
++            config_slice(config),
++            agent_binary_signals(config),
++            skill_inventory_signals(project_root)
++          ]
++          ::Digest::SHA256.hexdigest(parts.inspect)
++        rescue StandardError
++          nil
++        end
++
++        def daemon_binary_signal
++          path = $PROGRAM_NAME.to_s
++          mtime = File.exist?(path) ? File.mtime(path).to_f : nil
++          [path, mtime]
++        rescue StandardError
++          [path, nil]
++        end
++
++        def env_slice
++          ENV_KEYS.to_h { |key| [key, ENV[key]] }
++        end
++
++        def config_slice(config)
++          CONFIG_KEYS.to_h { |key| [key, config[key]] }.inspect
++        end
++
++        def agent_binary_signals(config)
++          %w[claude codex].filter_map do |name|
++            profile = Hive::AgentProfiles.lookup(name, cfg: config)
++            bin = profile.bin
++            expanded = File.expand_path(bin)
++            mtime = File.file?(expanded) ? File.mtime(expanded).to_f : nil
++            [bin, mtime]
++          rescue StandardError
++            nil
++          end
++        end
++
++        def skill_inventory_signals(project_root)
++          SKILL_INVENTORY_ROOTS.filter_map do |resolver|
++            root = resolver.arity.zero? ? resolver.call : resolver.call(project_root)
++            next unless File.directory?(root)
++
++            [root, File.mtime(root).to_f]
++          rescue StandardError
++            nil
++          end
++        end
++      end
++    end
++  end
++end
+diff --git a/lib/hive/daemon/auto_retry/health_probes.rb b/lib/hive/daemon/auto_retry/health_probes.rb
+new file mode 100644
+index 000000000..9773b255b
+--- /dev/null
++++ b/lib/hive/daemon/auto_retry/health_probes.rb
+@@ -0,0 +1,71 @@
++# frozen_string_literal: true
++
++require "stringio"
++
++module Hive
++  module Daemon
++    module AutoRetry
++      # U3 concrete probes. Each probe goes through the U2 ProbeRunner so
++      # timeouts, output capture, and tick-scoped caching are automatic.
++      # External CLI invocations inherit the daemon's own environment
++      # (Open3 merges the passed env ONTO ENV), which keeps the probe
++      # environment identical to a real stage run.
++      module HealthProbes
++      end
++    end
++  end
++end
++
++require "hive/daemon/auto_retry/health_probes/hive_doctor"
++require "hive/daemon/auto_retry/health_probes/codex_auth"
++require "hive/daemon/auto_retry/health_probes/claude_launcher"
++
++module Hive
++  module Daemon
++    module AutoRetry
++      module HealthProbes
++        # Composes the universal precondition with the reason-specific
++        # probe set. The doctor must be green for ANY retry (AE2 negative
++        # arm): a red doctor fails the whole composition regardless of the
++        # specific-probe results. All results are cached per tick through
++        # the shared ProbeRunner, so several parked markers evaluated in
++        # one tick run each underlying check at most once.
++        class Suite
++          def initialize(runner:, config:, project_root:)
++            @runner = runner
++            @config = config
++            @project_root = project_root
++          end
++
++          # Returns [healthy, probe_results]. `kind` is the Classifier kind
++          # (:codex_auth or :claude_launcher); an unknown kind is never
++          # healthy (default-deny).
++          def evaluate(kind)
++            results = []
++            doctor_result = HiveDoctor.evaluate(runner: @runner, config: @config,
++                                                project_root: @project_root)
++            results << doctor_result
++            return [false, results] unless doctor_result.ok
++
++            specific = case kind
++                       when :codex_auth
++                         CodexAuth.evaluate(runner: @runner)
++                       when :claude_launcher
++                         ClaudeLauncherProbe.evaluate(runner: @runner, config: @config)
++                       else
++                         ProbeResult.new(name: "unknown_kind_#{kind}", ok: false,
++                                         duration_ms: 0, stdout: "", stderr: "",
++                                         error: "no probe set for kind #{kind.inspect}")
++                       end
++            results.concat(Array(specific))
++            [results.all?(&:ok), results]
++          end
++
++          private
++
++          attr_reader :runner
++        end
++      end
++    end
++  end
++end
+diff --git a/lib/hive/daemon/auto_retry/health_probes/claude_launcher.rb b/lib/hive/daemon/auto_retry/health_probes/claude_launcher.rb
+new file mode 100644
+index 000000000..a1f98f554
+--- /dev/null
++++ b/lib/hive/daemon/auto_retry/health_probes/claude_launcher.rb
+@@ -0,0 +1,69 @@
++# frozen_string_literal: true
++
++module Hive
++  module Daemon
++    module AutoRetry
++      module HealthProbes
++        # Claude launcher probe (R4): the active claude binary/wrapper must
++        # exist and answer `--version` (binary/version fingerprint match),
++        # and — in tmux mode — the tmux runtime readiness check
++        # (Hive::ClaudeLauncher.tmux_status, the same detector `hive doctor`
++        # uses) must pass. The universal doctor green is enforced by the
++        # Suite composition. The resolved wrapper path + mtime are exposed
++        # as health signals for the U4 fingerprint.
++        module ClaudeLauncherProbe
++          VERSION_PROBE = "claude_version"
++          READY_PROBE = "claude_ready_detector"
++
++          Signal = Struct.new(:bin_path, :bin_mtime, keyword_init: true)
++
++          module_function
++
++          def evaluate(runner:, config:)
++            profile = Hive::AgentProfiles.lookup(:claude, cfg: config)
++            version = runner.run_command(VERSION_PROBE, [ profile.bin, "--version" ])
++            return version unless version.ok
++
++            results = [version]
++            if Hive::Config.claude_mode(config) == :tmux
++              ready = runner.run(READY_PROBE) do
++                status, message = Hive::ClaudeLauncher.tmux_status
++                raise "tmux readiness failed: #{message}" unless status == :present
++              end
++              results << ready
++            end
++
++            return [composite(results)] if results.all?(&:ok)
++
++            results
++          end
++
++          # Cheap health signals folded into the U4 fingerprint: resolved
++          # wrapper path + mtime. Best-effort; nils degrade gracefully.
++          def health_signals(config)
++            profile = Hive::AgentProfiles.lookup(:claude, cfg: config)
++            bin = File.expand_path(profile.bin)
++            if File.file?(bin)
++              Signal.new(bin_path: bin, bin_mtime: File.mtime(bin).to_f)
++            else
++              Signal.new(bin_path: profile.bin, bin_mtime: nil)
++            end
++          rescue StandardError
++            Signal.new(bin_path: nil, bin_mtime: nil)
++          end
++
++          def composite(results)
++            ProbeResult.new(
++              name: "claude_launcher",
++              ok: true,
++              duration_ms: results.sum(&:duration_ms),
++              stdout: results.map(&:name).join("+"),
++              stderr: "",
++              error: nil
++            )
++          end
++        end
++      end
++    end
++  end
++end
+diff --git a/lib/hive/daemon/auto_retry/health_probes/codex_auth.rb b/lib/hive/daemon/auto_retry/health_probes/codex_auth.rb
+new file mode 100644
+index 000000000..8a2339578
+--- /dev/null
++++ b/lib/hive/daemon/auto_retry/health_probes/codex_auth.rb
+@@ -0,0 +1,45 @@
++# frozen_string_literal: true
++
++module Hive
++  module Daemon
++    module AutoRetry
++      module HealthProbes
++        # Codex auth probe (R3): `codex login status` must report a logged-in
++        # session AND a tiny `codex exec` smoke prompt must succeed. Both
++        # conditions are required — a logged-out login status or a passing
++        # status with a failing smoke test both mean NOT healthy.
++        module CodexAuth
++          LOGIN_PROBE = "codex_login_status"
++          SMOKE_PROBE = "codex_exec_smoke"
++          SMOKE_PROMPT = "Reply with exactly: OK"
++
++          module_function
++
++          def evaluate(runner:)
++            login = runner.run_command(LOGIN_PROBE, [ "codex", "login", "status" ])
++            unless login.ok && !login.stdout.match?(/not logged in|logged out/i)
++              # A CLI that exits 0 while reporting "not logged in" must NOT
++              # read as healthy: rewrite the verdict here so both shapes
++              # (nonzero exit, logged-out text) are unambiguously unhealthy.
++              return ProbeResult.new(name: LOGIN_PROBE,
++                                     ok: false,
++                                     duration_ms: login.duration_ms,
++                                     stdout: login.stdout, stderr: login.stderr,
++                                     error: "codex is not logged in")
++            end
++            smoke = runner.run_command(
++              SMOKE_PROBE,
++              [ "codex", "exec", "--skip-git-repo-check", SMOKE_PROMPT ]
++            )
++            return smoke unless smoke.ok
++
++            ProbeResult.new(name: "codex_auth", ok: true,
++                            duration_ms: login.duration_ms + smoke.duration_ms,
++                            stdout: "#{LOGIN_PROBE}=ok #{SMOKE_PROBE}=ok",
++                            stderr: "", error: nil)
++          end
++        end
++      end
++    end
++  end
++end
+diff --git a/lib/hive/daemon/auto_retry/health_probes/hive_doctor.rb b/lib/hive/daemon/auto_retry/health_probes/hive_doctor.rb
+new file mode 100644
+index 000000000..f88d8aa17
+--- /dev/null
++++ b/lib/hive/daemon/auto_retry/health_probes/hive_doctor.rb
+@@ -0,0 +1,33 @@
++# frozen_string_literal: true
++
++module Hive
++  module Daemon
++    module AutoRetry
++      module HealthProbes
++        # Universal lightweight precondition (R2): the existing `hive doctor`
++        # skill/dependency checks, run in-process at reduced depth (JSON
++        # envelope, no table render). Green (exit 0) => healthy. A config
++        # error surfaces as doctor's own exit 78 => not healthy.
++        module HiveDoctor
++          PROBE_NAME = "hive_doctor"
++
++          module_function
++
++          def evaluate(runner:, config:, project_root:)
++            runner.run(PROBE_NAME) do
++              output = StringIO.new
++              doctor = Hive::Commands::Doctor.new(
++                config: config,
++                project_root: project_root,
++                json: true,
++                output: output
++              )
++              exit_code = doctor.call
++              raise "doctor exited #{exit_code}: #{output.string.strip[0, 300]}" unless exit_code.zero?
++            end
++          end
++        end
++      end
++    end
++  end
++end
+diff --git a/lib/hive/daemon/auto_retry/probes.rb b/lib/hive/daemon/auto_retry/probes.rb
+new file mode 100644
+index 000000000..5ecb48d74
+--- /dev/null
++++ b/lib/hive/daemon/auto_retry/probes.rb
+@@ -0,0 +1,151 @@
++# frozen_string_literal: true
++
++require "open3"
++require "timeout"
++
++module Hive
++  module Daemon
++    module AutoRetry
++      # U2: uniform health-probe execution.
++      #
++      # `ProbeResult` captures everything the audit trail needs: verdict,
++      # wall-clock duration, verbatim stdout/stderr tails, and the failure
++      # cause. A hang (timeout), a nonzero exit, or a raise are ALL
++      # "not healthy" — never an error that escapes into the tick.
++      ProbeResult = Struct.new(:name, :ok, :duration_ms, :stdout, :stderr, :error,
++                               keyword_init: true) do
++        def summary
++          if ok
++            "#{name}: ok"
++          else
++            detail = error.to_s.empty? ? stderr_tail : error.to_s
++            "#{name}: failed (#{detail})"
++          end
++        end
++
++        def stderr_tail
++          tail = stderr.to_s.strip.lines.last.to_s.strip
++          tail.empty? ? "no output" : tail[0, 200]
++        end
++      end
++
++      class ProbeRunner
++        # Per-command timeouts (R5): 10–30s constants in v1.
++        DEFAULT_TIMEOUT_MS = 30_000
++        FAST_TIMEOUT_MS = 10_000
++
++        # A fresh runner is a fresh cache: the Engine builds one per tick so
++        # multiple parked markers evaluated in the same tick share results,
++        # while nothing leaks across ticks.
++        def initialize(timeout_ms: DEFAULT_TIMEOUT_MS)
++          @default_timeout_ms = timeout_ms
++          @cache = {}
++        end
++
++        # In-process probe: run the block under a hard deadline. Any raise /
++        # timeout => ok:false with the cause captured.
++        def run(name, timeout_ms: @default_timeout_ms)
++          started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
++          cached = @cache[name]
++          return cached if cached
++
++          result = Timeout.timeout(timeout_ms / 1000.0) do
++            yield
++            ProbeResult.new(name: name, ok: true, duration_ms: elapsed_ms(started),
++                            stdout: "", stderr: "", error: nil)
++          end
++          @cache[name] = result
++          result
++        rescue Timeout::Error
++          result = ProbeResult.new(name: name, ok: false, duration_ms: timeout_ms,
++                                   stdout: "", stderr: "",
++                                   error: "timed out after #{timeout_ms}ms")
++          @cache[name] = result
++          result
++        rescue StandardError => e
++          result = ProbeResult.new(name: name, ok: false,
++                                   duration_ms: elapsed_ms(started),
++                                   stdout: "", stderr: "",
++                                   error: "#{e.class}: #{e.message}")
++          @cache[name] = result
++          result
++        end
++
++        # External-CLI probe: spawn argv with its own process group so a
++        # hung CLI can be killed on the deadline; stdout/stderr captured
++        # verbatim for the audit trail. Nonzero exit / timeout / spawn
++        # failure all yield ok:false. Results are cached per probe name for
++        # the lifetime of this (tick-scoped) runner.
++        def run_command(name, argv, env: {}, timeout_ms: @default_timeout_ms)
++          @cache[name] ||= execute_command(name, argv, env: env, timeout_ms: timeout_ms)
++        end
++
++        def execute_command(name, argv, env: {}, timeout_ms: @default_timeout_ms)
++          started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
++          out = ""
++          err = ""
++          timed_out = false
++          status = nil
++          Open3.popen3(env, *argv.map(&:to_s), pgroup: true) do |stdin, stdout, stderr, wait_thr|
++            stdin.close
++            out_thread = Thread.new { stdout.read }
++            err_thread = Thread.new { stderr.read }
++            begin
++              Timeout.timeout(timeout_ms / 1000.0) { wait_thr.join }
++              status = wait_thr.value
++            rescue Timeout::Error
++              timed_out = true
++              kill_process_group(wait_thr.pid)
++              begin
++                Timeout.timeout(2) { wait_thr.join }
++              rescue Timeout::Error
++                nil
++              end
++            end
++            out = out_thread.value.to_s
++            err = err_thread.value.to_s
++          end
++
++          if timed_out
++            ProbeResult.new(name: name, ok: false, duration_ms: timeout_ms,
++                            stdout: tail(out), stderr: tail(err),
++                            error: "timed out after #{timeout_ms}ms")
++          elsif status&.success?
++            ProbeResult.new(name: name, ok: true, duration_ms: elapsed_ms(started),
++                            stdout: out, stderr: err, error: nil)
++          else
++            code = status ? "exit #{status.exitstatus}" : "unknown status"
++            ProbeResult.new(name: name, ok: false, duration_ms: elapsed_ms(started),
++                            stdout: out, stderr: err, error: code)
++          end
++        rescue StandardError => e
++          ProbeResult.new(name: name, ok: false, duration_ms: elapsed_ms(started),
++                          stdout: tail(out), stderr: tail(err),
++                          error: "#{e.class}: #{e.message}")
++        end
++
++        private
++
++        def kill_process_group(pid)
++          Process.kill("-KILL", pid)
++        rescue Errno::ESRCH, Errno::EPERM
++          begin
++            Process.kill("KILL", pid)
++          rescue Errno::ESRCH, Errno::EPERM
++            nil
++          end
++        rescue StandardError
++          nil
++        end
++
++        def elapsed_ms(started)
++          ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000).round
++        end
++
++        def tail(text)
++          text.to_s[-2048..] || text.to_s
++        end
++      end
++    end
++  end
++end
+diff --git a/lib/hive/daemon/auto_retry/safety.rb b/lib/hive/daemon/auto_retry/safety.rb
+new file mode 100644
+index 000000000..18999c3ca
+--- /dev/null
++++ b/lib/hive/daemon/auto_retry/safety.rb
+@@ -0,0 +1,174 @@
++# frozen_string_literal: true
++
++require "open3"
++require "timeout"
++require "hive/brainstorm_parser"
++require "hive/stages/auto_commit"
++
++module Hive
++  module Daemon
++    module AutoRetry
++      # U5: work-area safety guard (R8). A retry re-runs the stage FROM
++      # SCRATCH, so before any marker clear this guard must prove the rerun
++      # cannot discard user work. DEFAULT-DENY: ambiguity, unreadable state,
++      # or an unknown stage all mean NOT safe.
++      #
++      # Stage-aware checks:
++      #   * execute (4-execute): the worktree must be clean OR contain only
++      #     files that pass the existing review.fix.auto_commit scope-check
++      #     allow/deny globs (the repo's one piece of "agent-generated and
++      #     safe" knowledge — nothing new is invented here). Any denied or
++      #     unclassified path => unsafe. A worktree that does not exist yet
++      #     is safe (a retry creates it fresh).
++      #   * brainstorm (2-brainstorm): answered Q&A content present in
++      #     brainstorm.md would be overwritten by a regeneration => unsafe.
++      #     Pristine / zero-question files are safe.
++      #   * plan (3-plan): a non-empty plan.md may hold user edits =>
++      #     unsafe; missing/empty is safe.
++      #   * every stage: terminal success markers already on the state file
++      #     (EXECUTE_COMPLETE / COMPLETE) make a retry unsafe, always.
++      class SafetyGuard
++        SUCCESS_MARKERS = %w[EXECUTE_COMPLETE COMPLETE REVIEW_COMPLETE].freeze
++        STATUS_TIMEOUT_SEC = 10
++
++        # Outcome of one guard evaluation: `safe?` plus the audit-facing
++        # rationale (recorded verbatim on negative decisions).
++        class Verdict
++          attr_reader :rationale
++
++          def initialize(allowed:, rationale:)
++            @allowed = allowed
++            @rationale = rationale
++          end
++
++          def safe?
++            @allowed
++          end
++        end
++
++        def initialize(worktree_factory: nil)
++          @worktree_factory = worktree_factory
++        end
++
++        def safe?(row:, config:)
++          state_text = File.read(row.state_file.to_s)
++          success_marker = success_marker_in(state_text)
++          if success_marker
++            return Verdict.new(allowed: false,
++                               rationale: "state file already carries a #{success_marker} marker; retrying could discard completed work")
++          end
++
++          case row.stage.to_s
++          when "4-execute"
++            execute_safety(row, config)
++          when "2-brainstorm"
++            brainstorm_safety(row)
++          when "3-plan"
++            plan_safety(row)
++          else
++            Verdict.new(allowed: false,
++                        rationale: "no safety rule for stage #{row.stage.inspect}; refusing by default")
++          end
++        rescue StandardError => e
++          Verdict.new(allowed: false, rationale: "safety check failed (#{e.class}: #{e.message}); refusing by default")
++        end
++
++        private
++
++        def success_marker_in(state_text)
++          SUCCESS_MARKERS.find { |name| state_text.match?(/<!--\s*#{name}\b/) }
++        end
++
++        def execute_safety(row, config)
++          worktree_path = resolve_worktree(row, config)
++          unless worktree_path && File.directory?(worktree_path)
++            return Verdict.new(allowed: true, rationale: "execute worktree does not exist yet; a retry starts clean")
++          end
++
++          result = git_status_porcelain(worktree_path)
++          unless result[:success]
++            return Verdict.new(allowed: false,
++                               rationale: "git status failed in worktree (#{result[:message]}); cannot prove safety")
++          end
++
++          paths = result[:stdout].split("\n").filter_map do |line|
++            line.sub(/\A..\s?/, "").strip
++          end.reject(&:empty?)
++          return Verdict.new(allowed: true, rationale: "worktree is clean") if paths.empty?
++
++          violations = Hive::Stages::AutoCommit.auto_commit_scope_violations(config, paths)
++          if violations.empty?
++            Verdict.new(allowed: true,
++                        rationale: "worktree changes are all within the agent-generated scope allowlist: #{paths.join(', ')}")
++          else
++            Verdict.new(allowed: false,
++                        rationale: "unclassified worktree changes present (#{violations.map(&:path).join(', ')}); " \
++                                   "retry could discard user work")
++          end
++        end
++
++        def brainstorm_safety(row)
++          path = row.state_file.to_s
++          return Verdict.new(allowed: true, rationale: "brainstorm.md missing; nothing to overwrite") unless File.file?(path)
++
++          parsed = Hive::BrainstormParser.parse(path)
++          questions = Array(parsed)
++          return Verdict.new(allowed: true, rationale: "no parseable questions; safe to regenerate") if questions.empty?
++
++          answered = questions.count(&:answered?)
++          if answered.positive?
++            Verdict.new(allowed: false,
++                        rationale: "#{answered} answered brainstorm question(s) present; a rerun would overwrite them")
++          else
++            Verdict.new(allowed: true, rationale: "questions exist but none are answered yet; safe to regenerate")
++          end
++        rescue StandardError => e
++          Verdict.new(allowed: false, rationale: "brainstorm.md unreadable (#{e.class}: #{e.message}); refusing by default")
++        end
++
++        def plan_safety(row)
++          path = row.state_file.to_s
++          return Verdict.new(allowed: true, rationale: "plan.md missing; nothing to overwrite") unless File.file?(path)
++          return Verdict.new(allowed: true, rationale: "plan.md empty; nothing to overwrite") if File.size(path).zero?
++
++          Verdict.new(allowed: false,
++                      rationale: "plan.md holds generated content a rerun would replace; refusing by default")
++        end
++
++        def resolve_worktree(row, config)
++          factory = @worktree_factory || ->(project_root, slug) {
++            require "hive/worktree"
++            Hive::Worktree.new(project_root, slug).path
++          }
++          project_root = project_root_for(row, config)
++          return nil unless project_root
++
++          factory.call(project_root, row.slug)
++        end
++
++        def project_root_for(row, config)
++          root = config["project_root"]
++          return File.expand_path(root) if root
++
++          entry = Hive::Config.find_project(row.project)
++          entry&.fetch("path", nil)
++        end
++
++        def git_status_porcelain(worktree_path)
++          out, err, status = Timeout.timeout(STATUS_TIMEOUT_SEC) do
++            Open3.capture3("git", "-C", worktree_path, "status", "--porcelain")
++          end
++          if status.success?
++            { success: true, stdout: out, message: "" }
++          else
++            { success: false, stdout: "", message: err.strip[0, 200] }
++          end
++        rescue Timeout::Error
++          { success: false, stdout: "", message: "git status timed out after #{STATUS_TIMEOUT_SEC}s" }
++        rescue Errno::ENOENT => e
++          { success: false, stdout: "", message: e.message }
++        end
++      end
++    end
++  end
++end
+diff --git a/lib/hive/daemon/auto_retry/state_store.rb b/lib/hive/daemon/auto_retry/state_store.rb
+new file mode 100644
+index 000000000..4671caf3e
+--- /dev/null
++++ b/lib/hive/daemon/auto_retry/state_store.rb
+@@ -0,0 +1,133 @@
++# frozen_string_literal: true
++
++require "fileutils"
++require "json"
++require "securerandom"
++require "time"
++
++module Hive
++  module Daemon
++    module AutoRetry
++      # Crash-safe persisted bookkeeping for auto-retry attempts, keyed by
++      # [project, slug, stage, reason]. Mirrors the Hive::UpdateCheck::State /
++      # DispatchBaselines discipline: a JSON envelope with schema_version,
++      # atomic tempfile+rename writes, and a fail-closed load (torn/corrupt/
++      # newer files degrade to an empty map — worst case one task earns its
++      # attempt budget fresh after an unclean shutdown).
++      class StateStore
++        SCHEMA = "hive-daemon-auto-retry-state"
++        SCHEMA_VERSION = 1
++
++        Entry = Struct.new(:attempts, :last_fingerprint, :last_attempt_at,
++                           :last_probed_at, :last_negative_fingerprint,
++                           :last_negative_at, :exhausted,
++                           keyword_init: true) do
++          # Fresh-entry defaults: zero attempts, not exhausted.
++          def initialize(attempts: 0, last_fingerprint: nil, last_attempt_at: nil,
++                         last_probed_at: nil, last_negative_fingerprint: nil,
++                         last_negative_at: nil, exhausted: false)
++            super
++          end
++
++          def self.from_h(hash)
++            return new if hash.nil?
++
++            new(
++              attempts: hash["attempts"].to_i,
++              last_fingerprint: hash["last_fingerprint"],
++              last_attempt_at: parse_time(hash["last_attempt_at"]),
++              last_probed_at: parse_time(hash["last_probed_at"]),
++              last_negative_fingerprint: hash["last_negative_fingerprint"],
++              last_negative_at: parse_time(hash["last_negative_at"]),
++              exhausted: hash["exhausted"] == true
++            )
++          end
++
++          def self.parse_time(value)
++            Time.iso8601(value.to_s)
++          rescue ArgumentError
++            nil
++          end
++
++          def to_h
++            {
++              "attempts" => attempts,
++              "last_fingerprint" => last_fingerprint,
++              "last_attempt_at" => last_attempt_at&.iso8601,
++              "last_probed_at" => last_probed_at&.iso8601,
++              "last_negative_fingerprint" => last_negative_fingerprint,
++              "last_negative_at" => last_negative_at&.iso8601,
++              "exhausted" => exhausted
++            }
++          end
++        end
++
++        def initialize(path:)
++          @path = path
++          @entries = load
++        end
++
++        def get(key)
++          @entries[serialize_key(key)]
++        end
++
++        def put(key, entry)
++          @entries[serialize_key(key)] = entry
++          write
++          entry
++        end
++
++        def [](key)
++          get(key) || Entry.new
++        end
++
++        def update(key)
++          entry = self[key]
++          yield entry
++          put(key, entry)
++        end
++
++        attr_reader :path
++
++        private
++
++        def serialize_key(key)
++          JSON.generate(key.map(&:to_s))
++        end
++
++        def load
++          raw = File.read(@path)
++          doc = JSON.parse(raw)
++          unless doc.is_a?(Hash) && doc["schema"] == SCHEMA && doc["schema_version"] == SCHEMA_VERSION &&
++                 doc["entries"].is_a?(Hash)
++            return {}
++          end
++
++          doc["entries"]
++        rescue Errno::ENOENT
++          {}
++        rescue JSON::ParserError, SystemCallError
++          {}
++        end
++
++        def write
++          FileUtils.mkdir_p(File.dirname(@path))
++          payload = {
++            "schema" => SCHEMA,
++            "schema_version" => SCHEMA_VERSION,
++            "entries" => @entries.transform_values { |entry| entry.to_h }
++          }
++          tmp = "#{@path}.tmp.#{Process.pid}.#{SecureRandom.hex(4)}"
++          File.open(tmp, File::WRONLY | File::CREAT | File::TRUNC, 0o644) do |f|
++            f.write(JSON.generate(payload))
++            f.flush
++            f.fsync
++          end
++          File.rename(tmp, @path)
++        ensure
++          FileUtils.rm_f(tmp) if defined?(tmp) && tmp && File.exist?(tmp)
++        end
++      end
++    end
++  end
++end
+diff --git a/lib/hive/daemon/dispatcher.rb b/lib/hive/daemon/dispatcher.rb
+index 1f272c697..79a36d7e4 100644
+--- a/lib/hive/daemon/dispatcher.rb
++++ b/lib/hive/daemon/dispatcher.rb
+@@ -12,6 +12,7 @@ require "hive/daemon/concurrency_controller"
+ require "hive/daemon/child_supervisor"
+ require "hive/daemon/status_consumer"
+ require "hive/daemon/stale_agent_healer"
++require "hive/daemon/auto_retry"
+ require "hive/daemon/display_name_backfiller"
+ require "hive/daemon/task_id_backfiller"
+ require "hive/daemon/dispatch_request_queue"
+@@ -58,9 +59,10 @@ module Hive
+       # @param dry_run [Boolean]
+       def initialize(config:, controller:, supervisor:, status_consumer:, logger:,
+                      merge_watcher: nil, patrol_scheduler: nil, digest_scheduler: nil,
+-                     answer_digest_scheduler: nil, dry_run: false,
+-                     update_state: nil, update_checker: nil, channel_detector: nil,
+-                     dispatch_request_state_home: nil, dispatch_result_state_home: nil)
++                      answer_digest_scheduler: nil, dry_run: false,
++                      update_state: nil, update_checker: nil, channel_detector: nil,
++                      dispatch_request_state_home: nil, dispatch_result_state_home: nil,
++                      auto_retry_engine: nil)
+         @config = config
+         @controller = controller
+         @supervisor = supervisor
+@@ -121,6 +123,33 @@ module Hive
+           dry_run: @dry_run
+         )
+ 
++        # Auto-retry engine for recoverable terminal error markers
++        # (codex-auth `implementer_failed`, claude-launcher
++        # `claude_launch_failed`). Reads the global
++        # `daemon.auto_retry.enabled` kill-switch; disabled => a single
++        # observable event and zero per-tick cost. Attempt bookkeeping is
++        # persisted under the state home so it survives restarts.
++        @auto_retry_enabled = if @daemon_cfg["auto_retry"].is_a?(Hash)
++                                @daemon_cfg["auto_retry"].fetch("enabled", true)
++                              else
++                                true
++                              end
++        @auto_retry_engine = auto_retry_engine || begin
++          AutoRetry::Engine.new(
++            controller: @controller,
++            logger: @logger,
++            request_queue: DispatchRequestQueue,
++            state_store: AutoRetry::StateStore.new(
++              path: File.join(Hive::Paths.state_home, "daemon_auto_retry_state.json")
++            ),
++            config_loader: ->(project) {
++              entry = Hive::Config.find_project(project)
++              entry ? Hive::Config.load(entry["path"]) : {}
++            }
++          )
++        end
++        @logger.event(:auto_retry_disabled) unless @auto_retry_enabled
++
+         @shutdown = false
+         @reload = false
+         @reexec_requested = false
+@@ -293,6 +322,27 @@ module Hive
+                         keeping_previous: true)
+         end
+ 
++        # Auto-retry pass for parked recoverable terminal error markers.
++        # Runs AFTER the stale-agent healer (which owns its own marker
++        # families) and BEFORE dispatch requests / per-row dispatch so a
++        # marker cleared this tick is enqueued ahead of the row scan and
++        # the per-slug in-flight gate dedups. Same defensive rescue shape
++        # as the sibling self-heal ops: an engine bug must never crash a
++        # tick. The engine's own `enabled:` kill-switch makes this a cheap
++        # early return with zero probe cost when disabled (AE7).
++        begin
++          @auto_retry_engine.tick(
++            result.rows,
++            now: now,
++            enabled: @auto_retry_enabled,
++            legacy_layout_projects: @legacy_layout_projects
++          )
++        rescue StandardError => e
++          @logger.event(:fatal,
++                        message: "auto_retry_engine raised: #{e.class}: #{e.message}",
++                        keeping_previous: true)
++        end
++
+         # 3. PrMergeWatcher tick (if present): check pending merges
+         # first. Archive dispatches MUST flow through the same enable +
+         # cap checks that advance dispatches use, so a project disabled
+diff --git a/lib/hive/daemon/logger.rb b/lib/hive/daemon/logger.rb
+index 6af59dc93..5c7110480 100644
+--- a/lib/hive/daemon/logger.rb
++++ b/lib/hive/daemon/logger.rb
+@@ -50,6 +50,8 @@ module Hive
+         marker_heal_failed
+         marker_heal_exhausted
+         marker_heal_observer_missing
++        auto_retry_decision
++        auto_retry_disabled
+         display_name_backfill
+         update_available
+         update_check_no_result
+diff --git a/lib/hive/events.rb b/lib/hive/events.rb
+index f8bca8160..3b399ca94 100644
+--- a/lib/hive/events.rb
++++ b/lib/hive/events.rb
+@@ -15,6 +15,7 @@ module Hive
+       round_complete
+       clean_exit_auto_committed
+       claude_completion_fallback
++      auto_retry_decision
+     ].freeze
+ 
+     STATUS_TAIL_LINES = 20
+diff --git a/test/unit/daemon/auto_retry/classify_test.rb b/test/unit/daemon/auto_retry/classify_test.rb
+new file mode 100644
+index 000000000..a52e12622
+--- /dev/null
++++ b/test/unit/daemon/auto_retry/classify_test.rb
+@@ -0,0 +1,86 @@
++# frozen_string_literal: true
++
++require "test_helper"
++require "hive/daemon/auto_retry/classify"
++
++# U1: recoverable-marker classification pins the closed v1 allowlist and
++# the required diagnostic signatures (AE3: unknown signatures stay parked).
++class HiveDaemonAutoRetryClassifyTest < Minitest::Test
++  def test_codex_auth_implementer_failure_is_recoverable
++    result = classify(reason: "implementer_failed",
++                      message: "codex exec failed: HTTP 401 missing bearer auth")
++    assert_predicate(result, :recoverable?)
++    assert_equal(:codex_auth, result.kind)
++  end
++
++  def test_unrelated_implementer_failure_is_not_recoverable
++    result = classify(reason: "implementer_failed", message: "exit_code=1 build broke in src/foo.ts")
++    refute_predicate(result, :recoverable?)
++  end
++
++  def test_missing_bearer_and_basic_auth_variants_match
++    assert classify(reason: "implementer_failed", message: "unauthorized: missing basic auth").recoverable?
++    assert classify(reason: "implementer_failed", message: "401 Unauthorized").recoverable?
++  end
++
++  def test_claude_launch_readiness_failure_is_recoverable
++    result = classify(reason: "claude_launch_failed",
++                      message: "tmux session hive-x did not become ready")
++    assert_predicate(result, :recoverable?)
++    assert_equal(:claude_launcher, result.kind)
++  end
++
++  def test_claude_launch_with_unrecognized_content_is_not_recoverable
++    result = classify(reason: "claude_launch_failed", message: "something entirely different happened")
++    refute_predicate(result, :recoverable?)
++  end
++
++  def test_unknown_reasons_are_never_recoverable
++    %w[
++      implementer_test_failed
++      review_findings
++      merge_conflict
++      dirty_worktree
++      exit_code
++      timeout
++      limits_reached
++    ].each do |reason|
++      result = classify(reason: reason, message: "HTTP 401 unauthorized")
++      refute_predicate(result, :recoverable?, "reason #{reason} must not be auto-retryable")
++    end
++  end
++
++  def test_marker_without_diagnostics_is_not_recoverable
++    result = Hive::Daemon::AutoRetry::Classifier.classify(
++      marker_name: "error",
++      marker_attrs: { "reason" => "implementer_failed" },
++      diagnostics: ""
++    )
++    refute_predicate(result, :recoverable?)
++  end
++
++  def test_diagnostics_text_reads_red_status_and_newest_log
++    Dir.mktmpdir do |folder|
++      FileUtils.mkdir_p(File.join(folder, "diagnostics"))
++      File.write(File.join(folder, "diagnostics", "red-status.md"), "summary: codex returned 401 missing bearer\n")
++      FileUtils.mkdir_p(File.join(folder, "logs"))
++      File.write(File.join(folder, "logs", "old.log"), "stale\n")
++      File.write(File.join(folder, "logs", "new.log"), "latest line mentions 401\n")
++
++      text = Hive::Daemon::AutoRetry::Classifier.diagnostics_text(folder, {})
++      assert_includes(text, "missing bearer")
++      assert_includes(text, "latest line mentions 401")
++      refute_includes(text, "stale")
++    end
++  end
++
++  private
++
++  def classify(reason:, message:)
++    Hive::Daemon::AutoRetry::Classifier.classify(
++      marker_name: "error",
++      marker_attrs: { "reason" => reason, "message" => message },
++      diagnostics: ""
++    )
++  end
++end
+diff --git a/test/unit/daemon/auto_retry/config_kill_switch_test.rb b/test/unit/daemon/auto_retry/config_kill_switch_test.rb
+new file mode 100644
+index 000000000..b1b34eed1
+--- /dev/null
++++ b/test/unit/daemon/auto_retry/config_kill_switch_test.rb
+@@ -0,0 +1,70 @@
++# frozen_string_literal: true
++
++require "test_helper"
++require "hive/config"
++
++# U8: `daemon.auto_retry.enabled` kill-switch — default on, strict boolean
++# validation matching the repo's existing daemon-config convention.
++class HiveDaemonAutoRetryConfigTest < Minitest::Test
++  include HiveTestHelper
++
++  def test_default_config_enables_auto_retry
++    assert_equal(true, Hive::Config::DEFAULTS.dig("daemon", "auto_retry", "enabled"))
++  end
++
++  def test_load_merges_the_default_for_projects_without_the_key
++    with_tmp_dir do |project_root|
++      FileUtils.mkdir_p(File.join(project_root, ".hive-state"))
++      File.write(File.join(project_root, ".hive-state", "config.yml"), {}.to_yaml)
++
++      cfg = Hive::Config.load(project_root)
++      assert_equal(true, cfg.dig("daemon", "auto_retry", "enabled"))
++    end
++  end
++
++  def test_explicit_false_is_honored
++    with_tmp_dir do |project_root|
++      FileUtils.mkdir_p(File.join(project_root, ".hive-state"))
++      File.write(
++        File.join(project_root, ".hive-state", "config.yml"),
++        { "daemon" => { "auto_retry" => { "enabled" => false } } }.to_yaml
++      )
++
++      cfg = Hive::Config.load(project_root)
++      assert_equal(false, cfg.dig("daemon", "auto_retry", "enabled"))
++    end
++  end
++
++  def test_non_boolean_enabled_raises_config_error
++    with_tmp_dir do |project_root|
++      FileUtils.mkdir_p(File.join(project_root, ".hive-state"))
++      File.write(
++        File.join(project_root, ".hive-state", "config.yml"),
++        { "daemon" => { "auto_retry" => { "enabled" => "yes" } } }.to_yaml
++      )
++
++      error = assert_raises(Hive::ConfigError) { Hive::Config.load(project_root) }
++      assert_match(/daemon\.auto_retry\.enabled/, error.message)
++    end
++  end
++
++  def test_non_hash_auto_retry_block_raises_config_error
++    with_tmp_dir do |project_root|
++      FileUtils.mkdir_p(File.join(project_root, ".hive-state"))
++      File.write(
++        File.join(project_root, ".hive-state", "config.yml"),
++        { "daemon" => { "auto_retry" => true } }.to_yaml
++      )
++
++      error = assert_raises(Hive::ConfigError) { Hive::Config.load(project_root) }
++      assert_match(/daemon\.auto_retry/, error.message)
++    end
++  end
++
++  def test_global_daemon_block_validation_rejects_bad_auto_retry
++    source = "the global config"
++    cfg = { "daemon" => { "auto_retry" => { "enabled" => 42 } } }
++    error = assert_raises(Hive::ConfigError) { Hive::Config.validate_daemon!(cfg, source) }
++    assert_match(/daemon\.auto_retry\.enabled/, error.message)
++  end
++end
+diff --git a/test/unit/daemon/auto_retry/engine_test.rb b/test/unit/daemon/auto_retry/engine_test.rb
+new file mode 100644
+index 000000000..97a615771
+--- /dev/null
++++ b/test/unit/daemon/auto_retry/engine_test.rb
+@@ -0,0 +1,253 @@
++# frozen_string_literal: true
++
++require "test_helper"
++require "hive/daemon/auto_retry"
++require "hive/daemon/status_consumer"
++
++# U4/U6/U7/U8: the daemon evaluation loop. Multi-tick sequences run against
++# an injected probe suite / state store / request queue so no external CLI
++# is ever spawned.
++class HiveDaemonAutoRetryEngineTest < Minitest::Test
++  include HiveTestHelper
++
++  Row = Hive::Daemon::StatusConsumer::Row
++  NOW = Time.utc(2026, 6, 29, 12, 0, 0)
++
++  class FakeController
++    def initialize(running: [])
++      @running = running
++    end
++
++    def running_task?(project:, slug:)
++      @running.include?([ project, slug ])
++    end
++  end
++
++  class FakeLogger
++    attr_reader :events
++
++    def initialize
++      @events = []
++    end
++
++    def event(name, **attrs)
++      @events << [ name, attrs ]
++    end
++  end
++
++  class FakeRequestQueue
++    attr_reader :requests
++
++    def initialize
++      @requests = []
++    end
++
++    def write_request!(**kwargs)
++      @requests << kwargs
++      "req-#{@requests.size}"
++    end
++  end
++
++  # Probe suite double whose verdicts are scripted per call.
++  class ScriptedSuite
++    def initialize(healthy: true)
++      @healthy = healthy
++      @calls = 0
++    end
++
++    attr_reader :calls
++
++    def evaluate(_kind)
++      @calls += 1
++      result = Hive::Daemon::AutoRetry::ProbeResult.new(
++        name: "scripted", ok: @healthy, duration_ms: 1,
++        stdout: "", stderr: "", error: @healthy ? nil : "probe says no"
++      )
++      [ @healthy, [result] ]
++    end
++  end
++
++  def setup
++    @logger = FakeLogger.new
++    @controller = FakeController.new
++    @queue = FakeRequestQueue.new
++    @safety = nil
++    @sandbox = File.join(Dir.tmpdir, "hive-auto-retry-test-#{Process.pid}-#{rand(1_000_000)}")
++    FileUtils.mkdir_p(@sandbox)
++    @state_path = File.join(@sandbox, "auto_retry_state.json")
++  end
++
++  def teardown
++    FileUtils.rm_rf(@sandbox)
++  end
++
++  def engine(suite, config_loader: ->(_p) { {} })
++    Hive::Daemon::AutoRetry::Engine.new(
++      controller: @controller,
++      logger: @logger,
++      request_queue: @queue,
++      state_store: Hive::Daemon::AutoRetry::StateStore.new(path: @state_path),
++      config_loader: config_loader,
++      safety: safety,
++      backoff_sec: 1800,
++      probe_suite_factory: ->(*) { suite }
++    )
++  end
++
++  def safety
++    @safety ||= Hive::Daemon::AutoRetry::SafetyGuard.new(worktree_factory: ->(*) { nil })
++  end
++
++  def write_error_marker(reason:, message:)
++    folder = File.join(@sandbox, "stages", "4-execute", "task-58")
++    FileUtils.mkdir_p(folder)
++    state = File.join(folder, "task.md")
++    File.write(state, "# task\n\n<!-- ERROR reason=#{reason} message=\"#{message}\" -->\n")
++    folder
++  end
++
++  def row_for(folder, stage: "4-execute", reason: "implementer_failed", marker_id: nil,
++              message: "HTTP 401 missing bearer auth")
++    attrs = { "reason" => reason, "message" => message }
++    attrs["marker_id"] = marker_id if marker_id
++    Row.new(
++      project: "proj", slug: "task-58", stage: stage,
++      marker: "error", marker_attrs: attrs,
++      folder: folder, state_file: File.join(folder, "task.md"),
++      live_task_lock: false
++    )
++  end
++
++  def decisions
++    @logger.events.select { |name, _| name == :auto_retry_decision }
++  end
++
++  def test_healthy_recoverable_marker_is_retried_with_audit_event
++    folder = write_error_marker(reason: "implementer_failed", message: "401 unauthorized")
++    e = engine(ScriptedSuite.new(healthy: true))
++    e.tick([row_for(folder)], now: NOW)
++
++    assert_equal(1, @queue.requests.size)
++    assert_equal([ "hive", "run", "task-58", "--project", "proj" ], @queue.requests.first[:argv])
++    assert_equal("healer", @queue.requests.first[:requestor])
++    assert_equal("auto_retry", @queue.requests.first[:trigger])
++    decision = decisions.last[1]
++    assert_equal("retried", decision[:action])
++    assert_equal("implementer_failed", decision[:marker_reason])
++
++    events = File.readlines(File.join(folder, "events.jsonl")).map { |l| JSON.parse(l) }
++    assert(events.any? { |ev| ev["event_type"] == "auto_retry_decision" && ev["message"].include?("retried") })
++
++    # The marker itself must be GONE (manual-clear equivalence).
++    refute_includes(File.read(File.join(folder, "task.md")), "<!-- ERROR")
++  end
++
++  def test_fingerprint_unchanged_skips_probes_until_fallback_elapses
++    folder = write_error_marker(reason: "claude_launch_failed", message: "tmux session did not become ready")
++    suite = ScriptedSuite.new(healthy: false) # never healthy; probes are the cost we count
++    e = engine(suite)
++    row = row_for(folder, reason: "claude_launch_failed", message: "tmux session did not become ready")
++
++    e.tick([row], now: NOW)
++    assert_equal(1, suite.calls)
++
++    e.tick([row], now: NOW + 60) # same fingerprint, within fallback window
++    assert_equal(1, suite.calls, "unchanged fingerprint must not re-probe")
++
++    e.tick([row], now: NOW + Hive::Daemon::AutoRetry::Engine::FALLBACK_PROBE_INTERVAL_SEC + 1)
++    assert_equal(2, suite.calls, "fallback interval must force a re-probe")
++  end
++
++  def test_retry_cap_and_backoff_exhaust_to_permanent_park
++    folder = write_error_marker(reason: "implementer_failed", message: "401")
++    e = engine(ScriptedSuite.new(healthy: true))
++    row = row_for(folder)
++
++    # Attempt 1: fires immediately on first healthy signal.
++    e.tick([row], now: NOW)
++    assert_equal(1, @queue.requests.size)
++    # The stage fails again: marker reappears. Backoff blocks an immediate retry #2.
++    e.tick([row], now: NOW + 60)
++    assert_equal(1, @queue.requests.size)
++    # After >= 30 min AND a fresh healthy signal, retry #2 fires.
++    e.tick([row], now: NOW + 1900)
++    assert_equal(2, @queue.requests.size)
++    # Third strike: exhausted => parked, no more retries, terminal audit event.
++    e.tick([row], now: NOW + 3800)
++    assert_equal(2, @queue.requests.size)
++    exhausted = decisions.find { |_, d| d[:action] == "parked_exhausted" }
++    assert exhausted, "expected a parked_exhausted decision"
++
++    # And nothing further ever happens.
++    e.tick([row], now: NOW + 100_000)
++    assert_equal(2, @queue.requests.size)
++    assert_equal(decisions.count { |_, d| d[:action] == "parked_exhausted" }, 1)
++  end
++
++  def test_unrecoverable_marker_never_enters_evaluation
++    folder = write_error_marker(reason: "exit_code", message: "HTTP 401 missing bearer auth")
++    suite = ScriptedSuite.new(healthy: true)
++    e = engine(suite)
++    e.tick([row_for(folder, reason: "exit_code")], now: NOW)
++
++    assert_empty(@queue.requests)
++    assert_empty(decisions)
++    assert_equal(0, suite.calls)
++  end
++
++  def test_failed_probes_emit_throttled_negative_decision_once_per_fingerprint
++    folder = write_error_marker(reason: "implementer_failed", message: "401")
++    e = engine(ScriptedSuite.new(healthy: false))
++    row = row_for(folder)
++
++    e.tick([row], now: NOW)
++    e.tick([row], now: NOW + 60)
++    negatives = decisions.select { |_, d| d[:action] == "not_retried" }
++    assert_equal(1, negatives.size, "negative decisions throttle per fingerprint window")
++
++    # A changed health signal (config change) re-arms the negative event.
++    loader = ->(_p) { { "execute" => { "agent" => "codex" } } }
++    e2 = Hive::Daemon::AutoRetry::Engine.new(
++      controller: @controller, logger: @logger, request_queue: @queue,
++      state_store: Hive::Daemon::AutoRetry::StateStore.new(path: @state_path),
++      config_loader: loader, safety: safety,
++      probe_suite_factory: ->(*) { ScriptedSuite.new(healthy: false) }
++    )
++    # tick re-loads configs through the injected loader; the changed
++    # fingerprint must produce a second (re-armed) negative decision.
++    e2.tick([row], now: NOW + 20_000)
++    negatives = decisions.select { |_, d| d[:action] == "not_retried" }
++    assert_equal(2, negatives.size)
++  end
++
++  def test_kill_switch_off_is_a_zero_cost_early_return
++    folder = write_error_marker(reason: "implementer_failed", message: "401")
++    suite = ScriptedSuite.new(healthy: true)
++    e = engine(suite)
++    e.tick([row_for(folder)], now: NOW, enabled: false)
++
++    assert_empty(@queue.requests)
++    assert_empty(decisions)
++    assert_equal(0, suite.calls)
++  end
++
++  def test_live_lock_or_inflight_rows_are_skipped
++    folder = write_error_marker(reason: "implementer_failed", message: "401")
++    e = engine(ScriptedSuite.new(healthy: true))
++
++    locked = row_for(folder)
++    locked.live_task_lock = true
++    e.tick([locked], now: NOW)
++    assert_empty(@queue.requests)
++
++    busy = Hive::Daemon::AutoRetry::Engine.new(
++      controller: FakeController.new(running: [ %w[proj task-58] ]),
++      logger: @logger, request_queue: @queue,
++      state_store: Hive::Daemon::AutoRetry::StateStore.new(path: @state_path),
++      config_loader: ->(_p) { {} }, safety: safety,
++      probe_suite_factory: ->(*) { ScriptedSuite.new(healthy: true) }
++    )
++    busy.tick([row_for(folder)], now: NOW)
++    assert_empty(@queue.requests)
++  end
++end
+diff --git a/test/unit/daemon/auto_retry/health_probes_test.rb b/test/unit/daemon/auto_retry/health_probes_test.rb
+new file mode 100644
+index 000000000..212772708
+--- /dev/null
++++ b/test/unit/daemon/auto_retry/health_probes_test.rb
+@@ -0,0 +1,201 @@
++# frozen_string_literal: true
++
++require "test_helper"
++require "hive/daemon/auto_retry/health_probes"
++require "hive/daemon/auto_retry/probes"
++
++# U3: concrete health probes with a mocked subprocess layer (no real CLI
++# calls), plus the Suite composition contract (doctor green is required
++# before any reason-specific probe runs).
++class HiveDaemonAutoRetryHealthProbesTest < Minitest::Test
++  include HiveTestHelper
++
++  Ok = ->(name) {
++    Hive::Daemon::AutoRetry::ProbeResult.new(name: name, ok: true, duration_ms: 1,
++                                             stdout: "", stderr: "", error: nil)
++  }
++  Fail = ->(name, error) {
++    Hive::Daemon::AutoRetry::ProbeResult.new(name: name, ok: false, duration_ms: 1,
++                                             stdout: "", stderr: "", error: error)
++  }
++
++  class FakeRunner
++    attr_reader :invoked
++
++    def initialize(command_results: {}, block_results: {}, command_blocks: {})
++      @command_results = command_results
++      @block_results = block_results
++      @command_blocks = command_blocks
++      @invoked = []
++    end
++
++    def run(name, _timeout_ms: nil, &_block)
++      @invoked << name
++      @block_results.fetch(name) { yield }
++    end
++
++    def run_command(name, argv, env: {}, timeout_ms: nil)
++      @invoked << [name, argv]
++      block = @command_blocks[name]
++      return block.call(argv, env) if block
++
++      @command_results[name] || Fail.call(name, "not stubbed")
++    end
++  end
++
++  def config(mode = "headless")
++    { "claude" => { "mode" => mode } }
++  end
++
++  def suite(runner, claude_mode: "headless")
++    Hive::Daemon::AutoRetry::HealthProbes::Suite.new(
++      runner: runner, config: config(claude_mode), project_root: "/tmp/does-not-matter"
++    )
++  end
++
++  # The Suite runs the REAL in-process doctor as its universal precondition.
++  # Composition tests stub Doctor.new with a scripted exit code (0 = green).
++  def with_doctor(exit_code: 0)
++    fake = Class.new do
++      define_method(:initialize) { |*| }
++      define_method(:call) { exit_code }
++    end
++    with_replaced_singleton_method(Hive::Commands::Doctor, :new, ->(*) { fake.new }) do
++      yield
++    end
++  end
++
++  def test_codex_auth_passes_only_when_login_and_smoke_both_pass
++    runner = FakeRunner.new(
++      command_results: {
++        "codex_login_status" => Ok.call("codex_login_status"),
++        "codex_exec_smoke" => Ok.call("codex_exec_smoke")
++      }
++    )
++    with_doctor do
++      healthy, results = suite(runner).evaluate(:codex_auth)
++      assert healthy
++      assert(results.all?(&:ok))
++      assert_equal(%w[codex_login_status codex_exec_smoke],
++                   runner.invoked.grep(Array).map(&:first))
++    end
++  end
++
++  def test_logged_out_codex_fails_without_spawning_the_smoke_test
++    runner = FakeRunner.new(
++      command_results: {
++        "codex_login_status" => Fail.call("codex_login_status", "exit 1")
++      }
++    )
++    with_doctor do
++      healthy, results = suite(runner).evaluate(:codex_auth)
++      refute healthy
++      refute_includes(runner.invoked.grep(Array).map(&:first), "codex_exec_smoke")
++      assert(results.any? { |r| r.name == "codex_login_status" && !r.ok })
++    end
++  end
++
++  def test_logged_out_text_with_exit_zero_is_not_healthy
++    logged_out = Hive::Daemon::AutoRetry::ProbeResult.new(
++      name: "codex_login_status", ok: true, duration_ms: 1,
++      stdout: "Not logged in", stderr: "", error: nil
++    )
++    runner = FakeRunner.new(command_results: { "codex_login_status" => logged_out })
++    with_doctor do
++      healthy, results = suite(runner).evaluate(:codex_auth)
++      refute healthy
++      refute_includes(runner.invoked.grep(Array).map(&:first), "codex_exec_smoke")
++      assert(results.any? { |r| r.name == "codex_login_status" && !r.ok })
++    end
++  end
++
++  def test_smoke_failure_after_green_login_fails_the_probe
++    login_ok = Hive::Daemon::AutoRetry::ProbeResult.new(
++      name: "codex_login_status", ok: true, duration_ms: 1,
++      stdout: "Logged in", stderr: "", error: nil
++    )
++    runner = FakeRunner.new(
++      command_results: {
++        "codex_login_status" => login_ok,
++        "codex_exec_smoke" => Fail.call("codex_exec_smoke", "exit 1")
++      }
++    )
++    with_doctor do
++      healthy, results = suite(runner).evaluate(:codex_auth)
++      refute healthy
++      assert(results.any? { |r| r.name == "codex_exec_smoke" && !r.ok })
++    end
++  end
++
++  def test_claude_launcher_probe_checks_version_and_tmux_readiness_in_tmux_mode
++    runner = FakeRunner.new(
++      command_results: { "claude_version" => Ok.call("claude_version") },
++      block_results: { "claude_ready_detector" => Ok.call("claude_ready_detector") }
++    )
++    with_doctor do
++      with_replaced_singleton_method(Hive::ClaudeLauncher, :tmux_status, ->(*) { [ :present, "tmux 3.3a found" ] }) do
++        healthy, results = suite(runner, claude_mode: "tmux").evaluate(:claude_launcher)
++        assert healthy
++        assert(results.all?(&:ok))
++      end
++    end
++    assert_includes(runner.invoked.map(&:to_s), "claude_ready_detector")
++  end
++
++  def test_claude_launcher_readiness_failure_is_not_healthy
++    runner = FakeRunner.new(
++      command_results: { "claude_version" => Ok.call("claude_version") },
++      block_results: { "claude_ready_detector" => Fail.call("claude_ready_detector", "tmux readiness failed: no tmux") }
++    )
++    with_doctor do
++      with_replaced_singleton_method(Hive::ClaudeLauncher, :tmux_status, ->(*) { [ :missing, "tmux not found" ] }) do
++        healthy, _results = suite(runner, claude_mode: "tmux").evaluate(:claude_launcher)
++        refute healthy
++      end
++    end
++  end
++
++  def test_red_doctor_fails_every_composition_regardless_of_specific_probes
++    runner = FakeRunner.new(
++      command_results: {
++        "codex_login_status" => Ok.call("codex_login_status"),
++        "codex_exec_smoke" => Ok.call("codex_exec_smoke")
++      }
++    )
++    with_doctor(exit_code: 65) do
++      healthy, results = suite(runner).evaluate(:codex_auth)
++      refute healthy
++      assert(results.any? { |r| r.name == "hive_doctor" && !r.ok })
++      # The reason-specific probes must NOT have been spawned past a red doctor.
++      refute_includes(runner.invoked.grep(Array).map(&:first), "codex_login_status")
++    end
++  end
++
++  def test_unknown_kind_is_never_healthy
++    runner = FakeRunner.new
++    with_doctor do
++      healthy, _results = suite(runner).evaluate(:mystery)
++      refute healthy
++    end
++  end
++
++  def test_doctor_probe_runs_the_real_doctor_in_process
++    Dir.mktmpdir do |project_root|
++      # Deterministically red: a nonexistent brainstorm skill makes the
++      # real doctor report a missing row on ANY machine, while headless
++      # mode keeps the tmux runtime check out of the picture.
++      cfg = Hive::Config::DEFAULTS.merge(
++        "project_root" => project_root,
++        "claude" => { "mode" => "headless" },
++        "brainstorm" => { "skill" => "/hive-definitely-not-a-real-skill" },
++        "plan" => { "skill" => "/hive-definitely-not-a-real-skill" }
++      )
++      runner = Hive::Daemon::AutoRetry::ProbeRunner.new
++      result = Hive::Daemon::AutoRetry::HealthProbes::HiveDoctor.evaluate(
++        runner: runner, config: cfg, project_root: project_root
++      )
++      refute_predicate(result, :ok)
++      assert_match(/doctor exited/, result.error.to_s)
++    end
++  end
++end
+diff --git a/test/unit/daemon/auto_retry/probes_test.rb b/test/unit/daemon/auto_retry/probes_test.rb
+new file mode 100644
+index 000000000..f87dc3b76
+--- /dev/null
++++ b/test/unit/daemon/auto_retry/probes_test.rb
+@@ -0,0 +1,77 @@
++# frozen_string_literal: true
++
++require "test_helper"
++require "hive/daemon/auto_retry/probes"
++
++# U2: uniform probe execution. A hang, a raise, and a nonzero exit are all
++# "not healthy" (AE6); results cache per tick-scoped runner; the cache never
++# leaks across runners (ticks).
++class HiveDaemonAutoRetryProbesTest < Minitest::Test
++  def test_fast_passing_probe_is_ok_and_cached_within_a_tick
++    calls = 0
++    runner = Hive::Daemon::AutoRetry::ProbeRunner.new
++    result = runner.run("probe") { calls += 1 }
++
++    assert_predicate(result, :ok)
++    runner.run("probe") { calls += 1 }
++    assert_equal(1, calls, "second evaluation in the same tick must hit the cache")
++  end
++
++  def test_cache_does_not_leak_across_ticks
++    calls = 0
++    first = Hive::Daemon::AutoRetry::ProbeRunner.new
++    second = Hive::Daemon::AutoRetry::ProbeRunner.new
++    first.run("probe") { calls += 1 }
++    second.run("probe") { calls += 1 }
++    assert_equal(2, calls)
++  end
++
++  def test_raising_probe_is_not_healthy_with_cause_captured
++    runner = Hive::Daemon::AutoRetry::ProbeRunner.new
++    result = runner.run("boom") { raise ArgumentError, "no dice" }
++    refute_predicate(result, :ok)
++    assert_match(/ArgumentError: no dice/, result.error)
++  end
++
++  def test_hanging_in_process_probe_times_out_as_not_healthy
++    runner = Hive::Daemon::AutoRetry::ProbeRunner.new
++    result = runner.run("hang", timeout_ms: 100) { sleep 5 }
++    refute_predicate(result, :ok)
++    assert_match(/timed out/, result.error)
++  ensure
++    # The abandoned thread keeps sleeping; do not let it leak a failure.
++  end
++
++  def test_successful_command_captures_stdout_verbatim
++    runner = Hive::Daemon::AutoRetry::ProbeRunner.new
++    result = runner.run_command("echo", [ "sh", "-c", "echo hello-out; echo hello-err >&2" ])
++    assert_predicate(result, :ok)
++    assert_includes(result.stdout, "hello-out")
++    assert_includes(result.stderr, "hello-err")
++  end
++
++  def test_failing_command_records_stderr_and_exit_code
++    runner = Hive::Daemon::AutoRetry::ProbeRunner.new
++    result = runner.run_command("fail", [ "sh", "-c", "echo bad >&2; exit 3" ])
++    refute_predicate(result, :ok)
++    assert_match(/exit 3/, result.error)
++    assert_includes(result.stderr, "bad")
++  end
++
++  def test_hanging_command_is_killed_at_the_deadline
++    runner = Hive::Daemon::AutoRetry::ProbeRunner.new
++    started = Time.now
++    result = runner.run_command("hang", [ "sh", "-c", "sleep 60" ], timeout_ms: 200)
++    elapsed = Time.now - started
++    refute_predicate(result, :ok)
++    assert_match(/timed out/, result.error)
++    assert_operator(elapsed, :<, 10, "hung command must be killed at the deadline")
++  end
++
++  def test_missing_binary_degrades_to_not_healthy
++    runner = Hive::Daemon::AutoRetry::ProbeRunner.new
++    result = runner.run_command("missing", [ "hive-definitely-not-a-binary-xyz" ])
++    refute_predicate(result, :ok)
++    refute_nil(result.error)
++  end
++end
+diff --git a/test/unit/daemon/auto_retry/safety_test.rb b/test/unit/daemon/auto_retry/safety_test.rb
+new file mode 100644
+index 000000000..6bc60c247
+--- /dev/null
++++ b/test/unit/daemon/auto_retry/safety_test.rb
+@@ -0,0 +1,124 @@
++# frozen_string_literal: true
++
++require "test_helper"
++require "hive/daemon/auto_retry/safety"
++
++# U5: work-area safety guard. Default-deny semantics: dirty-with-unknown
++# files and answered brainstorm content are unsafe (AE5); clean or
++# allowlisted-agent-generated-only worktrees are safe.
++class HiveDaemonAutoRetrySafetyTest < Minitest::Test
++  include HiveTestHelper
++
++  Row = Hive::Daemon::StatusConsumer::Row
++
++  def test_clean_execute_worktree_is_safe
++    with_tmp_dir do |folder|
++      row = execute_row(folder)
++      with_tmp_git_repo do |repo|
++        verdict = guard(worktree_path: repo).safe?(row: row, config: { "project_root" => repo })
++        assert_predicate(verdict, :safe?)
++      end
++    end
++  end
++
++  def test_uncommitted_user_edit_is_unsafe
++    with_tmp_dir do |folder|
++      row = execute_row(folder)
++      with_tmp_git_repo do |repo|
++        File.write(File.join(repo, "user-edit.txt"), "precious\n")
++        verdict = guard(worktree_path: repo).safe?(row: row, config: { "project_root" => repo })
++        refute_predicate(verdict, :safe?)
++      end
++    end
++  end
++
++  def test_missing_worktree_is_safe_retry_starts_clean
++    Dir.mktmpdir do |dir|
++      verdict = guard(worktree_path: nil).safe?(row: execute_row(dir), config: { "project_root" => dir })
++      assert_predicate(verdict, :safe?)
++    end
++  end
++
++  def test_brainstorm_with_answered_content_is_unsafe
++    Dir.mktmpdir do |folder|
++      state = File.join(folder, "brainstorm.md")
++      File.write(state, <<~MD)
++        ## Round 1
++
++        ### Q1. What should we build?
++        ### A1. A rocket ship.
++      MD
++      verdict = guard.safe?(row: row_for(folder, stage: "2-brainstorm", state_file: state), config: {})
++      refute_predicate(verdict, :safe?)
++    end
++  end
++
++  def test_pristine_brainstorm_without_answers_is_safe
++    Dir.mktmpdir do |folder|
++      state = File.join(folder, "brainstorm.md")
++      File.write(state, <<~MD)
++        <!-- ERROR reason=claude_launch_failed marker_id=abc -->
++
++        ## Round 1
++
++        ### Q1. What should we build?
++      MD
++      verdict = guard.safe?(row: row_for(folder, stage: "2-brainstorm", state_file: state), config: {})
++      assert_predicate(verdict, :safe?)
++    end
++  end
++
++  def test_nonempty_plan_md_is_unsafe_by_default
++    Dir.mktmpdir do |folder|
++      state = File.join(folder, "plan.md")
++      File.write(state, "# Plan\n\ncontent a rerun would replace\n")
++      verdict = guard.safe?(row: row_for(folder, stage: "3-plan", state_file: state), config: {})
++      refute_predicate(verdict, :safe?)
++    end
++  end
++
++  def test_terminal_success_marker_always_blocks_retry
++    Dir.mktmpdir do |folder|
++      state = File.join(folder, "task.md")
++      File.write(state, "<!-- EXECUTE_COMPLETE -->\n<!-- ERROR reason=implementer_failed -->\n")
++      row = row_for(folder, stage: "4-execute", state_file: state)
++      verdict = guard(worktree_path: nil).safe?(row: row, config: { "project_root" => folder })
++      refute_predicate(verdict, :safe?)
++      assert_match(/EXECUTE_COMPLETE/, verdict.rationale)
++    end
++  end
++
++  def test_unknown_stage_is_unsafe_by_default
++    Dir.mktmpdir do |folder|
++      row = row_for(folder, stage: "6-review", state_file: File.join(folder, "task.md"))
++      verdict = guard.safe?(row: row, config: {})
++      refute_predicate(verdict, :safe?)
++    end
++  end
++
++  private
++
++  def guard(worktree_path: nil)
++    Hive::Daemon::AutoRetry::SafetyGuard.new(
++      worktree_factory: ->(_project_root, _slug) { worktree_path }
++    )
++  end
++
++  def execute_row(folder)
++    state = File.join(folder, "task.md")
++    File.write(state, "<!-- ERROR reason=implementer_failed -->\n")
++    Row.new(
++      project: "p", slug: "s", stage: "4-execute",
++      marker: "error", marker_attrs: { "reason" => "implementer_failed" },
++      folder: folder, state_file: state
++    )
++  end
++
++  def row_for(folder, stage:, state_file:)
++    Row.new(
++      project: "p", slug: "s", stage: stage,
++      marker: "error", marker_attrs: { "reason" => "implementer_failed" },
++      folder: folder, state_file: state_file
++    )
++  end
++end
+diff --git a/wiki/index.md b/wiki/index.md
+index d59b93e36..f9386a98c 100644
+--- a/wiki/index.md
++++ b/wiki/index.md
+@@ -10,8 +10,8 @@ tags: [index, wiki]
+ 
+ **TLDR**: Catalog of the LLM-maintained wiki for `hive`.
+ 
+-Page count: 84
+-Updated: 2026-06-25
++Page count: 85
++Updated: 2026-08-25
+ 
+ Folder-as-agent workflow engine: a Ruby 3.4 / Thor CLI control plane where descriptor-backed workflows move task folders through filesystem stages, stage agents run via configurable AgentProfile CLIs (`claude` default, `codex`, `pi`), and `mv` between directories remains the approval primitive. The built-in `coding` workflow drives the nine-stage PR pipeline (`1-inbox` → `2-brainstorm` → `3-plan` → `4-execute` → `5-open-pr` → `6-review` → `7-artifacts` → `8-finalize` → `9-done`), while `content` and project-authored workflows share the same generic runner/status/action machinery. The public release surface is the `hive-cli` rubygem installed through Homebrew, AUR, or `install.sh`, with `hv` as the Apache Hive collision fallback entrypoint, plus the hivebox GHCR Docker image and one-command `hivecli.sh/box` shell / `hivecli.sh/box.ps1` PowerShell installers; `hive web`/hivebox, `hive init` workflow selection and normal-vs-patrol reviewer split, project-global Claude model/effort pins, `hive connect screenote` for OAuth-backed Screenote MCP uploads, `hive patrol` handoff into `6-review`, `hive babysit`, `hive bench submit` for hive-bench corpus submissions, `hive digest` for the daily shipped digest, and the single ClawHub `hive-cli` listing that installs the OpenClaw `/hive` skill are covered by dedicated command/module pages.
+ 
+@@ -59,6 +59,7 @@ Folder-as-agent workflow engine: a Ruby 3.4 / Thor CLI control plane where descr
+ - [[log]] — `wiki/log.md`
+ - [[modules/agent]] — `wiki/modules/agent.md`
+ - [[modules/agent_profile]] — `wiki/modules/agent_profile.md`
++- [[modules/auto-retry]] — `wiki/modules/auto-retry.md`
+ - [[modules/babysitter]] — `wiki/modules/babysitter.md`
+ - [[modules/bot]] — `wiki/modules/bot.md`
+ - [[modules/config]] — `wiki/modules/config.md`
+diff --git a/wiki/log.d/20260825-000000-daemon-auto-retry.md b/wiki/log.d/20260825-000000-daemon-auto-retry.md
+new file mode 100644
+index 000000000..bf8a3d3c3
+--- /dev/null
++++ b/wiki/log.d/20260825-000000-daemon-auto-retry.md
+@@ -0,0 +1,57 @@
++---
++created: 2026-08-25
++tags: [daemon, auto-retry, recovery]
++---
++
++**Feature:** Daemon auto-retry for recoverable terminal error markers.
++
++**Problem:** When the daemon parked a task on a terminal `ERROR` marker
++because an external dependency was temporarily broken (codex auth 401 on
++`implementer_failed`; stale claude launcher/tmux on
++`claude_launch_failed`), the task stayed red forever even after the
++dependency healed. Recovery required a manual `hive markers clear`
++(observed live with task-58-style codex 401s and task-287-style
++claude-launch failures).
++
++**Action:** New `Hive::Daemon::AutoRetry::*` modules wired into the
++dispatcher tick after the stale-agent healer:
++
++1. **Classifier (U1)** — closed v1 allowlist with REQUIRED diagnostic
++   signatures matched over the marker `message=` attr plus
++   `diagnostics/red-status.md` / newest log tail: `implementer_failed`
++   only as codex 401/missing-bearer/basic-auth;
++   `claude_launch_failed` only with launcher/wrapper/readiness text.
++   Everything else stays manual.
++2. **ProbeRunner (U2)** — per-probe hard timeouts (10–30s), process-group
++   kill at the deadline, verbatim output capture, tick-scoped caching;
++   hang/error/nonzero ⇒ not healthy.
++3. **Concrete probes (U3)** — in-process real `hive doctor` universal
++   precondition; codex auth (`login status` logged-in AND tiny
++   `codex exec` smoke, both in the daemon's own env); claude launcher
++   (`--version` wrapper check + tmux readiness detector).
++4. **Engine (U4/U6/U7)** — fingerprint-gated re-probing (stat-only hash of
++   binaries/wrapper mtimes/config/env/skill dirs + 30-min fallback),
++   2-attempts-per-task-per-reason cap with immediate→30-min backoff and a
++   one-shot `parked_exhausted` terminal event, marker-id-guarded clear via
++   the same locked primitive `hive markers clear` uses, rerun enqueued as
++   a normal `hive run <slug> --project <project>` dispatch request
++   (`requestor=healer`, `trigger=auto_retry`), and dual-channel audit:
++   `auto_retry_decision` daemon-log event plus an `auto_retry_decision`
++   record in the task's `events.jsonl`. Negative decisions throttle to
++   once per fingerprint change/fallback window.
++5. **SafetyGuard (U5)** — default-deny work-area guard reusing the
++   existing `review.fix.auto_commit.scope_check` glob knowledge for the
++   execute stage; answered brainstorm content or non-empty plan.md always
++   blocks; terminal success markers never retry.
++6. **Config (U8)** — `daemon.auto_retry.enabled`, default `true`,
++   strict-boolean validated; `false` is a zero-cost early return.
++
++Attempt bookkeeping persists at `<state_home>/daemon_auto_retry_state.json`
++(atomic write, fail-closed load) so budgets survive daemon restarts.
++
++**Tests:** `test/unit/daemon/auto_retry/` — classifier signature matrix,
++probe timeout/error/caching behavior, probe composition (doctor-red fails
++everything), safety-guard default-deny cases, multi-tick engine sequences
++(retry/backoff/exhaustion, fingerprint gating, throttled negatives,
++kill-switch early return, live-lock skips), and kill-switch config
++validation.
+diff --git a/wiki/modules/auto-retry.md b/wiki/modules/auto-retry.md
+new file mode 100644
+index 000000000..1976c727c
+--- /dev/null
++++ b/wiki/modules/auto-retry.md
+@@ -0,0 +1,71 @@
++---
++title: Hive::Daemon::AutoRetry
++type: module
++source: lib/hive/daemon/auto_retry/
++created: 2026-08-25
++updated: 2026-08-25
++tags: [daemon, module, auto-retry, recovery, markers]
++---
++
++**TLDR**: Conservative daemon-side auto-recovery for parked tasks whose
++terminal `ERROR` marker was caused by a temporarily-broken EXTERNAL
++dependency. A closed v1 allowlist (`implementer_failed` with the codex
++401/missing-auth signature; `claude_launch_failed` with the
++launcher/wrapper/readiness signature) is gated on health probes
++(`hive doctor` + reason-specific CLI probes), a default-deny work-area
++safety guard, fingerprint-gated re-probing, and a hard 2-attempts-per-
++task-per-reason cap with immediate→30-minute backoff. Retry mechanics are
++byte-for-byte manual-clear equivalence: the same locked
++`Hive::Markers.clear_current` primitive `hive markers clear` uses, then a
++`hive run <slug> --project <project>` dispatch request through the normal
++queue. Kill-switch: `daemon.auto_retry.enabled: false` (default `true`).
++
++## Module map
++
++| Piece | File | Purpose |
++|-------|------|---------|
++| Classifier | `lib/hive/daemon/auto_retry/classify.rb` | Pure allowlist + diagnostic-signature match over the marker's `message=` attr plus `diagnostics/red-status.md` / newest task log tail. Anything unmatched stays parked (AE3). |
++| ProbeRunner | `lib/hive/daemon/auto_retry/probes.rb` | Uniform probe execution: hard per-command timeouts (10–30s), pgroup kill on deadline, verbatim stdout/stderr capture, tick-scoped result cache (one runner per engine tick). Hang/error/nonzero ⇒ not healthy (AE6). |
++| HealthProbes | `lib/hive/daemon/auto_retry/health_probes*.rb` | Universal in-process `hive doctor` precondition + codex auth probe (`codex login status` must be logged-in AND tiny `codex exec` smoke succeeds) + claude launcher probe (`claude --version` wrapper check + tmux readiness detector). Doctor red fails every composition. |
++| Fingerprint | `lib/hive/daemon/auto_retry/fingerprint.rb` | Cheap stat-only health-signal hash: daemon binary, agent binaries/wrapper mtimes, relevant config blocks, inherited env slice, skill-inventory dir mtimes. State-only signals (e.g. codex logout without file change) are covered by the 30-min fallback re-probe. |
++| SafetyGuard | `lib/hive/daemon/auto_retry/safety.rb` | Default-deny: execute stage needs a clean worktree or only paths passing the existing `review.fix.auto_commit.scope_check` globs; brainstorm with any answered question is unsafe; non-empty `plan.md` unsafe; terminal success markers always block; unknown stage/refusal ⇒ no retry (AE5). |
++| StateStore | `lib/hive/daemon/auto_retry/state_store.rb` | Crash-safe JSON bookkeeping at `<state_home>/daemon_auto_retry_state.json`, keyed `[project, slug, stage, reason]`: attempts, last fingerprint, last attempt/probe/negative times, exhausted flag. Atomic write, fail-closed load. |
++| Engine | `lib/hive/daemon/auto_retry/engine.rb` | The tick decision loop (wired into `Dispatcher#tick` after the stale-agent healer): classify → skip exhausted → exhaust on attempts ≥ 2 → fingerprint gate → probes → backoff gate → safety → clear+enqueue → dual-channel audit (`auto_retry_decision` daemon-log event AND `auto_retry_decision` event in the task's `events.jsonl`). Negative decisions throttle to once per fingerprint change or fallback interval. |
++
++## Decision flow per parked row
++
++1. Skip legacy-layout projects, live controller slots, live task locks,
++   non-`error` markers.
++2. Classify (U1); non-recoverable never enters evaluation.
++3. `exhausted` ⇒ silent permanent park; `attempts >= 2` ⇒ mark exhausted +
++   one-shot `parked_exhausted` audit event.
++4. Probe only when the health-signal fingerprint changed since the last
++   probe OR ≥ 30 min elapsed (fallback).
++5. Healthy? No ⇒ throttled negative decision. Yes but < 30 min since retry
++   #1 ⇒ throttled negative. Yes and safety guard denies ⇒ throttled
++   negative with rationale.
++6. Otherwise: marker-id-guarded `clear_current`, enqueue
++   `hive run <slug> --project <project>` (`requestor=healer`,
++   `trigger=auto_retry`) so caps/cooldown/in-flight gates still apply, bump
++   attempts, audit `retried`. If the enqueue write fails AFTER the clear,
++   the audit action is `retry_enqueue_failed` with the exact manual rerun
++   command.
++
++## Config
++
++```yaml
++daemon:
++  auto_retry:
++    enabled: true   # global kill-switch; false = zero probes, zero events
++```
++
++Strict boolean validation in `Config.validate_daemon!` (repo convention);
++a disabled engine logs one `auto_retry_disabled` event at dispatcher
++construction and costs nothing per tick.
++
++## Backlinks
++
++- [[modules/daemon]]
++- [[modules/markers]]
++- [[commands/markers]]
++- [[state-model]]
