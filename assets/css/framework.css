@@ -277,6 +277,51 @@
 .workflow-intro p:first-child {
   color: var(--text);
 }
+.workflow-package {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 24px;
+  margin: -4px 0 20px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.workflow-package code {
+  overflow-wrap: anywhere;
+}
+.workflow-package a {
+  color: var(--accent-text);
+  text-underline-offset: 3px;
+}
+.custom-gate {
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.custom-gate h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 500;
+}
+.custom-gate p {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.custom-gate .custom-gate-files,
+.custom-gate .custom-gate-history {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.custom-gate .custom-gate-history {
+  margin: 0;
+}
+.custom-gate .workflow-decision {
+  margin-bottom: 12px;
+}
 .workflow-theatre {
   margin: 0;
   border: 1px solid var(--line-strong);
@@ -549,17 +594,11 @@
 }
 .workflow-stations {
   display: grid;
-  grid-template-columns: repeat(9, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--stage-count, 9), minmax(0, 1fr));
   list-style: none;
   padding: 0;
   margin: 0;
   border-top: 1px solid var(--border);
-}
-[data-workflow="content"] .workflow-stations {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-}
-[data-workflow="research"] .workflow-stations {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .workflow-stations li {
   min-width: 0;
@@ -1096,8 +1135,7 @@
   .workflow-saved ul {
     gap: 4px 12px;
   }
-  .workflow-stations,
-  [data-workflow="content"] .workflow-stations {
+  .workflow-stations {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .workflow-stations button {

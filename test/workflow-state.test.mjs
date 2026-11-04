@@ -17,8 +17,9 @@ const workflows = JSON.parse(
     "utf8",
   ),
 );
-const [coding, content, research] = workflows;
-test("built-ins have distinct real stage paths and result types", () => {
+const [coding, writing, architecture] = workflows;
+const research = JSON.parse(await readFile(new URL("../_data/approval_example.json", import.meta.url), "utf8"));
+test("examples distinguish the builtin Coding path from published Writing and Architecture packages", () => {
   assert.deepEqual(
     coding.stages.map((s) => s.id),
     [
@@ -33,13 +34,27 @@ test("built-ins have distinct real stage paths and result types", () => {
       "done",
     ],
   );
-  assert.deepEqual(
-    content.stages.map((s) => s.id),
-    ["inbox", "research", "outline", "draft", "critique", "done"],
-  );
-  assert.equal(content.stages.at(-1).artifact, "article.md");
-  assert.ok(content.stages.every((s) => s.form !== "pr" && s.form !== "code"));
-  assert.equal(research.badge, "Custom example");
+  assert.equal(coding.badge, "Built-in");
+  assert.deepEqual(writing.stages.map((s) => [s.id, s.artifact]), [
+    ["inbox", "brief.md"], ["repo-research", "repo-research.md"],
+    ["web-research", "web-research.md"], ["research", "research.md"],
+    ["draft", "draft.md"], ["editorial", "editorial.md"], ["deliver", "article.md"],
+  ]);
+  assert.deepEqual(architecture.stages.map((s) => [s.id, s.artifact]), [
+    ["inbox", "brief.md"], ["repo-research", "repo-research.txt"],
+    ["web-research", "web-research.txt"], ["research", "research.md"],
+    ["draft", "draft.md"], ["review", "review.md"],
+    ["architecture", "architecture.md"], ["done", "architecture.md"],
+  ]);
+  for (const flow of [writing, architecture]) {
+    assert.equal(flow.badge, "Honeycomb");
+    assert.equal(flow.install, `hive workflow install honeycomb/${flow.id}`);
+    assert.ok(flow.source.endsWith(`/packages/${flow.id}/${flow.version}`));
+    assert.ok(flow.stages.every((s) => !["pr", "code"].includes(s.form) && s.kind !== "human"));
+    assert.equal(flow.stages[5].kind, "council");
+  }
+  assert.equal(writing.version, "1.0.2");
+  assert.equal(architecture.version, "1.0.4");
 });
 test("coding rechecks its repair before evidence, and finishes without losing saved artifacts", () => {
   let state = initialState(coding),
@@ -63,8 +78,8 @@ test("coding rechecks its repair before evidence, and finishes without losing sa
   assert.equal(transition(state, { type: "next" }), state);
 });
 test("an interrupted draft cannot advance; retry preserves saved inputs and increments its attempt", () => {
-  const original = inspectStage(content, 3);
-  assert.deepEqual(original.saved, ["idea.md", "research.md", "outline.md"]);
+  const original = inspectStage(writing, 4);
+  assert.deepEqual(original.saved, ["brief.md", "repo-research.md", "web-research.md", "research.md"]);
   const stopped = transition(original, { type: "interrupt" });
   assert.equal(stopped.status, "interrupted");
   assert.equal(transition(stopped, { type: "next" }), stopped);
@@ -74,7 +89,55 @@ test("an interrupted draft cannot advance; retry preserves saved inputs and incr
   assert.deepEqual(retry.saved, original.saved);
   const next = transition(retry, { type: "next" });
   assert.ok(next.saved.includes("draft.md"));
-  assert.equal(currentStage(next).id, "critique");
+  assert.equal(currentStage(next).id, "editorial");
+});
+test("each package revises inside its council and preserves both review rounds before delivery", () => {
+  for (const flow of [writing, architecture]) {
+    let state = inspectStage(flow, 5);
+    assert.ok(state.saved.includes("research.md"));
+    assert.ok(state.saved.includes("draft.md"));
+    const council = currentStage(state);
+    assert.equal(visitAt(flow, state.position).phase, "review");
+    state = transition(state, { type: "next" });
+    assert.equal(currentStage(state), council, "revision is not a fictitious top-level stage");
+    assert.equal(visitAt(flow, state.position).phase, "revise");
+    assert.ok(state.saved.includes("reviews/triage-01.md"));
+    assert.ok(!state.saved.includes(council.artifact), "council is not complete after its first round");
+    const before = state.saved;
+    state = transition(state, { type: "next" });
+    assert.equal(currentStage(state), council);
+    assert.equal(visitAt(flow, state.position).phase, "recheck");
+    assert.deepEqual(state.saved, before, "revision replaces draft.md without duplicating or dropping saved filenames");
+    state = transition(state, { type: "next" });
+    assert.ok(state.saved.includes(council.artifact));
+    assert.ok(state.saved.includes("reviews/triage-01.md"));
+    assert.ok(state.saved.includes("reviews/triage-02.md"));
+    assert.equal(currentStage(state).id, flow.id === "writing" ? "deliver" : "architecture");
+    while (state.status !== "complete") state = transition(state, { type: "next" });
+    assert.ok(state.saved.includes(flow.id === "writing" ? "verification.md" : "architecture.md"));
+    assert.equal(new Set(state.saved).size, state.saved.length);
+    assert.equal(transition(state, { type: "interrupt" }), state);
+    const fresh = initialState(flow);
+    assert.equal(fresh.position, 0);
+    assert.deepEqual(fresh.saved, ["brief.md"]);
+    assert.equal(fresh.attempt, 1);
+    assert.equal(fresh.recovered, false);
+  }
+});
+test("a retry inside the council keeps its round and earlier evidence without manufacturing completion", () => {
+  const first = inspectStage(writing, 5);
+  const revision = transition(first, { type: "next" });
+  const stopped = transition(revision, { type: "interrupt" });
+  assert.equal(stopped.status, "interrupted");
+  assert.equal(transition(stopped, { type: "next" }), stopped);
+  const retried = transition(stopped, { type: "retry" });
+  assert.equal(retried.attempt, 2);
+  assert.equal(retried.position, revision.position);
+  assert.deepEqual(retried.saved, revision.saved);
+  assert.ok(!retried.saved.includes("editorial.md"));
+  const recheck = transition(retried, { type: "next" });
+  assert.equal(recheck.attempt, 2, "council substeps are still part of the same retried stage");
+  assert.equal(transition(recheck, { type: "next" }).attempt, 1, "delivery starts its own attempt");
 });
 test("a human gate cannot be bypassed by playback or retry, and approval is explicit", () => {
   const gate = inspectStage(research, 2);
@@ -102,13 +165,31 @@ test("rejection returns the same task to synthesis without discarding evidence o
   const result = transition(again, { type: "approve" });
   assert.deepEqual(result.decisions, ["revision requested", "approved"]);
 });
+test("human rejection follows its declared target, not the adjacent stage index", () => {
+  const flow = structuredClone(research);
+  flow.stages.splice(2, 0, { id: "check", kind: "agent", artifact: "check.md" });
+  flow.route = [0, 1, 2, 3];
+  const gate = inspectStage(flow, 3);
+  const rejected = transition(gate, { type: "reject" });
+  assert.equal(currentStage(rejected).id, "synthesis");
+  assert.ok(rejected.saved.includes("check.md"));
+  assert.equal(currentStage(transition(rejected, { type: "next" })).id, "check");
+});
+test("a first-stage human gate starts waiting and cannot advance itself", () => {
+  const flow = { stages: [{ id: "approval", artifact: "approval.md", kind: "human" }], route: [0] };
+  const state = initialState(flow);
+  assert.equal(state.status, "waiting");
+  assert.equal(transition(state, { type: "next" }), state);
+  assert.equal(transition(state, { type: "reject" }), state, "an invalid rejection target cannot move the task");
+});
 test("carrier handoffs start and end at machine surfaces, including the open side of a review gate", () => {
   for (const flow of workflows) {
-    for (let i = 0; i < flow.stages.length - 1; i++) {
-      const from = dockAt(flow, i),
-        to = dockAt(flow, i + 1),
-        fg = flow.stages[i].machine === "review",
-        tg = flow.stages[i + 1].machine === "review";
+    for (let i = 0; i < flow.route.length - 1; i++) {
+      const first = visitAt(flow, i).stage, next = visitAt(flow, i + 1).stage;
+      const from = dockAt(flow, first),
+        to = dockAt(flow, next),
+        fg = flow.stages[first].machine === "review",
+        tg = flow.stages[next].machine === "review";
       assert.deepEqual(flight(from, to, 0, fg, tg), from);
       assert.deepEqual(flight(from, to, 1, fg, tg), to);
       assert.ok(flight(from, to, 0.5, fg, tg).y < Math.min(from.y, to.y));

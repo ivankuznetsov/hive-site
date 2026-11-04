@@ -48,17 +48,40 @@ async function noOverflow(p, name) {
     size.scroll <= size.client + 1,
   );
 }
-const shot = (p, name, locator) =>
-  locator
-    ? locator.screenshot({ path: `${output}/${name}.png` })
-    : p.screenshot({ path: `${output}/${name}.png` });
+async function shot(p, name, locator) {
+  const path = `${output}/${name}.png`;
+  if (!locator) return p.screenshot({ path });
+  // Full-width captures avoid cutting off mobile labels when Chromium's
+  // screenshot mode omits the scrollbar gutter after locator clip sizing.
+  if (p.viewportSize().width < 600) {
+    await locator.scrollIntoViewIfNeeded();
+    const box = await locator.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      return { y: r.y + scrollY, height: r.height };
+    });
+    const cdp = await p.context().newCDPSession(p);
+    try {
+      const capture = await cdp.send("Page.captureScreenshot", {
+        format: "png",
+        captureBeyondViewport: true,
+        clip: { x: 0, width: p.viewportSize().width, ...box, scale: 1 },
+      });
+      return await fs.writeFile(path, Buffer.from(capture.data, "base64"));
+    } finally {
+      await cdp.detach();
+    }
+  }
+  return locator.screenshot({ path });
+}
 try {
   for (const spec of [
     { name: "desktop-light", width: 1440, height: 1000, colorScheme: "light" },
     { name: "desktop-dark", width: 1440, height: 1000, colorScheme: "dark" },
     { name: "tablet-light", width: 768, height: 1024, colorScheme: "light" },
     { name: "mobile-dark", width: 390, height: 844, colorScheme: "dark" },
+    { name: "mobile-light", width: 390, height: 844, colorScheme: "light" },
     { name: "small-light", width: 320, height: 740, colorScheme: "light" },
+    { name: "small-dark", width: 320, height: 740, colorScheme: "dark" },
   ]) {
     const c = await context({
       viewport: { width: spec.width, height: spec.height },
@@ -114,95 +137,116 @@ try {
               "Review",
             ),
         );
-        await p.getByRole("tab", { name: "Content Built-in" }).click();
-        check(
-          "content has six stations",
-          (await p.locator("[data-stations] button").count()) === 6,
-        );
-        check(
-          "content has no coding-only return route",
-          !(await p.locator("[data-return]").isVisible()),
-        );
-        await p.locator("[data-stations] button").nth(3).click();
-        check(
-          "content draft receives saved research and outline",
-          (await p.locator("[data-saved]").innerText()).includes(
-            "research.md",
-          ) &&
-            (await p.locator("[data-saved]").innerText()).includes(
-              "outline.md",
-            ),
-        );
+        await p.getByRole("tab", { name: "Writing Honeycomb" }).click();
+        check("writing has seven published stages and an install command",
+          await p.locator("[data-stations] button").count() === 7 &&
+          await p.locator("[data-install-command]").innerText() === "hive workflow install honeycomb/writing");
+        check("writing source is versioned and its council loop is visible",
+          (await p.locator("[data-package-source]").getAttribute("href")).endsWith("/packages/writing/1.0.2") &&
+          await p.locator("[data-return]").isVisible());
+        await shot(p, "writing-overview", p.locator("#workflow-panel"));
+        await p.locator("[data-stations] button").nth(4).click();
+        const draftInputs = await p.locator("[data-saved]").innerText();
+        check("all completed writing inputs are saved before drafting",
+          ["brief.md", "repo-research.md", "web-research.md", "research.md"].every(f => draftInputs.includes(f)) &&
+          !draftInputs.includes("draft.md") && !draftInputs.includes("outline.md"));
         await p.locator("[data-interrupt]").click();
-        check(
-          "interruption stops advancement without losing inputs",
-          (await p.locator("[data-next]").isDisabled()) &&
-            (await p.locator("[data-saved]").innerText()).includes(
-              "outline.md",
-            ),
-        );
-        await shot(p, "content-interrupted", p.locator(".workflow-theatre"));
+        check("interruption stops advancement without losing research",
+          await p.locator("[data-next]").isDisabled() &&
+          await p.locator("[data-saved]").innerText() === draftInputs);
+        await shot(p, "writing-interrupted", p.locator(".workflow-theatre"));
         await p.locator("[data-retry]").click();
-        check(
-          "retry begins a second attempt at the same stage",
-          (await p.locator("[data-stage-number]").innerText()).includes(
-            "Draft",
-          ) &&
-            (await p.locator("[data-state-label]").innerText()) === "Attempt 2",
-        );
+        check("retry begins a second attempt at the same draft",
+          (await p.locator("[data-stage-number]").innerText()).includes("Draft") &&
+          await p.locator("[data-state-label]").innerText() === "Attempt 2");
         await p.locator("[data-next]").click();
-        check(
-          "retry hands the saved draft to critique",
-          (await p.locator("[data-stage-number]").innerText()).includes(
-            "Critique",
-          ) &&
-            (await p.locator("[data-saved]").innerText()).includes("draft.md"),
-        );
-        await p.getByRole("tab", { name: "Research Custom example" }).click();
-        await p.locator("[data-stations] button").last().click();
-        check(
-          "human stage requires an explicit demo decision",
-          (await p.locator("[data-approve]").isVisible()) &&
-            (await p.locator("[data-next]").isDisabled()) &&
-            (await p.locator("[data-play]").isDisabled()),
-        );
-        await shot(p, "research-decision", p.locator(".workflow-theatre"));
-        await p.locator("[data-reject]").click();
-        check(
-          "rejection returns to synthesis with research intact",
-          (await p.locator("[data-stage-number]").innerText()).includes(
-            "Synthesize",
-          ) &&
-            (await p.locator("[data-saved]").innerText()).includes(
-              "research.md",
-            ),
-        );
+        check("retry hands the saved draft to the editorial council",
+          (await p.locator("[data-stage-number]").innerText()).includes("Editorial") &&
+          (await p.locator("[data-saved]").innerText()).includes("draft.md"));
         await p.locator("[data-next]").click();
-        await p.locator("[data-approve]").click();
-        check(
-          "approval completes locally and records both decisions",
-          (await p.locator("[data-context]").innerText()).includes(
-            "revision requested → approved",
-          ) &&
-            (await p.locator("[data-sample]").innerText()).includes(
-              "No report was published",
-            ),
-        );
-        await shot(p, "research-approved", p.locator(".workflow-theatre"));
-        await p.getByRole("tab", { name: "Content Built-in" }).click();
-        check(
-          "workflow switch resets the example",
-          (await p.locator("[data-saved] li").count()) === 1 &&
-            (await p.locator("[data-stage-number]").innerText()).includes(
-              "Inbox",
-            ),
-        );
+        check("editorial revision stays inside the same council stage",
+          (await p.locator("[data-stage-number]").innerText()).includes("06 / 07 · Editorial") &&
+          await p.locator("[data-state-label]").innerText() === "Council revision" &&
+          await p.locator("[data-file]").innerText() === "draft.md" &&
+          (await p.locator("[data-saved]").innerText()).includes("reviews/grounding-editor-01.md"));
+        await shot(p, "writing-editorial-revision", p.locator(".workflow-theatre"));
+        await p.locator("[data-next]").click();
+        check("both editors recheck in round two",
+          await p.locator("[data-state-label]").innerText() === "Review round 2");
+        await p.locator("[data-next]").click();
+        const deliveredInputs = await p.locator("[data-saved]").innerText();
+        check("delivery retains the council audit trail",
+          ["reviews/grounding-editor-01.md", "reviews/adversarial-editor-02.md", "editorial.md"].every(f => deliveredInputs.includes(f)));
+        await p.locator("[data-next]").click();
+        check("writing completes with article and verification, without promising publication",
+          (await p.locator("[data-saved]").innerText()).includes("verification.md") &&
+          (await p.locator("[data-saved]").innerText()).includes("article.md") &&
+          (await p.locator("[data-sample]").innerText()).includes("NOT PUBLISHABLE"));
+        await p.getByRole("tab", { name: "Architecture Honeycomb" }).click();
+        check("architecture is the current eight-stage Honeycomb, not a fictional research package",
+          await p.locator("[data-stations] button").count() === 8 &&
+          (await p.locator("[data-package-source]").getAttribute("href")).endsWith("/packages/architecture/1.0.4"));
+        await p.locator("[data-stations] button").nth(3).click();
+        check("architecture synthesis keeps the raw evidence files separate",
+          (await p.locator("[data-saved]").innerText()).includes("repo-research.txt") &&
+          (await p.locator("[data-saved]").innerText()).includes("web-research.txt") &&
+          (await p.locator("[data-sample]").innerText()).includes("Untested"));
+        await shot(p, "architecture-evidence", p.locator(".workflow-theatre"));
+        await p.locator("[data-stations] button").nth(5).click();
+        await p.locator("[data-next]").click();
+        await shot(p, "architecture-council-revision", p.locator(".workflow-theatre"));
+        check("architecture revises within Review with both reviewer reports saved",
+          (await p.locator("[data-stage-number]").innerText()).includes("06 / 08 · Review") &&
+          (await p.locator("[data-saved]").innerText()).includes("reviews/constraints-01.md") &&
+          (await p.locator("[data-saved]").innerText()).includes("reviews/operations-01.md"));
+        await p.locator("[data-next]").click();
+        check("the bounded architecture council does not promise consensus",
+          (await p.locator("[data-stage-body]").innerText()).includes("without consensus"));
+        await p.locator("[data-next]").click();
+        await p.locator("[data-next]").click();
+        check("Done is inert and retains architecture.md",
+          (await p.locator("[data-stage-body]").innerText()).includes("no additional agent runs") &&
+          (await p.locator("[data-saved]").innerText()).includes("architecture.md"));
+        await p.locator("[data-next]").click();
+        await shot(p, "architecture-complete", p.locator(".workflow-theatre"));
+        check("replay is explicit after completion", await p.locator("[data-play]").innerText() === "Replay example");
+        await p.locator(".factory-viewport").scrollIntoViewIfNeeded();
+        await p.locator("[data-play]").click();
+        await p.locator("[data-play]").click();
+        check("replay resets the narrative and saved artifacts",
+          await p.locator("[data-saved] li").count() === 1 &&
+          (await p.locator("[data-stage-number]").innerText()).includes("Inbox"));
+        const gate = p.locator("[data-gate-example]");
+        check("human decisions are separate from installed packages and match the custom YAML",
+          await gate.isVisible() && await gate.getAttribute("data-state") === "waiting" &&
+          (await p.locator("#define").innerText()).includes("separate from the Writing and Architecture Honeycombs"));
+        await shot(p, "custom-gate-waiting", p.locator("#define"));
+        await p.locator("[data-gate-reject]").click();
+        check("custom rejection preserves report and evidence and returns to synthesis",
+          (await p.locator("[data-gate-title]").innerText()).includes("synthesis") &&
+          (await p.locator("[data-gate-files]").innerText()).includes("research.md") &&
+          (await p.locator("[data-gate-files]").innerText()).includes("approval.md") &&
+          !await p.locator("[data-gate-approve]").isVisible());
+        await p.locator("[data-gate-revise]").click();
+        await p.locator("[data-gate-approve]").focus();
+        await p.keyboard.press("Enter");
+        check("keyboard approval records both decisions without external action",
+          (await p.locator("[data-gate-history]").innerText()).includes("revision requested → approved") &&
+          (await p.locator("[data-gate-detail]").innerText()).includes("Nothing was published or sent"));
+        await p.locator("[data-gate-reset]").click();
+        check("custom gate reset does not affect the package example",
+          await gate.getAttribute("data-state") === "waiting" &&
+          await p.locator("[data-workflow-app]").getAttribute("data-workflow") === "architecture");
+        await p.getByRole("tab", { name: "Writing Honeycomb" }).click();
+        check("workflow switch resets the package example",
+          await p.locator("[data-saved] li").count() === 1 &&
+          (await p.locator("[data-stage-number]").innerText()).includes("Inbox"));
         await p.getByRole("tab", { name: "Coding Built-in" }).focus();
         await p.keyboard.press("ArrowRight");
         check(
           "tabs support arrow-key selection",
           (await p
-            .getByRole("tab", { name: "Content Built-in" })
+            .getByRole("tab", { name: "Writing Honeycomb" })
             .getAttribute("aria-selected")) === "true",
         );
         await p.locator("[data-stations] button").first().focus();
@@ -210,17 +254,31 @@ try {
         check(
           "station keys use the selected workflow length",
           (await p.locator("[data-stage-number]").innerText()).includes(
-            "06 / 06",
+            "07 / 07",
           ),
         );
-        await p.getByRole("tab", { name: "Content Built-in" }).click();
+        await p.getByRole("tab", { name: "Writing Honeycomb" }).click();
         await p.locator(".factory-viewport").scrollIntoViewIfNeeded();
+        const dockTransform = await p.locator("[data-packet]").getAttribute("transform");
+        const dockY = Number(dockTransform.match(/translate\([^ ]+ ([^)]+)/)[1]);
+        await p.locator("[data-play]").click();
+        await p.waitForFunction((startY) => {
+          const packet = document.querySelector("[data-packet]");
+          const y = Number(packet.getAttribute("transform").match(/translate\([^ ]+ ([^)]+)/)[1]);
+          return packet.dataset.moving === "true" && y < startY - 100;
+        }, dockY, { timeout: 6000 });
+        await p.locator("[data-play]").click();
+        const heldPacket = await p.locator("[data-packet]").getAttribute("transform");
+        await shot(p, "writing-handoff-paused", p.locator(".factory-viewport"));
+        check("pause freezes the lifted carrier between stages",
+          heldPacket === await p.locator("[data-packet]").getAttribute("transform") &&
+          await p.locator("[data-packet]").getAttribute("data-moving") === "true");
         await p.locator("[data-play]").click();
         await p.waitForFunction(
           () =>
             document
               .querySelector("[data-stage-number]")
-              .textContent.includes("Research"),
+              .textContent.includes("Repo research"),
           {},
           { timeout: 9000 },
         );
@@ -273,15 +331,23 @@ try {
           new Set(ids).size === ids.length,
         );
       }
-      if (spec.name === "mobile-dark") {
-        await p.getByRole("tab", { name: "Research Custom example" }).click();
-        await p.locator("[data-stations] button").last().click();
-        await shot(
-          p,
-          "mobile-research-decision",
-          p.locator(".workflow-theatre"),
-        );
-        await noOverflow(p, "mobile human gate");
+      for (const [id, stageIndex] of [["writing", 5], ["architecture", 3]]) {
+        await p.locator(`[data-workflow="${id}"][role="tab"]`).click();
+        await p.locator("[data-stations] button").nth(stageIndex).click();
+        if (id === "writing") await p.locator("[data-next]").click();
+        await noOverflow(p, `${spec.name} ${id} selected`);
+        await shot(p, `${spec.name}-${id}`, p.locator("[data-workflow-app]"));
+        const stationLayout = await p.locator("[data-stations]").evaluate(el => ({
+          width: el.clientWidth, scroll: el.scrollWidth,
+          columns: getComputedStyle(el).gridTemplateColumns.split(" ").length,
+        }));
+        check(`${spec.name} ${id}: station labels fit the responsive grid`,
+          stationLayout.scroll <= stationLayout.width + 1 &&
+          stationLayout.columns === (spec.width <= 600 ? 3 : spec.width <= 850 ? 5 : id === "writing" ? 7 : 8));
+      }
+      if (spec.width < 600) {
+        await shot(p, `${spec.name}-custom-gate`, p.locator("#define"));
+        await noOverflow(p, `${spec.name} custom gate`);
       }
     } finally {
       await c.close();
@@ -329,11 +395,15 @@ try {
       .locator("summary")
       .click();
     check(
-      "no-JS explains the human decision and local result",
-      (
-        await p.locator("[data-workflow-fallback] details").last().innerText()
-      ).includes("Neither publishes or sends it"),
+      "no-JS exposes the real Architecture stages, installation, and unresolved findings",
+      (await p.locator("[data-workflow-fallback] details").last().locator("ol > li").count()) === 8 &&
+      (await p.locator("[data-workflow-fallback] details").last().innerText()).includes("hive workflow install honeycomb/architecture") &&
+      (await p.locator("[data-workflow-fallback] details").last().innerText()).includes("Completion does not mean every finding is resolved or the design is approved"),
     );
+    check("no-JS custom YAML explains the gate without dead interactive controls",
+      (await p.locator("#define").innerText()).includes("rejection returns the task to synthesis") &&
+      !(await p.locator("[data-gate-example]").isVisible()));
+    await shot(p, "nojs-architecture", p.locator("[data-workflow-fallback] details").last());
     await noOverflow(p, "no-JS small screen");
   } finally {
     await nojs.close();

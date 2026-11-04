@@ -9,6 +9,7 @@ import {
   flight,
   clamp,
 } from "./workflow-state.mjs";
+import "./approval-example.mjs";
 
 const root = document.querySelector("[data-workflow-app]");
 if (root) init(root);
@@ -59,10 +60,11 @@ function init(root) {
     q("[data-next]").textContent =
       state.position === state.workflow.route.length - 1
         ? "Finish example"
-        : "Next stage →";
+        : "Next step →";
   }
   function buildScene() {
     const points = LAYOUTS[state.workflow.id];
+    root.style.setProperty("--stage-count", state.workflow.stages.length);
     q("[data-belts]").replaceChildren();
     q("[data-machines]").replaceChildren();
     q("[data-stations]").replaceChildren();
@@ -130,13 +132,12 @@ function init(root) {
       li.append(button);
       q("[data-stations]").append(li);
     });
-    q("[data-return]").toggleAttribute(
-      "hidden",
-      state.workflow.id !== "coding",
-    );
+    q("[data-return]").removeAttribute("hidden");
     q("[data-return]").setAttribute(
       "d",
-      "M1050 294 1150 352 1150 472 970 576 780 576 600 472 600 346 690 294",
+      state.workflow.id === "coding"
+        ? "M1050 294 1150 352 1150 472 970 576 780 576 600 472 600 346 690 294"
+        : "M1050 294 1160 358 1160 450 1050 514 940 450 940 358 1050 294",
     );
     tabs.forEach((tab) => {
       const active = tab.dataset.workflow === state.workflow.id;
@@ -174,8 +175,12 @@ function init(root) {
     const complete = state.status === "complete",
       waiting = state.status === "waiting",
       interrupted = state.status === "interrupted";
-    const revised =
-      state.decisions.at(-1) === "revision requested" && !waiting && !complete;
+    const artifact = visit.artifact || stage.artifact;
+    const source = q("[data-package-source]");
+    q("[data-package]").hidden = !state.workflow.install;
+    q("[data-install-command]").textContent = state.workflow.install || "";
+    source.href = state.workflow.source || "#";
+    source.textContent = `${state.workflow.label} ${state.workflow.version || ""} source ↗`;
     text("[data-summary]", state.workflow.summary);
     text("[data-example-note]", state.workflow.note);
     text("[data-task-name]", state.workflow.task);
@@ -183,30 +188,24 @@ function init(root) {
       "[data-stage-number]",
       `${String(index + 1).padStart(2, "0")} / ${String(state.workflow.stages.length).padStart(2, "0")} · ${stage.name}`,
     );
-    text("[data-stage-role]", stage.actor);
+    text("[data-stage-role]", visit.actor || stage.actor);
     text(
       "[data-stage-title]",
       interrupted
         ? "Draft interrupted"
         : complete
-          ? state.workflow.id === "research"
-            ? "Report approved"
-            : "Workflow complete"
-          : revised
-            ? "Revise report.md"
-            : visit.title || stage.title,
+          ? "Workflow complete"
+          : visit.title || stage.title,
     );
     text(
       "[data-stage-body]",
       interrupted
-        ? "The draft did not finish. Retry it using the saved research.md and outline.md."
+        ? "This attempt did not finish. Retry the draft from its saved brief and research; the completed research stages do not need to start over."
         : complete
-          ? `${state.workflow.result}. Saved inputs and decisions remain available below.`
-          : revised
-            ? "The task returns to synthesis with your decision, research.md, and the previous report.md."
-            : visit.body || stage.body,
+          ? `${state.workflow.result}. The task keeps its saved inputs and work history.`
+          : visit.body || stage.body,
     );
-    text("[data-file]", stage.kind === "human" ? "report.md" : stage.artifact);
+    text("[data-file]", artifact);
     text(
       "[data-state-label]",
       interrupted
@@ -219,39 +218,41 @@ function init(root) {
               ? `Attempt ${state.attempt}`
               : visit.phase === "fix"
                 ? "Fixing finding"
-                : "Stage output",
+                : visit.phase === "revise"
+                  ? "Council revision"
+                  : visit.phase === "recheck" && stage.kind === "council"
+                    ? "Review round 2"
+                    : visit.phase === "review"
+                      ? "Review round 1"
+                      : "Stage output",
     );
     text(
       "[data-sample]",
       interrupted
-        ? "research.md  ✓ saved\noutline.md   ✓ saved\ndraft.md     · not yet complete"
-        : complete && state.workflow.id === "research"
-          ? "Approved report.md. The decision is recorded. No report was published or sent."
-          : revised
-            ? "Revision requested: make the source limitations explicit before approving."
-            : visit.sample || stage.sample,
+        ? "brief.md             ✓ saved\nrepo-research.md      ✓ saved\nweb-research.md       ✓ saved\nresearch.md          ✓ saved\ndraft.md             · not yet complete"
+        : complete
+          ? state.workflow.completion || stage.sample
+          : visit.sample || stage.sample,
     );
     text(
       "[data-operation]",
       interrupted
-        ? "Draft interrupted · research and outline saved"
-        : waiting
-          ? "Waiting for approval"
-          : complete
-            ? "Workflow complete"
-            : visit.phase === "fix"
-              ? "Review → execute → recheck"
-              : `${stage.name} · ${stage.artifact}`,
+        ? "Draft interrupted · evidence preserved"
+        : complete
+          ? "Workflow complete"
+          : visit.phase === "fix"
+            ? "Review → execute → recheck"
+            : stage.kind === "council"
+              ? `${stage.name} · review → revise → recheck`
+              : `${stage.name} · ${artifact}`,
     );
     text(
       "[data-context]",
       state.recovered
-        ? "Recovery illustrated: this stage reruns, not an exact replay of the agent process."
-        : waiting
-          ? "Choose Approve report or Request revision to continue."
-          : complete && state.decisions.length
-            ? `Decisions: ${state.decisions.join(" → ")}`
-            : "Sample stage output; saved inputs are listed below.",
+        ? "The earlier retry used saved task files; it did not replay the agent process."
+        : stage.kind === "council" && !complete
+          ? "Review, revision, and recheck are rounds within this council stage—not extra workflow stages."
+          : "Sample stage output; saved inputs are listed below.",
     );
     text(
       "[data-run-note]",
@@ -259,7 +260,6 @@ function init(root) {
         ? "Illustrative recovery, not a recorded failure"
         : "Illustration, not a live run",
     );
-    q("[data-decision]").hidden = !waiting;
     q("[data-recovery]").hidden = !interrupted;
     q("[data-saved]").replaceChildren(
       ...(state.saved.length
@@ -315,7 +315,7 @@ function init(root) {
       `translate(${pos.x - 35 * pos.scale} ${pos.y - 19 * pos.scale}) scale(1.4)`,
     );
     root.querySelectorAll("[data-form]").forEach((form) => {
-      form.toggleAttribute("hidden", form.dataset.form !== stage.form);
+      form.toggleAttribute("hidden", form.dataset.form !== (visitAt(state.workflow, state.position).form || stage.form));
     });
     const bounds = q(".factory-viewport").getBoundingClientRect(),
       w = bounds.width,
@@ -351,7 +351,7 @@ function init(root) {
         stop();
         announce(
           state.status === "waiting"
-            ? "Research is waiting. Approve the report or request a revision."
+            ? `${state.workflow.label} is waiting for a decision.`
             : `${state.workflow.label} example complete.`,
         );
         return;
@@ -415,30 +415,23 @@ function init(root) {
     paint(0);
     announce("Whole workflow shown. Select a stage to inspect its work.");
   });
-  for (const action of ["approve", "reject", "retry"])
-    q(`[data-${action}]`).addEventListener("click", () => {
-      stop();
-      state = transition(state, { type: action });
-      elapsed = 0;
-      overview = false;
-      render();
-      q("[data-stage-title]").focus({ preventScroll: true });
-      announce(
-        action === "approve"
-          ? "Report approved in this demo. Nothing was published."
-          : action === "reject"
-            ? "Revision requested. The same task returns to synthesis."
-            : "Attempt 2 is ready, using the saved research and outline.",
-      );
-    });
+  q("[data-retry]").addEventListener("click", () => {
+    stop();
+    state = transition(state, { type: "retry" });
+    elapsed = 0;
+    overview = false;
+    render();
+    q("[data-stage-title]").focus({ preventScroll: true });
+    announce(`Attempt ${state.attempt} is ready, using the saved brief and research.`);
+  });
   q("[data-interrupt]").addEventListener("click", () => {
-    choose(workflows.find((w) => w.id === "content"));
-    state = transition(inspectStage(state.workflow, 3), { type: "interrupt" });
+    choose(workflows.find((w) => w.id === "writing"));
+    state = transition(inspectStage(state.workflow, state.workflow.stages.findIndex((s) => s.id === "draft")), { type: "interrupt" });
     overview = false;
     render();
     q("[data-retry]").focus();
     announce(
-      "Content draft attempt interrupted. Research and outline remain saved. Retry is available in this example.",
+      "Writing draft attempt interrupted. The brief and research remain saved. Retry is available in this example.",
     );
   });
   reduced.addEventListener("change", () => {
