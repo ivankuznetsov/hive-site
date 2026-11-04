@@ -78,9 +78,10 @@ Final normal build:
 PATH=/home/asterio/.local/share/gem/ruby/3.4.0/bin:$PATH npm run build
 ```
 
-- **6 JavaScript tests passed:** distinct built-ins/results, finite coding
+- **7 JavaScript tests passed:** distinct built-ins/results, finite coding
   recheck, saved-state continuity/retry, explicit human gate, revision history,
-  surface-to-surface carrier handoffs.
+  surface-to-surface carrier handoffs, and flat-request contact on both the
+  intake and receiving brainstorm work planes.
 - **25 Ruby tests / 2,631 assertions passed**, no failures, errors, or skips.
 - Jekyll and Pagefind completed; 28 documents indexed and raw/LLM exports built.
 - Existing Just the Docs Sass deprecation warnings and Pagefind's legacy-UI

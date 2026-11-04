@@ -9,6 +9,7 @@ import {
   visitAt,
   dockAt,
   flight,
+  LAYOUTS,
 } from "../assets/js/workflow-state.mjs";
 const workflows = JSON.parse(
   await readFile(
@@ -111,6 +112,44 @@ test("carrier handoffs start and end at machine surfaces, including the open sid
       assert.deepEqual(flight(from, to, 0, fg, tg), from);
       assert.deepEqual(flight(from, to, 1, fg, tg), to);
       assert.ok(flight(from, to, 0.5, fg, tg).y < Math.min(from.y, to.y));
+    }
+  }
+});
+
+test("the flat request fits both the intake tray and the receiving brainstorm surface", () => {
+  // Actual local SVG work planes; packet corners use its isometric projection.
+  const planes = [
+    [
+      [-51, -5],
+      [0, -34.5],
+      [51, -5],
+      [0, 24.5],
+    ],
+    [
+      [-45, -37],
+      [0, -63],
+      [45, -37],
+      [0, -11],
+    ],
+  ];
+  for (let i = 0; i < 2; i++) {
+    const dock = dockAt(coding, i),
+      origin = LAYOUTS.coding[i];
+    for (const [px, py] of [
+      [-16, -13],
+      [16, -13],
+      [16, 13],
+      [-16, 13],
+    ]) {
+      const x = dock.x - origin[0] + (px - py) * dock.scale;
+      const y = dock.y - origin[1] + 10 + (px + py) * 0.5774 * dock.scale;
+      assert.ok(
+        planes[i].every(([ax, ay], edge) => {
+          const [bx, by] = planes[i][(edge + 1) % 4];
+          return (bx - ax) * (y - ay) - (by - ay) * (x - ax) >= -0.01;
+        }),
+        `request corner ${px},${py} must stay on stage ${i + 1}'s surface`,
+      );
     }
   }
 });
