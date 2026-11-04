@@ -1,0 +1,278 @@
+[
+  {
+    "id": "coding",
+    "label": "Coding",
+    "badge": "Built-in",
+    "task": "Screenote CLI",
+    "summary": "Nine stages: request → reviewed pull request",
+    "note": "Historical coding evidence below",
+    "result": "Reviewed pull request",
+    "stages": [
+      {
+        "id": "inbox",
+        "name": "Inbox",
+        "machine": "idea",
+        "artifact": "idea.md",
+        "form": "request",
+        "title": "Capture the request",
+        "body": "Hive creates a task folder for the request. Its files become inputs for later stages.",
+        "sample": "Build a scriptable screenshot CLI. Read every note, not just the first page.",
+        "actor": "You",
+        "kind": "inert"
+      },
+      {
+        "id": "brainstorm",
+        "name": "Brainstorm",
+        "machine": "brainstorm",
+        "artifact": "brainstorm.md",
+        "form": "requirements",
+        "title": "Resolve requirements",
+        "body": "Questions become requirements before implementation starts.",
+        "sample": "JSON output. Stable exit codes. Complete note results.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "plan",
+        "name": "Plan",
+        "machine": "plan",
+        "artifact": "plan.md",
+        "form": "plan",
+        "title": "Write the implementation plan",
+        "body": "The plan records scope, implementation steps, and checks for the next agent.",
+        "sample": "Reuse the API. Build the CLI. Check pagination and error handling.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "execute",
+        "name": "Execute",
+        "machine": "build",
+        "artifact": "task.md",
+        "form": "code",
+        "title": "Implement in a worktree",
+        "body": "The builder receives the plan and works on the task branch.",
+        "sample": "Plan → implementation → commit. The task keeps its prior documents.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "open-pr",
+        "name": "Open PR",
+        "machine": "pr",
+        "artifact": "pr.md",
+        "form": "pr",
+        "title": "Open a draft pull request",
+        "body": "The change and its context are linked in a draft pull request.",
+        "sample": "A draft PR is a review surface, not a claim that the work is finished.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "review",
+        "name": "Review",
+        "machine": "review",
+        "artifact": "reviews/",
+        "form": "pr",
+        "title": "Review the implementation",
+        "body": "In the recorded Screenote task, review caught notes disappearing after screenshot 100.",
+        "sample": "Finding: fetch every page, not just the first 100 screenshots.",
+        "actor": "Reviewer",
+        "kind": "agent"
+      },
+      {
+        "id": "artifacts",
+        "name": "Artifacts",
+        "machine": "artifacts",
+        "artifact": "artifact.md",
+        "form": "evidence",
+        "title": "Collect checks and evidence",
+        "body": "Save check results and supporting artifacts for the final handoff.",
+        "sample": "Targeted API and Go checks passed. The full Rails suite was blocked by missing libvips.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "finalize",
+        "name": "Finalize",
+        "machine": "finalize",
+        "artifact": "summary.md",
+        "form": "bundle",
+        "title": "Prepare the handoff",
+        "body": "The PR, review history, and handoff notes stay together.",
+        "sample": "Reviewed changes and their evidence. Ready for a human to inspect.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "done",
+        "name": "Done",
+        "machine": "done",
+        "artifact": "summary.md",
+        "form": "bundle",
+        "title": "Archive the completed task",
+        "body": "The task is archived with its artifacts. Completion does not promise an automatic merge.",
+        "sample": "The recorded Screenote PR was later merged. Inspect the historical result below.",
+        "actor": "Result",
+        "kind": "terminal"
+      }
+    ],
+    "route": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      {
+        "stage": 3,
+        "phase": "fix",
+        "title": "Fix the review findings",
+        "body": "The same task returns to execution with its review findings, requirements, and plan.",
+        "sample": "Fix: fetch all pages and surface real API errors."
+      },
+      {
+        "stage": 5,
+        "phase": "recheck",
+        "title": "Recheck the fix",
+        "body": "The change returns to review. Bounded review can still stop for human intervention.",
+        "sample": "The pagination fix is rechecked before the workflow moves on."
+      },
+      6,
+      7,
+      8
+    ]
+  },
+  {
+    "id": "content",
+    "label": "Content",
+    "badge": "Built-in",
+    "task": "Backup strategy article",
+    "summary": "Six stages: brief → article.md",
+    "note": "Requires configured research and writing skills",
+    "result": "article.md",
+    "stages": [
+      {
+        "id": "inbox",
+        "name": "Inbox",
+        "machine": "idea",
+        "artifact": "idea.md",
+        "form": "request",
+        "title": "Write the article brief",
+        "body": "Save the topic, intended reader, and requested output in idea.md.",
+        "sample": "Explain how to choose a backup strategy for a small team.",
+        "actor": "You",
+        "kind": "inert"
+      },
+      {
+        "id": "research",
+        "name": "Research",
+        "machine": "brainstorm",
+        "artifact": "research.md",
+        "form": "requirements",
+        "title": "Save the research",
+        "body": "The research stage saves findings for the outline.",
+        "sample": "Source notes: recovery objectives, retention, and restore testing.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "outline",
+        "name": "Outline",
+        "machine": "plan",
+        "artifact": "outline.md",
+        "form": "plan",
+        "title": "Outline the article",
+        "body": "Write the article structure in outline.md using the saved research.",
+        "sample": "1. Recovery needs\n2. Backup choices\n3. Test a restore",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "draft",
+        "name": "Draft",
+        "machine": "finalize",
+        "artifact": "draft.md",
+        "form": "requirements",
+        "title": "Write the draft",
+        "body": "The writer receives research.md and outline.md. They remain available if this attempt stops.",
+        "sample": "A first draft built from the brief, source notes, and agreed structure.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "critique",
+        "name": "Critique",
+        "machine": "review",
+        "artifact": "critique.md",
+        "form": "evidence",
+        "title": "Review the draft",
+        "body": "Save editorial feedback in critique.md for the final writing stage.",
+        "sample": "Clarify the difference between a successful backup and a tested restore.",
+        "actor": "Editor",
+        "kind": "agent"
+      },
+      {
+        "id": "done",
+        "name": "Done",
+        "machine": "done",
+        "artifact": "article.md",
+        "form": "bundle",
+        "title": "Write the final article",
+        "body": "The final writer produces article.md with supporting artifacts still attached.",
+        "sample": "A finished article, its sources, outline, draft, and editorial critique.",
+        "actor": "Agent",
+        "kind": "agent"
+      }
+    ],
+    "route": [0, 1, 2, 3, 4, 5]
+  },
+  {
+    "id": "research",
+    "label": "Research",
+    "badge": "Custom example",
+    "task": "Backup strategy report",
+    "summary": "Research → synthesis → human approval",
+    "note": "Custom descriptor shown below",
+    "result": "Approved report.md",
+    "stages": [
+      {
+        "id": "research",
+        "name": "Research",
+        "machine": "brainstorm",
+        "artifact": "research.md",
+        "form": "requirements",
+        "title": "Compare backup approaches",
+        "body": "Record sources, recovery requirements, and open questions in research.md.",
+        "sample": "Compare backup approaches. Record sources, limitations, and unresolved questions.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "synthesis",
+        "name": "Synthesize",
+        "machine": "plan",
+        "artifact": "report.md",
+        "form": "plan",
+        "title": "Write the recommendation",
+        "body": "Use research.md to compare options and write report.md.",
+        "sample": "Recommendation: start with recovery needs. Include source limitations and a restore-test plan.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "approval",
+        "name": "Human review",
+        "machine": "review",
+        "artifact": "decision",
+        "form": "evidence",
+        "title": "Review report.md",
+        "body": "Read the report, then approve it or send it back for revision. This demo does not publish or send anything.",
+        "sample": "Review report.md. Approve the handoff, or request clearer source limitations.",
+        "actor": "You",
+        "kind": "human"
+      }
+    ],
+    "route": [0, 1, 2]
+  }
+]

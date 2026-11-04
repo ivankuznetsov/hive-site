@@ -14,12 +14,12 @@
       shows its complete requested permissions before you install it.
     </p>
     <aside class="honeycomb-trust-note" aria-labelledby="honeycomb-trust-title">
-      <h2 id="honeycomb-trust-title">Review evidence, not a guarantee</h2>
+      <h2 id="honeycomb-trust-title">Before installing</h2>
       <p>
-        Community or Verified status records review evidence. It is not an
-        endorsement, not a safety guarantee, and not a substitute for reading
-        the permissions and linked evidence yourself. Tier, lifecycle, and
-        permission risk are independent signals.
+        Community and Verified tiers describe review evidence. They are not an
+        endorsement and not a safety guarantee. Check each release’s permissions and linked
+        reviews before installing. Review tier, lifecycle, and permission risk
+        describe different properties of a package.
       </p>
       <p class="honeycomb-trust-links">
         <a href="https://github.com/ivankuznetsov/honeycomb/blob/main/docs/TRUST.md">Read the trust model</a>
@@ -35,7 +35,7 @@
       <div>
         <h2 id="honeycomb-catalog-title">Catalog</h2>
         <p class="honeycomb-meta">
-          Canonical order: name, then semantic version. Only listed releases appear.
+          Listed releases, ordered by name and version
         </p>
       </div>
       <p class="honeycomb-source">
@@ -50,9 +50,8 @@
       <div class="honeycomb-empty">
         <h3>No honeycombs are listed yet</h3>
         <p>
-          Packages appear here only after their review evidence is approved and
-          the canonical catalog marks them as listed. The registry snapshot is
-          valid; there is simply nothing approved for public discovery yet.
+          No releases are currently approved for listing. Packages appear here only after
+          their review evidence has been approved.
         </p>
       </div>
     {% else %}
@@ -81,7 +80,7 @@
               <p class="honeycomb-card__description">{{ entry.description | escape }}</p>
 
               <div class="honeycomb-install">
-                <span class="honeycomb-install__label">Install this honeycomb</span>
+                <span class="honeycomb-install__label">Install</span>
                 <div class="honeycomb-install__command">
                   <code id="{{ install_id | strip | escape }}">{{ entry.install_command | escape }}</code>
                   <button type="button" hidden data-honeycomb-copy aria-controls="{{ install_id | strip | escape }}">Copy</button>

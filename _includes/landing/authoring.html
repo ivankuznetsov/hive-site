@@ -1,0 +1,20 @@
+<section class="fw-section" id="define" aria-labelledby="define-heading"><div class="wrap fw-two-col">
+  <div><p class="fw-kicker">Custom workflows</p><h2 id="define-heading">Define stages in YAML</h2><p class="fw-lead">Use a YAML descriptor to set stage instructions, output files, and human decisions.</p><p>Here, <code>research.md</code> feeds <code>report.md</code>. Approval completes the report; rejection returns the task to synthesis. Neither publishes or sends it.</p><a class="fw-text-link" href="{{ '/docs/custom-workflows/' | relative_url }}#human-approval">Build a custom workflow →</a></div>
+  <div class="fw-descriptor"><div><span>research-report.yml</span><span>Custom example</span></div><pre><code>id: research-report
+stages:
+  - name: research
+    kind: agent
+    state_file: research.md
+    instruction: ./research-report/research.md
+  - name: synthesis
+    kind: agent
+    state_file: report.md
+    instruction: ./research-report/synthesis.md
+  - name: approval
+    kind: human
+    state_file: approval.md
+    input: report.md
+    outcomes:
+      approve: { complete: true, artifact: report.md }
+      reject: { to: synthesis }</code></pre></div>
+</div></section>

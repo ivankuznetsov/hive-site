@@ -40,10 +40,11 @@ Run it from a hive-initialized project — it loads that project's
   skill that stage's agent will invoke.
 - **Reviewer rows** — one per entry in `review.reviewers`, checking that
   reviewer's skill.
-- **Dependency rows** — `tmux >= 3.0` when Claude runs in tmux mode, and a
-  `wiki/qmd` row for initialized projects.
+- **Dependency rows** — configured agent CLIs and a `wiki/qmd` row for initialized projects.
+- **Configuration guidance** — obsolete `claude.mode` and ungranted MCP servers are reported.
+  Claude stage execution no longer requires tmux in v0.8.0.
 
-A missing stage/reviewer skill or an out-of-date tmux makes `doctor` exit
+A missing required dependency or stage/reviewer skill makes `doctor` exit
 non-zero. The `wiki/qmd` check is **non-fatal**: a missing or broken QMD is
 reported as a warning, since Hive falls back to plain wiki files.
 

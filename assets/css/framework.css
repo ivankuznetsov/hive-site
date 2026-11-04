@@ -1,0 +1,1327 @@
+/* Hive's framework site shares HiveDev's original visual family, not its product funnel. */
+.framework-home {
+  --bg: #0b0c0c;
+  --bg-alt: #101211;
+  --surface: #121413;
+  --surface-2: #1c1f1d;
+  --text: #f3f2ed;
+  --muted: #b6b9b2;
+  --faint: #92988e;
+  --border: #2b302b;
+  --line-strong: #495047;
+  --accent: #f0b429;
+  --accent-hover: #ffcb4c;
+  --accent-text: #f0bc46;
+  --machine: #687269;
+  --machine-face: #191d19;
+  --machine-paper: #20271f;
+  --grid: #252b25;
+  --wrap: 1280px;
+  --display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+@media (prefers-color-scheme: light) {
+  .framework-home {
+    --bg: #f8f7f2;
+    --bg-alt: #f3f3eb;
+    --surface: #fffefa;
+    --surface-2: #eeeee5;
+    --text: #20271f;
+    --muted: #545e51;
+    --faint: #616b5d;
+    --border: #d9ddd0;
+    --line-strong: #acb6a4;
+    --accent: #edb62e;
+    --accent-text: #805500;
+    --machine: #84907d;
+    --machine-face: #e8ecdf;
+    --machine-paper: #fafff2;
+    --grid: #e1e5d9;
+  }
+}
+.framework-home [hidden] {
+  display: none !important;
+}
+.framework-home .wrap {
+  padding-inline: 40px;
+}
+.framework-home a {
+  color: var(--accent-text);
+}
+.framework-home a:hover {
+  text-decoration-color: currentColor;
+}
+.framework-home :focus-visible {
+  outline: 3px solid var(--accent-text);
+  outline-offset: 4px;
+}
+.framework-home .site-header {
+  position: relative;
+  background: var(--bg);
+  backdrop-filter: none;
+}
+.framework-home .site-header__inner {
+  height: 72px;
+}
+.framework-home .brand {
+  font: 500 21px/1 var(--display);
+  color: var(--text);
+}
+.framework-home .brand .hive-mark {
+  width: 26px;
+  height: 26px;
+}
+.framework-home .site-nav {
+  gap: 24px;
+}
+.framework-home .site-nav a {
+  font: 500 14px/1.4 var(--display);
+  color: var(--muted);
+}
+.framework-home .site-nav .btn {
+  color: var(--accent-ink);
+}
+.framework-home .btn {
+  border-radius: 6px;
+  min-height: 48px;
+  font: 500 15px/1.4 var(--display);
+  padding: 12px 20px;
+  gap: 24px;
+  transform: none;
+}
+.framework-home .btn--small {
+  min-height: 40px;
+  padding: 8px 16px;
+  font-size: 13px;
+}
+.framework-home .btn--primary {
+  color: #241c08;
+}
+.framework-home .btn--ghost {
+  color: var(--text);
+  border-color: var(--line-strong);
+  background: var(--surface);
+}
+.framework-home main > section {
+  background: var(--bg);
+  scroll-margin-top: 24px;
+}
+.framework-home h1,
+.framework-home h2,
+.framework-home h3 {
+  font-family: var(--display);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.framework-home h2 {
+  font-size: clamp(30px, 3vw, 42px);
+  line-height: 1.12;
+  margin: 0 0 24px;
+}
+.framework-home h3 {
+  font-size: 22px;
+  line-height: 1.25;
+  margin: 0 0 16px;
+}
+.framework-home p {
+  color: var(--muted);
+}
+.framework-home code {
+  color: var(--text);
+}
+.framework-home pre {
+  min-width: 0;
+  max-width: 100%;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.7;
+  padding: 20px;
+  overflow-x: auto;
+}
+.fw-kicker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font: 500 13px/1.4 var(--display);
+  margin: 0 0 20px;
+}
+.fw-hex {
+  display: inline-block;
+  width: 8px;
+  height: 9px;
+  background: var(--accent-text);
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  flex-shrink: 0;
+}
+.fw-symbols {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+.framework-home .fw-hero {
+  padding: 40px 0 40px;
+}
+.fw-hero-inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.fw-hero-copy {
+  position: relative;
+  z-index: 1;
+  max-width: 790px;
+}
+.fw-hero h1 {
+  font-size: clamp(46px, 5.3vw, 72px);
+  line-height: 1.02;
+  margin: 0 0 24px;
+  letter-spacing: -0.03em;
+}
+.framework-home .fw-hero .fw-kicker {
+  color: var(--accent-text);
+}
+.fw-lead {
+  font-size: 18px;
+  line-height: 1.65;
+  max-width: 57ch;
+  margin: 0 0 24px;
+}
+.fw-hero .fw-lead {
+  max-width: 55ch;
+}
+.fw-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-top: 24px;
+}
+.fw-text-link {
+  font: 500 14px/1.5 var(--display);
+  text-decoration: underline;
+  text-underline-offset: 5px;
+  text-decoration-color: var(--line-strong);
+}
+.framework-home .fw-text-link {
+  color: var(--text);
+}
+.fw-hero-art {
+  width: 290px;
+  height: 300px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.hero-grid {
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+.framework-home .fw-workflows {
+  padding: 0 0 76px;
+}
+.fw-section-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 40px;
+  align-items: end;
+  margin-bottom: 28px;
+}
+.fw-section-heading h2 {
+  margin-bottom: 0;
+}
+.fw-section-heading > p {
+  font-size: 15px;
+  line-height: 1.65;
+  max-width: 34ch;
+  margin: 0 0 2px;
+}
+.fw-section-heading .fw-kicker {
+  margin-bottom: 12px;
+}
+.workflow-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.workflow-tabs button {
+  color: var(--muted);
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 16px 24px;
+  font: 500 16px/1.5 var(--display);
+  cursor: pointer;
+}
+.workflow-tabs button span {
+  font: 12px/1.4 var(--font);
+  display: inline-block;
+  margin-left: 8px;
+  color: var(--muted);
+}
+.workflow-tabs [aria-selected="true"] {
+  color: var(--text);
+  border-color: var(--accent-text);
+}
+.workflow-intro {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 20px 0;
+}
+.workflow-intro p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.workflow-intro p:first-child {
+  color: var(--text);
+}
+.workflow-theatre {
+  margin: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.workflow-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  min-height: 64px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  font: 500 13px/1.4 var(--display);
+}
+.workflow-toolbar > span {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.workflow-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.workflow-controls button,
+.workflow-theatre figcaption button {
+  font: 500 12px/1.4 var(--display);
+  min-height: 40px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.workflow-controls button:hover:not(:disabled),
+.workflow-theatre figcaption button:hover {
+  border-color: var(--accent-text);
+}
+.workflow-controls button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.workflow-scene {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+}
+.factory-viewport {
+  position: relative;
+  min-width: 0;
+  min-height: 400px;
+  overflow: hidden;
+  background: var(--bg);
+}
+.factory-svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+#workflow-grid path {
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+.factory-ground {
+  opacity: 0.8;
+}
+.belt-bed {
+  stroke: var(--machine-face);
+  stroke-width: 20;
+}
+.belt-rollers {
+  stroke: var(--line-strong);
+  stroke-width: 14;
+  stroke-dasharray: 1 7;
+}
+.factory-return {
+  stroke: var(--line-strong);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 5;
+  stroke-linejoin: round;
+}
+.factory-machine {
+  --station-accent: var(--machine);
+  stroke: var(--machine);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.factory-machine.is-active {
+  --station-accent: var(--accent-text);
+  stroke: var(--muted);
+}
+.machine-face,
+.machine-plinth {
+  fill: var(--machine-face);
+}
+.machine-paper {
+  fill: var(--machine-paper);
+}
+.machine-plate {
+  stroke: var(--station-accent);
+  fill: var(--machine-face);
+  opacity: 0.6;
+}
+.machine-accent,
+.machine-detail,
+.machine-operation {
+  stroke: var(--station-accent);
+}
+.machine-detail {
+  stroke-width: 2;
+}
+.machine-number {
+  fill: var(--faint);
+  stroke: none;
+  font: 500 16px var(--display);
+}
+.factory-machine.is-active .machine-number {
+  fill: var(--accent-text);
+}
+.machine-scan {
+  stroke: var(--station-accent);
+  stroke-width: 3;
+}
+.factory-packet {
+  stroke: var(--accent-text);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  fill: var(--machine-paper);
+}
+.packet-ink {
+  fill: none;
+}
+.packet-shadow {
+  stroke: none;
+  fill: var(--accent);
+  opacity: 0.13;
+}
+.factory-packet[data-moving="true"] .packet-shadow {
+  opacity: 0;
+}
+.factory-bee {
+  stroke: none;
+  fill: var(--accent);
+}
+#factory-bee ellipse {
+  fill: var(--muted);
+  opacity: 0.75;
+}
+.bee-stripes {
+  stroke: var(--bg);
+  stroke-width: 2;
+  fill: none;
+}
+.bee-head {
+  fill: var(--accent);
+}
+.factory-caption {
+  position: absolute;
+  bottom: 14px;
+  left: 20px;
+  right: 20px;
+  font: 500 12px/1.5 var(--display);
+  margin: 0;
+  background: var(--bg);
+  padding: 8px 0;
+}
+.workflow-inspector {
+  padding: 28px 28px;
+  border-left: 1px solid var(--border);
+  min-width: 0;
+}
+.inspector-kicker {
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font: 500 11px/1.5 var(--display);
+  margin: 0 0 20px;
+}
+.inspector-kicker > span:first-child {
+  color: var(--accent-text);
+}
+.workflow-inspector h3 {
+  font-size: 25px;
+  line-height: 1.2;
+  margin-bottom: 12px;
+}
+.inspector-description {
+  font-size: 14px;
+  line-height: 1.65;
+  margin: 0 0 20px;
+}
+.work-artifact {
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  padding: 16px;
+  background: var(--bg-alt);
+}
+.work-artifact > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  font: 11px/1.4 var(--mono);
+  color: var(--accent-text);
+}
+.work-artifact > div span:last-child {
+  font-family: var(--display);
+  color: var(--muted);
+}
+.work-artifact > p {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text);
+  margin: 12px 0 0;
+  white-space: pre-line;
+}
+.inspector-context {
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 16px 0 0;
+}
+.workflow-decision,
+.workflow-recovery {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.workflow-decision p,
+.workflow-recovery p {
+  flex-basis: 100%;
+  font-size: 12px;
+  margin: 0 0 4px;
+}
+.workflow-decision .btn,
+.workflow-recovery .btn {
+  font-size: 12px;
+  min-height: 40px;
+  padding: 8px 12px;
+}
+.workflow-saved {
+  display: flex;
+  align-items: baseline;
+  gap: 24px;
+  border-top: 1px solid var(--border);
+  padding: 16px 20px;
+  min-height: 57px;
+  font: 12px/1.5 var(--display);
+}
+.workflow-saved > span {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.workflow-saved ul {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 0;
+  margin: 0;
+  color: var(--accent-text);
+  font-size: 11px;
+}
+.workflow-stations {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-top: 1px solid var(--border);
+}
+[data-workflow="content"] .workflow-stations {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+[data-workflow="research"] .workflow-stations {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.workflow-stations li {
+  min-width: 0;
+  border-right: 1px solid var(--border);
+}
+.workflow-stations li:last-child {
+  border-right: 0;
+}
+.workflow-stations button {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  min-height: 72px;
+  padding: 12px 12px;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  text-align: left;
+  font: 500 12px/1.4 var(--display);
+  cursor: pointer;
+}
+.workflow-stations button span {
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--faint);
+}
+.workflow-stations .is-current button {
+  color: var(--text);
+  background: var(--surface-2);
+  border-bottom-color: var(--accent-text);
+}
+.workflow-stations .is-current button span {
+  color: var(--accent-text);
+}
+.workflow-theatre figcaption {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 8px 20px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted);
+}
+.workflow-theatre figcaption button {
+  background: none;
+  border: 0;
+  color: var(--accent-text);
+  text-align: right;
+}
+.workflow-announcement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.workflow-library {
+  font-size: 13px;
+  margin: 20px 0 0;
+}
+.workflow-fallback details {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border);
+}
+.workflow-fallback summary {
+  font: 500 20px/1.5 var(--display);
+  cursor: pointer;
+}
+.workflow-fallback summary span {
+  font-size: 12px;
+  color: var(--muted);
+  margin-left: 12px;
+}
+.workflow-fallback li {
+  margin-bottom: 12px;
+}
+.framework-home .fw-section {
+  padding: 76px 0;
+  border-top: 1px solid var(--border);
+}
+.fw-capabilities {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 32px;
+  margin-top: 40px;
+}
+.fw-capabilities article {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.fw-capabilities h3 {
+  font-size: 24px;
+}
+.fw-capabilities code {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: 0.9em;
+}
+.fw-capabilities p {
+  font-size: 15px;
+  line-height: 1.75;
+  margin: 0 0 24px;
+  max-width: 36ch;
+}
+.fw-mini-proof {
+  margin-top: auto;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  min-height: 52px;
+  font: 12px/1.5 var(--display);
+  color: var(--muted);
+}
+.fw-mini-proof code {
+  font-size: 11px;
+}
+.fw-status-dot {
+  height: 7px;
+  width: 7px;
+  background: var(--accent-text);
+  border-radius: 50%;
+}
+.fw-footnote {
+  font-size: 12px;
+  line-height: 1.8;
+  max-width: 85ch;
+  margin: 24px 0 0;
+}
+.fw-two-col {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: 76px;
+  align-items: center;
+}
+.fw-two-col > div,
+.fw-two-col > article {
+  min-width: 0;
+}
+.fw-two-col .fw-lead {
+  font-size: 17px;
+}
+.fw-two-col > div > p:not(.fw-kicker):not(.fw-lead):not(.fw-footnote) {
+  font-size: 15px;
+  line-height: 1.7;
+}
+.fw-evidence {
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.fw-evidence header {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  font: 12px/1.4 var(--display);
+}
+.fw-evidence header span {
+  color: var(--muted);
+  font-size: 11px;
+}
+.fw-evidence > div {
+  padding: 24px 24px;
+}
+.fw-evidence > div + div {
+  border-top: 1px solid var(--border);
+}
+.fw-evidence .fw-evidence-label {
+  font: 11px/1.4 var(--display);
+  color: var(--accent-text);
+  margin: 0 0 12px;
+}
+.fw-evidence h3 {
+  font-size: 21px;
+  margin: 0 0 12px;
+}
+.fw-evidence p {
+  font-size: 14px;
+  line-height: 1.7;
+  margin: 0;
+}
+.fw-evidence footer {
+  border-top: 1px solid var(--border);
+  padding: 20px 24px;
+  font-size: 12px;
+}
+.fw-descriptor {
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.fw-descriptor > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  font: 12px/1.5 var(--mono);
+}
+.fw-descriptor > div span:last-child {
+  font-family: var(--display);
+  color: var(--muted);
+}
+.fw-descriptor pre {
+  border: 0;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.7;
+  background: transparent;
+}
+.fw-install-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 72px;
+  margin-top: 40px;
+}
+.fw-install-layout > div {
+  min-width: 0;
+}
+.fw-install-layout h3 {
+  font-size: 22px;
+}
+.fw-platform {
+  border-bottom: 1px solid var(--border);
+  padding: 12px 0;
+}
+.fw-platform summary {
+  font: 500 14px/1.5 var(--display);
+  cursor: pointer;
+  padding-block: 4px;
+}
+.fw-platform pre {
+  margin: 12px 0;
+}
+.fw-install-first > p {
+  font-size: 15px;
+  line-height: 1.7;
+}
+.fw-hosted {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 36px;
+  border-top: 1px solid var(--border);
+  margin-top: 48px;
+  padding-top: 36px;
+}
+.fw-hosted h3 {
+  font-size: 23px;
+  margin-bottom: 8px;
+}
+.fw-hosted p {
+  font-size: 14px;
+  margin: 0;
+}
+.framework-home .site-footer {
+  background: var(--bg-alt);
+  border-color: var(--border);
+}
+.framework-home .site-footer a {
+  color: var(--muted);
+}
+.framework-home .site-footer .brand {
+  color: var(--text);
+}
+.framework-home .footer-col h4 {
+  color: var(--text);
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: var(--display);
+}
+@media (max-width: 1100px) {
+  .fw-hero-art {
+    width: 210px;
+    height: 250px;
+  }
+  .fw-hero-copy {
+    max-width: 710px;
+  }
+  .framework-home .site-nav {
+    gap: 16px;
+  }
+  .fw-two-col {
+    gap: 40px;
+  }
+  .workflow-scene {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  }
+  .workflow-inspector {
+    padding: 24px 20px;
+  }
+  .workflow-intro {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+@media (max-width: 850px) {
+  .framework-home .wrap {
+    padding-inline: 28px;
+  }
+  .fw-hero-art {
+    display: none;
+  }
+  .fw-hero-copy {
+    max-width: 690px;
+  }
+  .framework-home .site-nav {
+    gap: 16px;
+  }
+  .framework-home .site-nav > a:nth-child(3),
+  .framework-home .site-nav > .nav-hosted {
+    display: none;
+  }
+  .fw-section-heading {
+    gap: 24px;
+  }
+  .fw-section-heading > p {
+    max-width: 27ch;
+  }
+  .fw-capabilities {
+    gap: 24px;
+  }
+  .fw-capabilities h3 {
+    font-size: 21px;
+  }
+  .fw-capabilities code {
+    background: none;
+    border: 0;
+    padding: 0;
+    font-size: 0.9em;
+  }
+  .fw-capabilities p {
+    font-size: 14px;
+  }
+  .fw-two-col {
+    gap: 32px;
+  }
+  .fw-install-layout {
+    gap: 36px;
+  }
+  .workflow-stations {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  .workflow-stations li {
+    border-bottom: 1px solid var(--border);
+  }
+  .workflow-stations button {
+    min-height: 61px;
+  }
+  .workflow-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .workflow-controls {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .workflow-toolbar > span {
+    padding-top: 4px;
+  }
+  .workflow-scene {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .factory-viewport {
+    height: 350px;
+    min-height: 0;
+  }
+  .workflow-inspector {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    padding: 24px;
+    min-height: 285px;
+  }
+  .workflow-inspector .inspector-description {
+    max-width: 66ch;
+  }
+  .workflow-inspector .work-artifact {
+    max-width: 100%;
+  }
+}
+@media (max-width: 600px) {
+  .framework-home .wrap {
+    padding-inline: 20px;
+  }
+  .framework-home .site-header__inner {
+    height: 64px;
+  }
+  .framework-home .site-nav {
+    gap: 16px;
+  }
+  .framework-home .site-nav > a:first-child {
+    display: inline-flex;
+  }
+  .framework-home .site-nav .btn {
+    font-size: 12px;
+    min-height: 40px;
+    padding: 8px 12px;
+  }
+  .framework-home .brand {
+    font-size: 19px;
+  }
+  .framework-home .brand .hive-mark {
+    width: 23px;
+  }
+  .framework-home .fw-hero {
+    padding: 36px 0 44px;
+  }
+  .fw-hero h1 {
+    font-size: clamp(36px, 10vw, 44px);
+    line-height: 1.04;
+    margin-bottom: 20px;
+  }
+  .fw-kicker {
+    font-size: 11px;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .fw-lead {
+    font-size: 16px;
+    line-height: 1.65;
+  }
+  .fw-actions {
+    gap: 12px 16px;
+    margin-top: 24px;
+  }
+  .framework-home .fw-actions .btn {
+    font-size: 13px;
+    padding: 12px 16px;
+    min-height: 44px;
+    gap: 16px;
+  }
+  .fw-actions .fw-text-link {
+    font-size: 13px;
+  }
+  .fw-section-heading {
+    display: block;
+    margin-bottom: 24px;
+  }
+  .fw-section-heading > p {
+    max-width: 40ch;
+    margin-top: 16px;
+    font-size: 14px;
+  }
+  .framework-home h2 {
+    font-size: 30px;
+  }
+  .workflow-tabs {
+    gap: 0;
+    justify-content: space-between;
+  }
+  .workflow-tabs button {
+    padding: 12px 12px;
+    font-size: 14px;
+  }
+  .workflow-tabs button span {
+    display: block;
+    font-size: 11px;
+    margin: 4px 0 0;
+  }
+  .workflow-intro {
+    margin: 16px 0;
+    gap: 4px;
+  }
+  .workflow-intro p {
+    font-size: 11px;
+  }
+  .workflow-toolbar {
+    padding: 12px 16px;
+  }
+  .workflow-controls {
+    justify-content: space-between;
+    gap: 4px;
+  }
+  .workflow-controls button {
+    padding: 8px 8px;
+    font-size: 11px;
+  }
+  .factory-viewport {
+    height: 285px;
+  }
+  .factory-caption {
+    left: 15px;
+    right: 15px;
+    bottom: 12px;
+    font-size: 11px;
+  }
+  .workflow-inspector {
+    padding: 24px 20px;
+    min-height: 320px;
+  }
+  .workflow-inspector h3 {
+    font-size: 24px;
+  }
+  .inspector-kicker {
+    font-variant-numeric: tabular-nums;
+    font-size: 11px;
+    margin-bottom: 20px;
+  }
+  .inspector-description {
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .work-artifact {
+    padding: 16px;
+  }
+  .work-artifact > p {
+    font-size: 13px;
+  }
+  .workflow-saved {
+    display: block;
+    padding: 16px 16px;
+  }
+  .workflow-saved > span {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 11px;
+  }
+  .workflow-saved ul {
+    gap: 4px 12px;
+  }
+  .workflow-stations,
+  [data-workflow="content"] .workflow-stations {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .workflow-stations button {
+    font-size: 11px;
+    padding: 12px 8px;
+    min-height: 60px;
+  }
+  .workflow-theatre figcaption {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 12px 16px;
+  }
+  .workflow-theatre figcaption button {
+    text-align: left;
+    padding-left: 0;
+  }
+  .workflow-library {
+    font-size: 12px;
+    line-height: 1.8;
+  }
+  .framework-home .fw-workflows {
+    padding-bottom: 44px;
+  }
+  .framework-home .fw-section {
+    padding: 48px 0;
+  }
+  .fw-capabilities {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    margin-top: 32px;
+  }
+  .fw-capabilities h3 {
+    font-size: 24px;
+    margin-bottom: 12px;
+  }
+  .fw-capabilities code {
+    background: none;
+    border: 0;
+    padding: 0;
+    font-size: 0.9em;
+  }
+  .fw-capabilities p {
+    max-width: 100%;
+    margin-bottom: 16px;
+  }
+  .fw-two-col {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+  .fw-two-col .fw-lead {
+    font-size: 16px;
+  }
+  .fw-evidence > div {
+    padding: 20px;
+  }
+  .fw-descriptor > div {
+    font-size: 11px;
+    padding: 16px 16px;
+  }
+  .fw-descriptor pre {
+    font-size: 11px;
+    padding: 16px;
+  }
+  .fw-install-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 36px;
+    margin-top: 28px;
+  }
+  .fw-install-layout h3 {
+    font-size: 21px;
+  }
+  .fw-install-layout pre {
+    font-size: 11px;
+    padding: 16px;
+  }
+  .fw-hosted {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    margin-top: 32px;
+    padding-top: 28px;
+  }
+  .fw-footnote {
+    font-size: 11px;
+  }
+  .framework-home .site-footer__inner {
+    gap: 32px;
+  }
+  .framework-home .site-footer__links {
+    gap: 24px;
+  }
+}
+@media (max-width: 350px) {
+  .framework-home .wrap {
+    padding-inline: 16px;
+  }
+  .framework-home .site-nav {
+    gap: 12px;
+  }
+  .framework-home .site-nav .btn {
+    display: none;
+  }
+  .fw-actions {
+    gap: 12px 12px;
+  }
+  .framework-home .fw-actions .btn {
+    padding: 12px 12px;
+  }
+  .fw-hero h1 {
+    font-size: 36px;
+  }
+  .workflow-tabs button {
+    padding-inline: 8px;
+  }
+  .workflow-controls button {
+    font-size: 11px;
+    padding: 8px;
+  }
+  .workflow-inspector {
+    padding: 20px 16px;
+  }
+  .factory-viewport {
+    height: 250px;
+  }
+  .fw-descriptor pre {
+    font-size: 11px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .framework-home * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}
+
+/* Agent-choice composition inspired by the user-supplied Tessl reference.
+   Names are intentional: no invented brand marks or unsupported agent claims. */
+.fw-agents {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 72px;
+  align-items: center;
+  border-top: 1px solid var(--border);
+  margin-top: 44px;
+  padding-top: 44px;
+}
+.fw-agents .fw-kicker {
+  color: var(--accent-text);
+  margin-bottom: 16px;
+}
+.fw-agents h2 {
+  font-size: 36px;
+  margin-bottom: 20px;
+}
+.fw-agents > div > p:not(.fw-kicker):not(.fw-agent-note) {
+  font-size: 15px;
+  line-height: 1.75;
+  max-width: 45ch;
+  margin: 0 0 24px;
+}
+.fw-agent-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  list-style: none;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+}
+.fw-agent-grid li {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  min-height: 72px;
+  padding: 20px 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: 500 20px/1.4 var(--display);
+}
+.fw-agent-grid li:has(a) { padding: 0; }
+.fw-agent-grid a {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: inherit;
+  padding: 20px 24px;
+  color: var(--text);
+}
+.fw-agent-note {
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 16px 0 0;
+}
+@media (max-width: 850px) {
+  .fw-agents {
+    gap: 32px;
+  }
+  .fw-agent-grid li {
+    font-size: 17px;
+    padding: 16px;
+  }
+  .fw-agent-grid a { padding: 16px; }
+}
+@media (max-width: 600px) {
+  .fw-agents {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    margin-top: 32px;
+    padding-top: 32px;
+  }
+  .fw-agents h2 {
+    font-size: 30px;
+  }
+  .fw-agent-grid li {
+    min-height: 64px;
+    padding: 16px 20px;
+  }
+  .fw-agent-grid a { padding: 16px 20px; }
+  .fw-agents > div > p:not(.fw-kicker):not(.fw-agent-note) {
+    font-size: 14px;
+    max-width: none;
+  }
+}

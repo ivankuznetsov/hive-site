@@ -9,11 +9,10 @@ description: The always-on dispatcher that auto-advances ready tasks through eve
 
 # hive daemon
 
-The operator surface for Hive's auto-advancing dispatcher. One long-running
-process watches every registered project and automatically dispatches the next
-workflow verb (`plan`, `develop`, `open-pr`, `review`, `artifacts`, `finalize`)
-for any task that's ready to move, then archives tasks once their PR merges.
-Reach for it when you want Hive to drive tasks forward on its own.
+Manages the background process that advances ready tasks in enrolled
+projects. In the coding workflow, it dispatches `plan`, `develop`, `open-pr`,
+`review`, `artifacts`, and `finalize`, then archives eligible completed tasks
+after their PR merges.
 
 The daemon stops at human-input gates — questions, triage, plan approval, and
 finalize while the PR is still open — so it never advances past a point that
@@ -68,16 +67,16 @@ Concurrency and cost caps live under `daemon:` in `~/Dev/hive/config.yml`:
 hive daemon install
 hive daemon enable my-project
 
-# Shake it down in dry-run for a while, then go live
+# Inspect dispatch decisions in dry-run before enabling work
 hive daemon start --dry-run
 hive daemon tail
 hive daemon stop
 hive daemon start --detach
 
-# Cost runaway? Stop everything, or drop one project mid-flight
+# Stop dispatch, or disable one project
 hive daemon stop
 hive daemon disable my-project
 ```
 
-See [Operating]({{ '/docs/operating/' | relative_url }}) for the full day-2
-guide: service setup, autostart, dry-run shakedown, and troubleshooting.
+See [Operating]({{ '/docs/operating/' | relative_url }}) for the service setup,
+autostart, dry runs, and troubleshooting.

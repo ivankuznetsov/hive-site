@@ -12,7 +12,8 @@ description: Show the live state and next useful action for every task across yo
 Reports the current stage and next useful action for every task across your
 registered projects, grouped by what needs to happen next. This is what the
 dashboard renders and what an agent reads to decide what to do. It is read-only
-and never changes anything.
+by default. The explicit `--diagnose --write` mode can write a diagnostic file,
+as described below.
 
 ## Usage
 

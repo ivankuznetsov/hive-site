@@ -12,10 +12,9 @@ description: Telegram bot for approving, answering, and capturing ideas from you
 Runs the Telegram mobile surface for Hive. It long-polls Telegram, shows your
 actionable tasks with inline buttons, lets you approve stages and answer
 brainstorm questions in chat, and captures new ideas (including photos,
-documents, and transcribed voice notes). Reach for it when you want to drive
-Hive from your phone while away from a laptop.
+documents, and transcribed voice notes).
 
-The bot is not a second approval engine — it dispatches the same workflow verbs
+The bot dispatches the same workflow verbs
 the [daemon]({{ '/docs/commands/daemon/' | relative_url }}) and CLI already use.
 It only responds to chat IDs on your allowlist.
 
