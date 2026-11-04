@@ -302,13 +302,13 @@
     "label": "Architecture",
     "badge": "Honeycomb",
     "version": "1.0.4",
-    "task": "A backup design the team can test",
+    "task": "Hive in the cloud",
     "summary": "Eight stages: repository + web evidence → reviewed architecture",
     "note": "Installable Architecture Honeycomb · v1.0.4",
     "result": "architecture.md with owner decisions and reviewer findings",
     "install": "hive workflow install honeycomb/architecture",
     "source": "https://github.com/ivankuznetsov/honeycomb/tree/49a5d313c0498fe3170e71c544fc97877fe9c574/packages/architecture/1.0.4",
-    "completion": "The design preserves the untested restore-time assumption and the owner’s cost decision. Completion does not mean every finding is resolved or the design is approved.",
+    "completion": "The design includes isolated workers, saved task state, and a recovery test plan. Tenant isolation and operating costs still need validation before launch.",
     "stages": [
       {
         "id": "inbox",
@@ -316,9 +316,9 @@
         "machine": "idea",
         "artifact": "brief.md",
         "form": "request",
-        "title": "Frame the architecture question",
-        "body": "Record the desired outcome, settled constraints, non-goals, and decisions that still need the owner.",
-        "sample": "Design off-site backups for the team’s PostgreSQL app. Aim for a one-hour restore; keep the current hosting.",
+        "title": "Start with an idea",
+        "body": "An idea is the outcome you want. Start in plain language; the workflow investigates what it will take.",
+        "sample": "I want to run Hive in the cloud. Let people connect a repository, start a workflow, and come back to the result without leaving their laptop running.",
         "actor": "You",
         "kind": "inert"
       },
@@ -328,9 +328,9 @@
         "machine": "brainstorm",
         "artifact": "repo-research.txt",
         "form": "requirements",
-        "title": "Find the constraints in the repository",
-        "body": "Read relevant code, configuration, tests, and runbooks. Cite path-and-line evidence and separate observed behavior from inference.",
-        "sample": "Nightly dumps and off-site uploads exist. A restore command exists, but there is no timed restore evidence.",
+        "title": "Find what needs to move to the cloud",
+        "body": "Inspect how Hive starts agents, stores task state, uses worktrees, and handles credentials. Record the code evidence and what still needs investigation.",
+        "sample": "Map the daemon, agent processes, task files, and Git worktrees. Identify which parts need a persistent home and which belong in an isolated worker.",
         "actor": "Agent",
         "kind": "agent"
       },
@@ -340,9 +340,9 @@
         "machine": "brainstorm",
         "artifact": "web-research.txt",
         "form": "evidence",
-        "title": "Check the external contracts",
-        "body": "Open primary sources for recovery behavior, storage limits, and security guidance. Keep dates, URLs, applicability limits, and unanswered questions.",
-        "sample": "Database guidance supports restore testing. Storage durability describes retained objects—not how quickly this app can recover.",
+        "title": "Compare hosting and isolation options",
+        "body": "Check primary documentation for long-running workers, persistent storage, credential handling, and recovery. Save sources and limits for each option.",
+        "sample": "Compare containers and VMs for agent runs. Check storage persistence, idle costs, process limits, and what survives a worker restart.",
         "actor": "Agent",
         "kind": "agent"
       },
@@ -354,7 +354,7 @@
         "form": "plan",
         "title": "Separate facts, assumptions, and choices",
         "body": "Read both evidence collections. Synthesize only what changes the decision; do not silently turn gaps into facts.",
-        "sample": "Known: daily off-site copies. Untested: one-hour recovery. Owner decision: acceptable data loss and storage cost.",
+        "sample": "Requirements: isolated agent runs and saved task state. Untested: tenant isolation and restart behavior. Owner choice: one worker per project or per run.",
         "actor": "Agent",
         "kind": "agent"
       },
@@ -364,9 +364,9 @@
         "machine": "finalize",
         "artifact": "draft.md",
         "form": "requirements",
-        "title": "Draft the smallest workable design",
+        "title": "Design the hosted workflow",
         "body": "Describe components, data flow, failure paths, alternatives, rollout, rollback, and tests. Tie material decisions to the saved evidence.",
-        "sample": "Keep off-site backups; add restore drills and failure alerts. Define retention, encryption, and a recovery runbook.",
+        "sample": "A web app submits work to a queue. Isolated workers run Hive; persistent storage keeps task artifacts. Credentials are scoped to each project.",
         "actor": "Agent",
         "kind": "agent"
       },
@@ -378,7 +378,7 @@
         "form": "evidence",
         "title": "Challenge constraints and operations",
         "body": "Two reviewers examine missing evidence, tradeoffs, interfaces, and operational risks. The council can revise and recheck within a two-round limit.",
-        "sample": "Constraints: recovery time is still an assumption. Operations: the restore drill must test loss of the primary credentials.",
+        "sample": "Constraints: who owns the task state if a worker disappears? Operations: can one project access another project’s credentials or files?",
         "actor": "Two reviewers",
         "kind": "council",
         "outputs": [
@@ -394,7 +394,7 @@
         "form": "bundle",
         "title": "Deliver the design with open decisions",
         "body": "Write the final architecture with traceable evidence, a test plan, owner decisions, and resolved, deferred, or rejected reviewer findings.",
-        "sample": "Add a timed recovery drill using separate credentials. Keep the one-hour target unverified until measured; leave the cost choice for the owner.",
+        "sample": "Define the app, queue, workers, storage, and credential boundaries. Include worker-loss and cross-project isolation tests, a rollout plan, and an operating-cost estimate.",
         "actor": "Agent",
         "kind": "agent"
       },
@@ -406,7 +406,7 @@
         "form": "bundle",
         "title": "Keep the completed architecture",
         "body": "Done is inert: no additional agent runs. The final design and its research and review trail remain together.",
-        "sample": "architecture.md is ready for implementation planning. Unsettled owner choices and deferred findings remain explicit.",
+        "sample": "architecture.md describes how to host Hive and what to test before launch. The research, alternatives, and review findings stay attached.",
         "actor": "Result",
         "kind": "terminal"
       }
@@ -435,7 +435,7 @@
         "form": "requirements",
         "title": "Revise the design inside the council",
         "body": "The council’s reviser replaces draft.md from the saved findings. Resolve each blocker or record an evidence-backed disagreement; keep unresolved owner choices visible.",
-        "sample": "Add a timed restore drill with separately recoverable credentials. Change “meets one hour” to an acceptance target that still needs measurement.",
+        "sample": "Persist task state outside the worker. Separate credentials and workspaces by project. Add worker-loss recovery and cross-project access tests.",
         "outputs": [
           "draft.md"
         ],
@@ -447,7 +447,7 @@
         "artifact": "review.md",
         "title": "Recheck the load-bearing changes",
         "body": "Both reviewers assess the revised draft in round two. The package can finish at its round limit without consensus; unresolved findings must survive into architecture.md.",
-        "sample": "Credential recovery is addressed. Restore-time validation remains deferred to the drill; the final design must say so.",
+        "sample": "Worker-loss recovery now has a test plan. Tenant isolation and operating costs remain unverified until the prototype is tested.",
         "outputs": [
           "review.md",
           "reviews/constraints-02.md",

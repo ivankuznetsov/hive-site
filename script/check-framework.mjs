@@ -186,6 +186,10 @@ try {
         check("architecture is the current eight-stage Honeycomb, not a fictional research package",
           await p.locator("[data-stations] button").count() === 8 &&
           (await p.locator("[data-package-source]").getAttribute("href")).endsWith("/packages/architecture/1.0.4"));
+        check("architecture starts with a concrete example request",
+          (await p.locator("[data-state-label]").innerText()) === "Example request" &&
+          (await p.locator("[data-sample]").innerText()).startsWith("I want to run Hive in the cloud."));
+        await shot(p, "architecture-request", p.locator("#workflow-panel"));
         await p.locator("[data-stations] button").nth(3).click();
         check("architecture synthesis keeps the raw evidence files separate",
           (await p.locator("[data-saved]").innerText()).includes("repo-research.txt") &&
@@ -398,7 +402,7 @@ try {
       "no-JS exposes the real Architecture stages, installation, and unresolved findings",
       (await p.locator("[data-workflow-fallback] details").last().locator("ol > li").count()) === 8 &&
       (await p.locator("[data-workflow-fallback] details").last().innerText()).includes("hive workflow install honeycomb/architecture") &&
-      (await p.locator("[data-workflow-fallback] details").last().innerText()).includes("Completion does not mean every finding is resolved or the design is approved"),
+      (await p.locator("[data-workflow-fallback] details").last().innerText()).includes("Tenant isolation and operating costs still need validation before launch"),
     );
     check("no-JS custom YAML explains the gate without dead interactive controls",
       (await p.locator("#define").innerText()).includes("rejection returns the task to synthesis") &&

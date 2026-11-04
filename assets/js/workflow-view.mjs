@@ -181,8 +181,6 @@ function init(root) {
     q("[data-install-command]").textContent = state.workflow.install || "";
     source.href = state.workflow.source || "#";
     source.textContent = `${state.workflow.label} ${state.workflow.version || ""} source ↗`;
-    text("[data-summary]", state.workflow.summary);
-    text("[data-example-note]", state.workflow.note);
     text("[data-task-name]", state.workflow.task);
     text(
       "[data-stage-number]",
@@ -224,7 +222,9 @@ function init(root) {
                     ? "Review round 2"
                     : visit.phase === "review"
                       ? "Review round 1"
-                      : "Stage output",
+                      : stage.id === "inbox"
+                        ? "Example request"
+                        : "Stage output",
     );
     text(
       "[data-sample]",
@@ -252,13 +252,9 @@ function init(root) {
         ? "The earlier retry used saved task files; it did not replay the agent process."
         : stage.kind === "council" && !complete
           ? "Review, revision, and recheck are rounds within this council stage—not extra workflow stages."
-          : "Sample stage output; saved inputs are listed below.",
-    );
-    text(
-      "[data-run-note]",
-      interrupted || state.recovered
-        ? "Illustrative recovery, not a recorded failure"
-        : "Illustration, not a live run",
+          : stage.id === "inbox"
+            ? "The workflow starts from this request."
+            : "Sample stage output; saved inputs are listed below.",
     );
     q("[data-recovery]").hidden = !interrupted;
     q("[data-saved]").replaceChildren(

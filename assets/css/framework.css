@@ -263,26 +263,12 @@
   color: var(--text);
   border-color: var(--accent-text);
 }
-.workflow-intro {
-  display: flex;
-  justify-content: space-between;
-  gap: 24px;
-  margin: 20px 0;
-}
-.workflow-intro p {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.6;
-}
-.workflow-intro p:first-child {
-  color: var(--text);
-}
 .workflow-package {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 8px 24px;
-  margin: -4px 0 20px;
+  margin: 20px 0;
   font-size: 12px;
   line-height: 1.6;
 }
@@ -323,7 +309,7 @@
   margin-bottom: 12px;
 }
 .workflow-theatre {
-  margin: 0;
+  margin: 20px 0 0;
   border: 1px solid var(--line-strong);
   border-radius: 10px;
   background: var(--surface);
@@ -346,11 +332,11 @@
 }
 .workflow-controls {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
 }
-.workflow-controls button,
-.workflow-theatre figcaption button {
+.workflow-controls button {
   font: 500 12px/1.4 var(--display);
   min-height: 40px;
   background: var(--bg-alt);
@@ -360,8 +346,7 @@
   padding: 8px 12px;
   cursor: pointer;
 }
-.workflow-controls button:hover:not(:disabled),
-.workflow-theatre figcaption button:hover {
+.workflow-controls button:hover:not(:disabled) {
   border-color: var(--accent-text);
 }
 .workflow-controls button:disabled {
@@ -635,22 +620,6 @@
 .workflow-stations .is-current button span {
   color: var(--accent-text);
 }
-.workflow-theatre figcaption {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: center;
-  padding: 8px 20px;
-  border-top: 1px solid var(--border);
-  font-size: 11px;
-  color: var(--muted);
-}
-.workflow-theatre figcaption button {
-  background: none;
-  border: 0;
-  color: var(--accent-text);
-  text-align: right;
-}
 .workflow-announcement {
   position: absolute;
   width: 1px;
@@ -905,10 +874,6 @@
   .workflow-inspector {
     padding: 24px 20px;
   }
-  .workflow-intro {
-    flex-direction: column;
-    gap: 4px;
-  }
 }
 @media (max-width: 850px) {
   .framework-home .wrap {
@@ -1074,13 +1039,6 @@
     font-size: 11px;
     margin: 4px 0 0;
   }
-  .workflow-intro {
-    margin: 16px 0;
-    gap: 4px;
-  }
-  .workflow-intro p {
-    font-size: 11px;
-  }
   .workflow-toolbar {
     padding: 12px 16px;
   }
@@ -1142,16 +1100,6 @@
     font-size: 11px;
     padding: 12px 8px;
     min-height: 60px;
-  }
-  .workflow-theatre figcaption {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-    padding: 12px 16px;
-  }
-  .workflow-theatre figcaption button {
-    text-align: left;
-    padding-left: 0;
   }
   .workflow-library {
     font-size: 12px;
