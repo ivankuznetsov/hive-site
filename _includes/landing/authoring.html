@@ -1,0 +1,20 @@
+<section class="fw-section" id="define" aria-labelledby="define-heading"><div class="wrap fw-two-col">
+  <div><p class="fw-kicker">A workflow you can read</p><h2 id="define-heading">Define the stages.<br>Keep the handoffs explicit.</h2><p class="fw-lead">A descriptor names the stages, their instructions, and their outputs. Agent stages do the work. Human stages hold a decision.</p><p>This custom Research example ends with an approved report. Rejecting it returns the same task to synthesis. Nothing is automatically published or sent.</p><a class="fw-text-link" href="{{ '/docs/custom-workflows/' | relative_url }}#human-approval">Build a custom workflow →</a></div>
+  <div class="fw-descriptor"><div><span>research-report.yml</span><span>Custom example</span></div><pre><code>id: research-report
+stages:
+  - name: research
+    kind: agent
+    state_file: research.md
+    instruction: ./research-report/research.md
+  - name: synthesis
+    kind: agent
+    state_file: report.md
+    instruction: ./research-report/synthesis.md
+  - name: approval
+    kind: human
+    state_file: approval.md
+    input: report.md
+    outcomes:
+      approve: { complete: true, artifact: report.md }
+      reject: { to: synthesis }</code></pre></div>
+</div></section>

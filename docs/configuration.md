@@ -27,25 +27,27 @@ validated. A bad value raises a clear config error rather than failing later —
 so it's safe to edit and re-run. Arrays (like `review.reviewers`) are replaced
 wholesale, never merged element-by-element.
 
-## Launch & permission mode
+## Claude permission mode
 
 ```yaml
 claude:
-  mode: tmux                 # tmux (default) or headless
   permission_mode: bypassPermissions
 ```
 
-- **`mode`** — `tmux` runs Claude-backed stages in attachable tmux sessions
-  using your logged-in session; `headless` uses non-interactive spawns (good for
-  service-only hosts).
+Claude-backed stages run as headless `claude -p` processes in v0.8.0. The old
+`claude.mode` option is ignored; remove it when `hive doctor` warns. Follow
+stage logs under `.hive-state/logs/<slug>/`.
+
 - **`permission_mode`** — one of `acceptEdits`, `auto`, `bypassPermissions`,
   `default`, `dontAsk`, `plan`. `bypassPermissions` skips file-operation prompts
   (recommended for local runs); `auto` keeps Claude Code auto-mode rules.
 
 ## Agent profiles
 
-Each stage runs on a named agent profile. The three built-in profiles are
-`claude` (default), `codex`, and `pi`. You can point a stage at a different
+Each stage runs on a named agent profile. The supported built-in profiles are
+`claude` (default), `codex`, `grok`, `pi`, and opt-in `opencode`. OpenCode needs
+an explicit provider/model and scoped configuration; see the
+[release-pinned setup guide](https://github.com/ivankuznetsov/hive/blob/v0.8.0/docs/getting-started.md#optional-opencode-profile). You can point a stage at a different
 agent, and override a profile's binary, env var, or minimum version:
 
 ```yaml
@@ -61,8 +63,9 @@ agents:
 
 ## Token-cost knobs: budgets & timeouts
 
-These are **generous sanity caps for runaway agents, not cost targets**. Lower
-them if you want a tighter ceiling per stage.
+Claude budgets are **opt-in** in v0.8.0. Built-in defaults do not cap Claude;
+existing project caps remain in force. The values below illustrate explicit
+limits, not defaults or cost targets. Set limits appropriate to your work.
 
 ```yaml
 budget_usd:

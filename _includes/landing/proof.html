@@ -1,24 +1,4 @@
-<section class="proof" id="proof">
-  <div class="wrap proof__inner">
-    <div class="proof__copy">
-      <h2 class="section-title">It already ships real code</h2>
-      <p class="section-lead">
-        The reel above produced a real, public repository —
-        <a href="https://github.com/ivankuznetsov/shipped">ivankuznetsov/shipped</a> —
-        seeded with the one-sentence idea <em>"a Telegram bot that sends a daily digest of
-        what was shipped,"</em> driven through brainstorm → plan → execute → multi-agent
-        review → finalize, and landed as
-        <a href="https://github.com/ivankuznetsov/shipped/pull/1">PR #1</a>.
-      </p>
-      <p class="section-lead">
-        Hive's own releases are built the same way — this site included.
-      </p>
-    </div>
-    <aside class="proof__community">
-      <h3>Join the build</h3>
-      <p>Questions, feedback, and release talk happen in the community.</p>
-      <a class="btn btn--ghost" href="https://discord.gg/Qg5E7rMt">{% include icons/discord.svg %}<span>Join the Discord</span></a>
-      <a class="btn btn--ghost" href="https://github.com/ivankuznetsov/hive">{% include icons/github.svg %}<span>Star on GitHub</span></a>
-    </aside>
-  </div>
-</section>
+<section class="fw-section fw-proof" id="proof" aria-labelledby="proof-heading"><div class="wrap fw-two-col">
+  <div><p class="fw-kicker">Historical coding run · Screenote</p><h2 id="proof-heading">Inspect the work.<br>Not just the answer.</h2><p class="fw-lead">The task was a scriptable screenshot CLI. Review found the notes that would have gone missing—and sent the change back to be fixed.</p><p><a class="fw-text-link" href="https://github.com/ivankuznetsov/screenote/pull/36">Inspect merged PR #36 ↗</a></p><p class="fw-footnote">Recorded evidence, not a live run. Targeted API and Go checks passed; the full Rails suite was blocked by missing libvips. OAuth followed in PR #37.</p></div>
+  <article class="fw-evidence"><header>Finding → fix → recheck <span>From the task history</span></header><div><p class="fw-evidence-label">Review pass 1</p><h3>Notes dropped after screenshot 100.</h3><p>The CLI fetched only the first page. The fix paginated the full result.</p></div><div><p class="fw-evidence-label">Review pass 2</p><h3>Errors that looked like success.</h3><p>Rate limits and server errors were swallowed. The fix surfaced failures instead of returning incomplete results with exit 0.</p></div><footer><a href="https://hivedev.ai/#real-task">Read the recorded evidence on HiveDev ↗</a></footer></article>
+</div></section>

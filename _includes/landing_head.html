@@ -4,5 +4,10 @@
   <meta name="theme-color" content="#0d1117">
   <link rel="icon" type="image/svg+xml" href="{{ '/assets/img/logo.svg' | relative_url }}">
   {% seo %}
+  {% if page.framework_home %}
+  <meta name="color-scheme" content="dark light">
+  <link rel="preload" href="{{ '/assets/fonts/SpaceGrotesk.woff2' | relative_url }}" as="font" type="font/woff2" crossorigin>
+  {% endif %}
   <link rel="stylesheet" href="{{ '/assets/css/landing.css' | relative_url }}">
+  {% if page.framework_home %}<link rel="stylesheet" href="{{ '/assets/css/framework.css' | relative_url }}">{% endif %}
 </head>

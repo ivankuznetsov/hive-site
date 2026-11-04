@@ -9,11 +9,9 @@ description: Hive's engine is generic — author your own per-project pipeline (
 # Creating custom workflows
 {: .no_toc }
 
-Hive ships with two workflows out of the box: `coding`, the nine-stage
-inbox → … → done pipeline that opens PRs, and `content`, a research pipeline.
-Most people stop there, assuming those two are the product.
-
-They aren't. They're just the two pipelines someone already wrote down.
+Hive ships three public built-in workflows: `coding`, the nine-stage idea-to-PR
+pipeline; `content`, a research-to-article flow; and `bench`, an evaluation
+workflow. Coding is the flagship example, not the boundary of the engine.
 
 The engine underneath is generic. A workflow is nothing more than an **ordered
 list of stages described in a YAML file** — and you can author your own, per
@@ -48,9 +46,10 @@ directory, and at any moment it lives under exactly one stage folder:
   5-done/        <- and finishes here
 ```
 
-That's the whole data model. A task's stage is *which folder it's in*. Advancing
-a task is the folder moving from `N-stage` to `N+1-stage`. There is no hidden
-database tracking state — the filesystem *is* the state.
+A task's stage is visible in its folder location. Stage documents and task
+history stay under `.hive-state/`; a machine-local SQLite runtime control plane
+also coordinates attempts, delivery, and leases. See
+[durability and recovery](/docs/concepts/#durability-and-recovery).
 
 Two things make it move:
 
@@ -67,8 +66,9 @@ folders yourself. The daemon does.
 
 Because the model is just folders, though, you *can* reach in by hand when you
 need to — [`hive run`](/docs/commands/run/) to run the current stage,
-[`hive approve`](/docs/commands/approve/) to advance it, or literally `mv` the
-folder to move it. That always works, and it's invaluable for intervention:
+[`hive approve`](/docs/commands/approve/) to advance it, or inspect the
+folder directly. Prefer the supported commands for transitions,
+locking, and decision checks. They are useful for intervention:
 stepping a stuck task, re-running one that went sideways, nudging something past
 a gate. But it's the escape hatch, not the workflow. Day to day, you create the
 task and let the daemon take it from there.
@@ -79,6 +79,52 @@ That file is the thing you author. Everything else follows from it.
 
 ---
 
+## Human approval
+
+A human decision is a first-class stage in v0.8.0. This is the custom Research
+example shown on the homepage, not a built-in or recorded run:
+
+```yaml
+id: research-report
+stages:
+  - name: research
+    kind: agent
+    state_file: research.md
+    instruction: ./research-report/research.md
+  - name: synthesis
+    kind: agent
+    state_file: report.md
+    instruction: ./research-report/synthesis.md
+  - name: approval
+    kind: human
+    state_file: approval.md
+    input: report.md
+    outcomes:
+      approve: { complete: true, artifact: report.md }
+      reject: { to: synthesis }
+```
+
+Provide the two instruction files, then validate your descriptor with
+`hive workflow validate research-report --json`. When the task reaches the
+human stage, the waiting response supplies a visit-specific decision ID:
+
+```bash
+hive decide <task> approve --from approval --decision-id <decision-id>
+hive decide <task> reject --from approval --decision-id <decision-id> --note "clarify source limitations"
+```
+
+Approval requires a non-empty, regular task-local `report.md` and completes
+that result. Rejection records the decision and returns the same task to
+synthesis. Neither outcome publishes, deploys, sends, or otherwise acts outside
+Hive. External effects require a separately configured and authorized step.
+
+The homepage's interrupted Content attempt is also illustrative: saved
+research and outline remain, and an eligible retry reruns the draft stage.
+It is not a replay of the agent process or a recorded content failure.
+
+For the complete current descriptor contract, see the
+[v0.8.0 workflow reference](https://github.com/ivankuznetsov/hive/blob/v0.8.0/docs/workflows.md).
+
 ## Anatomy of a descriptor
 
 A descriptor is short enough to read top to bottom and understand completely.
@@ -88,7 +134,7 @@ finished piece — fully annotated:
 ```yaml
 id: "writing"                 # must match the filename (writing.yml) and the
                               # SAFE_SLUG rule: lowercase, starts with a letter,
-                              # [a-z0-9-]. Cannot be a built-in (coding/content).
+                              # [a-z0-9-]. Cannot be a built-in (coding/content/bench).
 stages:
   - name: inbox               # stage 1. Its folder is "1-inbox".
     kind: terminal            # terminal = no agent; a gate the task rests at.
@@ -110,9 +156,9 @@ stages:
     state_file: edit.md
     instruction: ./writing/edit.md
 
-  - name: done                # the LAST stage MUST be terminal — a task at the
-    kind: terminal            # final stage has nowhere to advance, so a
-    state_file: done.md       # non-terminal last stage would be undroppable.
+  - name: done                # this simple example ends in an inert exit gate
+    kind: terminal
+    state_file: done.md
 ```
 
 Read it once and the shape is clear: an entry gate, three agents that each do
@@ -128,7 +174,7 @@ Every field a stage can carry, and what it means:
 | `id` | yes | Workflow id. Matches the filename stem and `SAFE_SLUG`; not a built-in. |
 | `stages` | yes | Ordered list. Indices are implicit: stage *N* lives in folder `N-<name>`. |
 | `name` | yes | Stage name (`SAFE_SLUG`). The folder is `<index>-<name>`. |
-| `kind` | yes | `agent` (runs an agent) or `terminal` (a gate, no agent). |
+| `kind` | yes | `agent`, `human` (explicit decision), `council`, or an inert/terminal gate. See the release reference for the full contract. |
 | `state_file` | yes | A **bare filename** (no `/`) the stage reads/writes inside the task folder. |
 | `instruction` | agent stages | Markdown file the agent is given. Relative to the descriptor. Exactly one of `instruction` or `skill`. |
 | `skill` | agent stages | A skill name to invoke instead of an inline instruction. |
@@ -139,14 +185,14 @@ The parser is strict on purpose, so a typo fails at author time instead of
 halfway through a run. The rules it enforces:
 
 - Stage indices are `1..N` in order; names and folders are unique.
-- The **last stage must be `kind: terminal`**.
+- The final stage must have a valid completion contract: for example a terminal gate, an agent deliverable, or a completing human outcome.
 - `state_file` is a bare basename (no `/`, not `.`/`..`).
 - Agent stages declare **exactly one** of `skill` or `instruction`.
 - `instruction` must point at a readable file.
 
-None of these are arbitrary. A non-terminal last stage would leave a finished
-task with nowhere to go; a `state_file` with a slash in it would write outside
-the task folder at runtime. The parser catches both before you ever start a run.
+Validation makes the stage contract explicit before a run. Keep state files
+inside the task folder, provide readable instructions, and declare a supported
+completion path.
 
 ---
 
@@ -390,11 +436,10 @@ A few sharp edges. Each one is here because it bit someone first.
   *"Edit this file…"* — which it will dutifully not act on. The `edit:` line in
   the command output tells you exactly what to open. (Seeding with `--template`
   sidesteps this entirely: you get real instructions.)
-- **The last stage must be `terminal`.** Otherwise a finished task can neither
-  advance nor drop — it's stranded at a stage with nowhere to go.
-- **`state_file` is a bare filename.** Something like `sub/idea.md` passes
-  validation but fails at runtime. Keep it flat: `idea.md`, `work.md`.
-- **`id` can't shadow a built-in** (`coding`, `content`), and it must match the
+- **Declare a completion path.** A terminal gate, an agent deliverable, or a
+  completing human outcome can finish a workflow.
+- **`state_file` is a bare filename.** Keep it flat: `idea.md`, `work.md`.
+- **`id` can't shadow a built-in** (`coding`, `content`, `bench`), and it must match the
   descriptor filename.
 - **Custom workflows are per project.** Hive discovers them from
   `<hive_state_path>/workflows/*.yml`, and once discovered they're available to
@@ -413,7 +458,7 @@ A few sharp edges. Each one is here because it bit someone first.
   [`init`](/docs/commands/init/), [`new`](/docs/commands/new/),
   [`run`](/docs/commands/run/), [`approve`](/docs/commands/approve/), and
   [`status`](/docs/commands/status/).
-- The built-in `coding` and `content` workflows — full-featured descriptors to
+- The built-in `coding`, `content`, and `bench` workflows — full-featured descriptors to
   learn from when your own pipeline outgrows the basics.
 
 ## Share a workflow privately

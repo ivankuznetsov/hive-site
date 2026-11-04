@@ -1,7 +1,7 @@
 # hive-site
 
 The public website for [Hive](https://github.com/ivankuznetsov/hive) —
-**[hivecli.sh](https://hivecli.sh)**. An outcome-first marketing landing page
+**[hivecli.sh](https://hivecli.sh)**. A framework-first marketing landing page
 plus curated documentation, built with [Jekyll](https://jekyllrb.com) and
 [Just the Docs](https://just-the-docs.com), deployed to Cloudflare Pages.
 
@@ -22,7 +22,34 @@ npm run build
 ruby script/bundle exec jekyll serve --skip-initial-build   # or serve _site/ directly
 ```
 
-Run the complete catalog and rendering test suite with `npm test`.
+Run the workflow-state, catalog, and rendering test suite with `npm test`.
+
+### Framework homepage checks
+
+Workflow examples live in `_data/workflow_examples.json`. The native SVG
+renderer shares the original HiveDev machines and motion grammar; see
+[asset sources](implementation/ASSET-SOURCES.md). Keep built-in stage lists
+aligned with a published Hive release and label custom/illustrative examples.
+
+After `npm run build`, serve `_site/` and run the optional browser checks with
+an existing Playwright installation (no production browser dependency):
+
+```bash
+python -m http.server 8797 --bind 127.0.0.1 --directory _site
+# In another terminal:
+SITE_URL=http://127.0.0.1:8797 npm run test:browser
+```
+
+If Playwright is installed elsewhere, set `PLAYWRIGHT_MODULE` to its absolute
+`index.mjs` path. `BROWSER_CDP` can attach to an existing Chromium endpoint;
+checks create and close only their own contexts. Otherwise Playwright launches
+its installed headless Chromium. Screenshots and results go to ignored
+`test-results/browser/` (override with `REVIEW_OUTPUT`). Checks cover desktop,
+tablet, narrow mobile, explicit playback, recovery, human decisions, keyboard,
+reduced motion, no JavaScript, and existing Docs/search/catalog routes.
+
+On hosts with system libvips, Sharp may try to compile during `npm ci`.
+`SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm ci` uses its packaged binary instead.
 
 ## Structure
 

@@ -3,139 +3,130 @@ title: Getting started
 layout: doc
 nav_order: 1
 permalink: /docs/getting-started/
-description: Install Hive, attach it to a project with hive init, and run your first task in the TUI.
+description: Install Hive, set up the native local web UI, and run your first workflow from the web, TUI, or CLI.
 ---
 
 # Getting started
 {: .no_toc }
 
-This walks you from nothing to watching Hive carry your first idea toward a
-pull request, using Hive's default **`coding`** workflow. (It's one of several —
-Hive also ships `content` and lets you author your own
-[custom workflows]({{ '/docs/custom-workflows/' | relative_url }}) — but `coding`
-is the best first run.) The happy path is **daemon-first**: the daemon advances
-ready tasks, and the TUI is where you watch the queue and answer only when Hive
-needs you. You do not need to learn the stage commands on day one.
+Hive is a durable, local-first workflow engine for AI agents. This first run
+uses its flagship **`coding`** workflow: a rough idea becomes a reviewed pull
+request. The same engine also runs `content`, `bench`, and
+[workflows you define]({{ '/docs/custom-workflows/' | relative_url }}).
+
+The daemon advances ready tasks and pauses for questions, decisions, or recovery.
+Use the native local web UI, TUI, or CLI to inspect the same saved work.
 
 1. TOC
 {:toc}
 
 ## Prerequisites
 
-Hive is a power-user, token-heavy CLI — see [Is Hive for you?](/#fit) if you
-haven't yet. You'll need:
+The default coding workflow needs:
 
-- **Ruby 3.4** — the gem and its runtime deps install against this.
-- **git ≥ 2.40** and an authenticated **`gh`** (GitHub CLI).
-- An authenticated **`claude`** (≥ 2.1.118), and **`codex`** (≥ 0.125.0) for the
-  default execute agent.
-- **`tmux` ≥ 3.0** when the project uses the default `claude.mode: tmux`.
-- **Node.js / npm** for the managed QMD wiki indexer (optional; `hive doctor`
-  reports the gap non-fatally if it's missing).
+- **Ruby 3.4**, **git ≥ 2.40**, and authenticated **`gh`** (GitHub CLI).
+- Authenticated **Claude Code ≥ 2.1.118** and **Codex ≥ 0.125.0** for the default
+  stage assignments. Other supported profiles include Grok, Pi, and opt-in
+  OpenCode; requirements depend on the agents you select.
+- **cosign** to verify released artifacts. The Linux installer also checks for
+  `curl`, `jq`, `gem`, and a checksum tool.
+- **Node.js / npm** for managed QMD installation; a missing QMD indexer is
+  reported non-fatally by `hive doctor`.
+
+Hive's software is MIT-licensed; agent usage is billed by your providers or
+subscriptions. Multi-agent coding can be token-heavy. Configure budgets and
+review the project options before unattended work.
 
 ## 1. Install
 
-Hive ships as the `hive-cli` rubygem attached to each GitHub Release, signed
-with cosign keyless attestation. Each channel downloads the same `.gem`,
-verifies the signature, and runs `gem install`.
+Hive releases contain the `hive-cli` gem and a managed native web bundle. A
+cosign-signed checksum manifest authenticates the release artifacts.
 
 ```bash
-# macOS (arm64)
+# macOS arm64
 brew install ivankuznetsov/hive/hive
 
-# Arch Linux (x86_64 / aarch64)
+# Arch Linux x86_64 / aarch64
 yay -S hive-bin
 
-# glibc Linux (Ubuntu 22.04+, x86_64 / aarch64) — pin to the release tag
+# Ubuntu 22.04+ / glibc Linux x86_64 / aarch64
 tmpdir="$(mktemp -d)" && trap 'rm -rf "$tmpdir"' EXIT \
   && curl -fsSL https://raw.githubusercontent.com/ivankuznetsov/hive/v{{ site.hive_version }}/install.sh \
        -o "$tmpdir/hive-install.sh" \
   && bash "$tmpdir/hive-install.sh"
 ```
 
-The `install.sh` channel runs `hive daemon install` for you. Homebrew and AUR
-print a one-line reminder to run it once. Either way the per-user daemon service
-(systemd-user on Linux, launchd on macOS) ends up enabled by default.
+Verify with `hive --version`. If Apache Hive already owns that command name,
+use the `hv` shim; the same commands work as `hv …`.
 
-Verify:
+On Windows, use native Hive in WSL with systemd enabled. Hivebox is discontinued
+as of v0.8.0; existing images receive no new builds. Read the
+[release and upgrade notes](https://github.com/ivankuznetsov/hive/releases/tag/v{{ site.hive_version }})
+before updating an older installation.
 
-```bash
-hive --version
-```
-
-If Apache Hive already owns the `hive` name on your `PATH`, use the `hv` shim
-that the install channels create — every command below works as `hv …` too.
-
-> **Prefer to have an agent do it?** Hive publishes an OpenClaw `/hive` skill
-> and a canonical agent-installer prompt. See
-> [Operating]({{ '/docs/operating/' | relative_url }}#openclaw-hive-skill).
-
-## 2. Attach Hive to a project
+## 2. Set up local services and a project
 
 ```bash
+hive setup
 cd ~/Dev/your-project
 hive init .
+hive doctor
 ```
 
-`hive init` asks a few questions:
+On supported Linux and macOS hosts, `hive setup` previews changes and asks for
+confirmation before provisioning Hive-owned dependencies, managed agent skills,
+and the per-user daemon, babysitter, and local web service. Non-interactive
+setup needs `--yes`. Use `--no-service` to skip web-service mutations.
 
-- **Claude launch mode** — `tmux` (default) runs Claude-backed stages in
-  attachable tmux sessions using your logged-in Claude session; `headless` uses
-  non-interactive spawns for service-only hosts or CI-style runs.
-- **Permission mode** — `bypassPermissions` (recommended) so local runs don't
-  pause on file-operation approvals; choose `auto` for Claude Code auto-mode
-  rules.
-- **Daemon enrollment** — keep the project enabled so the daemon picks it up.
+`hive init` configures the project's workflow, agents, permission mode, optional
+budgets, and daemon/babysitter/patrol enrollment. Review those choices. Claude
+stages now run headless as `claude -p`; there is no launch-mode prompt. Follow
+stage logs under `.hive-state/logs/<slug>/`.
 
-See the [`init`]({{ '/docs/commands/init/' | relative_url }}) command page for
-every prompt and flag, and [Configuration]({{ '/docs/configuration/' | relative_url }})
-for what it writes.
+In v0.8.0, agents receive only the MCP servers granted in Hive config by default.
+Use `hive mcp import` and grant the servers your workflow needs. Claude budgets
+are opt-in; existing project caps remain effective. See
+[Configuration]({{ '/docs/configuration/' | relative_url }}) and the release notes.
 
-## 3. Open the dashboard
+## 3. Open the local web UI—or the TUI
 
 ```bash
-hive daemon status   # should say running
-hive tui
+hive web status      # inspect readiness and open the reported URL
+hive daemon status
 ```
 
-If the daemon isn't running yet, run `hive daemon install` to repair autostart,
-or start it once with `hive daemon start --detach` while you troubleshoot. In
-the TUI, the left pane is your registered projects; the right pane is the live
-queue.
+The untouched web configuration is loopback-only at `http://127.0.0.1:4567`.
+Setup does not expose it publicly. The local UI uses your registered projects
+and saved workflow state; a hosted account is not required.
 
-## 4. Capture one rough idea
+Prefer the terminal? Run `hive tui`. To use a foreground web server instead of
+the managed service, run `hive web`. See
+[Operating]({{ '/docs/operating/' | relative_url }}) for service management.
 
-In the TUI, press **`n`**, choose the project if Hive asks, type the thing you
-want built or investigated, and press **Enter**. The new row starts in
-`1-inbox`, backed by an `idea.md` file under `.hive-state/`.
+## 4. Capture a task and inspect its progress
 
-Prefer the command line?
+Create a task from the web UI, or press **`n`** in the TUI and choose the project.
+Start with a small, concrete request. You can also use the CLI:
 
 ```bash
-hive new . "a Telegram bot that sends a daily digest of what was shipped"
+hive new <project-name> "build a small feature"
+hive status
 ```
 
-## 5. Watch Hive move it forward
+The task has a folder and an `idea.md` input. As stages run, they leave artifacts
+such as `brainstorm.md`, `plan.md`, and review findings. The daemon advances
+ready work; it does not silently answer human questions or approval gates.
 
-Leave the TUI open. The daemon picks up the new row, turns the idea into
-`brainstorm.md`, promotes completed work into `plan.md`, and keeps moving
-through the pipeline while each stage is ready. Long stages show as running;
-completed stages leave files behind for the next stage and for you.
-
-## 6. Answer only when Hive asks
-
-When a row says it needs input, highlight it and press **Enter**. Hive opens the
-right markdown file in your editor. Fill in the answer blocks, save, and close
-the editor. The daemon sees the edit, waits for the file to settle, and
-continues the task automatically.
-
-That's the whole loop: a rough idea becomes durable stage files, then Hive keeps
-advancing the same task toward code, a pull request, review, and archive.
+When input is needed, open the task in the web UI, or select it and press
+**Enter** in the TUI to open the relevant file. Review the question or decision,
+provide your response, and watch the next handoff. Recovery may retry a stage
+from saved inputs; unresolved or unsafe failures need intervention.
 
 ## Where to go next
 
-- **[Concepts]({{ '/docs/concepts/' | relative_url }})** — why it's shaped this way: folder-as-agent, the nine stages, the marker protocol.
-- **[Configuration]({{ '/docs/configuration/' | relative_url }})** — patrol, reviewers, agent profiles, budgets, and the daemon.
-- **[Command reference]({{ '/docs/commands/' | relative_url }})** — drive any stage by hand, or script Hive from an agent.
-- **[Operating]({{ '/docs/operating/' | relative_url }})** — run the daemon, Telegram bot, and babysitter as services.
-- **[Custom workflows]({{ '/docs/custom-workflows/' | relative_url }})** — the pipeline isn't just for code. Author your own per-project workflow — writing, research, triage, anything — in a few lines of YAML.
+- **[Concepts]({{ '/docs/concepts/' | relative_url }})** — artifacts, stage state, human decisions, and durability limits.
+- **[Custom workflows]({{ '/docs/custom-workflows/' | relative_url }})** — define agent stages and an explicit human gate.
+- **[Configuration]({{ '/docs/configuration/' | relative_url }})** — agents, permissions, reviewers, and limits.
+- **[Command reference]({{ '/docs/commands/' | relative_url }})** — inspect and drive workflows from the CLI.
+- **[Operating]({{ '/docs/operating/' | relative_url }})** — local services and the OpenClaw `/hive` skill.
+- **[HiveDev](https://hivedev.ai/)** — the hosted product built on Hive, currently accepting waitlist signups.

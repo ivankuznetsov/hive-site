@@ -8,6 +8,16 @@ description: What changed in Hive, grouped by the work you do.
 
 # Changelog
 
+## Hive 0.8.0
+
+Released 27 October 2026. Read the [full release and upgrade notes](https://github.com/ivankuznetsov/hive/releases/tag/v0.8.0) before upgrading.
+
+- Claude stages now run headless as `claude -p`; `claude.mode` and the launch-mode prompt are removed.
+- Agents receive only MCP servers granted in Hive config by default. Use `hive mcp import` and grant the servers your stages need.
+- Review checks its final fixes and current CI before completing, or stops for a human when the result remains unverified.
+- Claude budgets are opt-in. Existing project caps remain effective until changed.
+- Hivebox is discontinued. Use native Hive, including its local web UI; existing container images receive no new builds.
+
 ## Hive 0.7.3
 
 Hive 0.7.3 makes it easier to see what your agents are doing, review their work, and keep tasks moving when a provider or process fails.

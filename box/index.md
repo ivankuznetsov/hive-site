@@ -1,14 +1,14 @@
 ---
 layout: home
-title: Box — Hive in a container, from idea to PR in a web UI
+title: Hivebox — discontinued container distribution
 nav_exclude: true
 description: >-
-  Box is self-hosted Hive in one Docker container with a clean web UI: drop a
-  software idea from any browser, answer a couple of questions, and get a
-  reviewed pull request. One-command install, GitHub device-flow sign-in, no
-  config files.
+  Archived documentation for Hivebox, the discontinued container distribution.
+  Existing images receive no new builds; install native Hive with its local web UI.
 permalink: /box/
 ---
+
+<section class="wrap" aria-labelledby="box-status"><h1 id="box-status">Hivebox is discontinued.</h1><p>As of Hive v0.8.0, existing container images receive no new builds. The material below is retained for existing installations, not recommended for a new setup.</p><p><a href="{{ '/docs/getting-started/' | relative_url }}">Install native Hive with its local web UI →</a> · <a href="https://github.com/ivankuznetsov/hive/releases/tag/v0.8.0">Read migration notes</a></p></section>
 
 {% include box/hero.html %}
 {% include box/demo.html %}

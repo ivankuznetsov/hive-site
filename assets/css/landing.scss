@@ -657,3 +657,15 @@ section:nth-of-type(even) { background: var(--bg-alt); }
   .honeycomb-install__command { align-items: stretch; flex-direction: column; }
   .honeycomb-install__command button { align-self: flex-start; }
 }
+
+// Native mobile navigation keeps docs and the workflow library reachable without JS.
+.site-menu { display: none; position: relative; font-size: .85rem; }
+.site-menu summary { cursor: pointer; padding: .6rem 0; color: var(--text); }
+.site-menu > div { position: absolute; right: 0; top: 100%; width: 210px; padding: 12px; z-index: 60; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+.site-nav .site-menu a { display: block; padding: 10px; }
+@media (max-width: 600px) {
+  .site-menu { display: block; }
+  .site-nav > a:first-child { display: inline-flex; }
+  .install__channels { grid-template-columns: minmax(0, 1fr); }
+  .install__channel { min-width: 0; }
+}

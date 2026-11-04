@@ -16,12 +16,34 @@ coding agent.
 1. TOC
 {:toc}
 
+## Native setup and local web UI
+
+On supported Linux and macOS installations, `hive setup` provisions Hive-owned
+dependencies and the per-user daemon, babysitter, and local web service. It
+previews changes and asks for confirmation; non-interactive setup needs
+`--yes`. Project enrollment is configured separately with `hive init`.
+
+```bash
+hive setup
+hive web status       # inspect readiness and open the reported URL
+hive tui              # optional terminal interface to the same projects
+```
+
+The default web service is loopback-only at `http://127.0.0.1:4567`. Setup does
+not publish it to the internet. `hive setup --no-service` skips web-service
+mutations; `hive web` runs a foreground web server when you want that mode.
+See the [release-pinned web reference](https://github.com/ivankuznetsov/hive/blob/v0.8.0/README.md#hive-web-default-native-experience).
+
+Hivebox is discontinued as of v0.8.0. Existing images receive no new builds;
+use native installation (WSL with systemd on Windows). HiveDev is a separate
+hosted product, currently [accepting waitlist signups](https://hivedev.ai/).
+
 ## The daemon
 
-The daemon is the worker: it polls `hive status --json` and dispatches workflow
+The daemon is the worker: it reads the current scheduler projection and dispatches workflow
 verbs for enrolled projects, stopping at human-input or recovery gates. It's
 installed as a **per-user service** — systemd-user on Linux, launchd on macOS —
-and enabled by default at install time. Per-project config only decides whether
+and provisioned by `hive setup`. Per-project config only decides whether
 **that** project is picked up.
 
 ```bash

@@ -14,10 +14,10 @@ state machine, and every stage writes an artefact that lets the next stage run
 with less ambiguity.
 
 Those three are the **engine**. *Which* stages exist, and what each one does, is
-defined by a **workflow** — and Hive runs more than one. It ships two built-in
+defined by a **workflow** — and Hive runs more than one. It ships three public built-in
 workflows: `coding`, the nine-stage idea → PR pipeline described below (its
-flagship, and the default `hive init` selects), and `content`, a research
-pipeline. You can also author your own per project — see
+flagship, and the default `hive init` selects), `content`, a research-to-article
+pipeline; and `bench`, an evaluation workflow. You can also author your own per project — see
 [Custom workflows]({{ '/docs/custom-workflows/' | relative_url }}). Everything in
 this page applies to any workflow; `coding` is just the most involved, so it's
 the one worth walking through in full.
@@ -50,6 +50,29 @@ move with marker checks, locking, JSON support, and a state-branch commit.
     ├── pr-review-toolkit-01.md
     └── escalations-01.md
 ```
+
+## Durability and recovery
+
+The task outlives an individual agent attempt. Stage artifacts remain readable
+files under `.hive-state/`, alongside task history. Hive also uses a
+**machine-local SQLite runtime control plane** for attempts, delivery, leases,
+and coordination. The folder model is useful; it is not a claim that Hive has
+no database.
+
+Recorded state, guarded retries, and explicit recovery requests let work
+continue after interruptions. The current stage may run again using saved
+inputs. Some failures are blocked for human intervention; this is not arbitrary
+in-process checkpointing, deterministic code replay, or a guarantee of
+exactly-once external effects. Local durability also does not replace backups.
+
+A workflow can include a real `kind: human` stage: approval completes a result,
+or rejection returns the same task to an earlier stage. See the
+[human approval example](/docs/custom-workflows/#human-approval). A decision to
+approve an artifact does not, on its own, publish or send it.
+
+Use the native web UI, TUI, or CLI to inspect the current task, its artifacts,
+and recovery state. Git worktrees separate coding work, but they are not a
+security sandbox. Tool permission support depends on the selected agent.
 
 ## The nine stages: the `coding` workflow
 

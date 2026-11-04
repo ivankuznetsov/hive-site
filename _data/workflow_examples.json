@@ -1,0 +1,278 @@
+[
+  {
+    "id": "coding",
+    "label": "Coding",
+    "badge": "Built-in",
+    "task": "Screenote CLI",
+    "summary": "Nine stages. One reviewed pull request.",
+    "note": "Illustrated workflow \u00b7 historical coding evidence below.",
+    "result": "Reviewed pull request",
+    "stages": [
+      {
+        "id": "inbox",
+        "name": "Inbox",
+        "machine": "idea",
+        "artifact": "idea.md",
+        "form": "request",
+        "title": "A task, not another chat.",
+        "body": "The request becomes a task folder. Its inputs stay with it through every handoff.",
+        "sample": "Build a scriptable screenshot CLI. Read every note, not just the first page.",
+        "actor": "You",
+        "kind": "inert"
+      },
+      {
+        "id": "brainstorm",
+        "name": "Brainstorm",
+        "machine": "brainstorm",
+        "artifact": "brainstorm.md",
+        "form": "requirements",
+        "title": "Make the request precise.",
+        "body": "Questions become requirements before implementation starts.",
+        "sample": "JSON output. Stable exit codes. Complete note results.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "plan",
+        "name": "Plan",
+        "machine": "plan",
+        "artifact": "plan.md",
+        "form": "plan",
+        "title": "Save the approach.",
+        "body": "Scope and checks become an artifact the next agent can read.",
+        "sample": "Reuse the API. Build the CLI. Check pagination and error handling.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "execute",
+        "name": "Execute",
+        "machine": "build",
+        "artifact": "task.md",
+        "form": "code",
+        "title": "Work in a separate worktree.",
+        "body": "The builder receives the plan and works on the task branch.",
+        "sample": "Plan \u2192 implementation \u2192 commit. The task keeps its prior documents.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "open-pr",
+        "name": "Open PR",
+        "machine": "pr",
+        "artifact": "pr.md",
+        "form": "pr",
+        "title": "Open a draft for inspection.",
+        "body": "The change and its context are linked in a draft pull request.",
+        "sample": "A draft PR is a review surface, not a claim that the work is finished.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "review",
+        "name": "Review",
+        "machine": "review",
+        "artifact": "reviews/",
+        "form": "pr",
+        "title": "A finding sends it back.",
+        "body": "In the recorded Screenote task, review caught notes disappearing after screenshot 100.",
+        "sample": "Finding: fetch every page, not just the first 100 screenshots.",
+        "actor": "Reviewer",
+        "kind": "agent"
+      },
+      {
+        "id": "artifacts",
+        "name": "Artifacts",
+        "machine": "artifacts",
+        "artifact": "artifact.md",
+        "form": "evidence",
+        "title": "Keep the evidence.",
+        "body": "Checks and supporting artifacts make the result inspectable.",
+        "sample": "Targeted API and Go checks passed. The full Rails suite was blocked by missing libvips.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "finalize",
+        "name": "Finalize",
+        "machine": "finalize",
+        "artifact": "summary.md",
+        "form": "bundle",
+        "title": "Package the result.",
+        "body": "The PR, review history, and handoff notes stay together.",
+        "sample": "Reviewed changes and their evidence. Ready for a human to inspect.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "done",
+        "name": "Done",
+        "machine": "done",
+        "artifact": "summary.md",
+        "form": "bundle",
+        "title": "A reviewed pull request.",
+        "body": "The task is archived with its artifacts. Completion does not promise an automatic merge.",
+        "sample": "The recorded Screenote PR was later merged. Inspect the historical result below.",
+        "actor": "Result",
+        "kind": "terminal"
+      }
+    ],
+    "route": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      {
+        "stage": 3,
+        "phase": "fix",
+        "title": "The builder takes it back.",
+        "body": "The finding travels back with the same task. Earlier requirements and the plan remain saved.",
+        "sample": "Fix: fetch all pages and surface real API errors."
+      },
+      {
+        "stage": 5,
+        "phase": "recheck",
+        "title": "Check the fix again.",
+        "body": "The change returns to review. Bounded review can still stop for human intervention.",
+        "sample": "The pagination fix is rechecked before the workflow moves on."
+      },
+      6,
+      7,
+      8
+    ]
+  },
+  {
+    "id": "content",
+    "label": "Content",
+    "badge": "Built-in",
+    "task": "Backup strategy article",
+    "summary": "Six stages. A finished article and its sources.",
+    "note": "Illustrative run \u00b7 requires the configured research and writing skills.",
+    "result": "article.md",
+    "stages": [
+      {
+        "id": "inbox",
+        "name": "Inbox",
+        "machine": "idea",
+        "artifact": "idea.md",
+        "form": "request",
+        "title": "Start with a brief.",
+        "body": "A document workflow starts with a task folder, just like coding.",
+        "sample": "Explain how to choose a backup strategy for a small team.",
+        "actor": "You",
+        "kind": "inert"
+      },
+      {
+        "id": "research",
+        "name": "Research",
+        "machine": "brainstorm",
+        "artifact": "research.md",
+        "form": "requirements",
+        "title": "Collect the source material.",
+        "body": "The research stage saves findings for the outline.",
+        "sample": "Source notes: recovery objectives, retention, and restore testing.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "outline",
+        "name": "Outline",
+        "machine": "plan",
+        "artifact": "outline.md",
+        "form": "plan",
+        "title": "Give the document a shape.",
+        "body": "The outline makes the intended structure explicit.",
+        "sample": "1. Recovery needs\n2. Backup choices\n3. Test a restore",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "draft",
+        "name": "Draft",
+        "machine": "finalize",
+        "artifact": "draft.md",
+        "form": "requirements",
+        "title": "Write from saved inputs.",
+        "body": "The writer receives research.md and outline.md. They remain available if this attempt stops.",
+        "sample": "A first draft built from the brief, source notes, and agreed structure.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "critique",
+        "name": "Critique",
+        "machine": "review",
+        "artifact": "critique.md",
+        "form": "evidence",
+        "title": "Make the feedback durable.",
+        "body": "The built-in content flow writes an editorial critique before its final writing stage.",
+        "sample": "Clarify the difference between a successful backup and a tested restore.",
+        "actor": "Editor",
+        "kind": "agent"
+      },
+      {
+        "id": "done",
+        "name": "Done",
+        "machine": "done",
+        "artifact": "article.md",
+        "form": "bundle",
+        "title": "A document, not a pull request.",
+        "body": "The final writer produces article.md with supporting artifacts still attached.",
+        "sample": "A finished article, its sources, outline, draft, and editorial critique.",
+        "actor": "Agent",
+        "kind": "agent"
+      }
+    ],
+    "route": [0, 1, 2, 3, 4, 5]
+  },
+  {
+    "id": "research",
+    "label": "Research",
+    "badge": "Custom example",
+    "task": "Backup strategy report",
+    "summary": "Two agent stages. One explicit human decision.",
+    "note": "Custom workflow example \u00b7 not a recorded run or built-in integration.",
+    "result": "Approved report.md",
+    "stages": [
+      {
+        "id": "research",
+        "name": "Research",
+        "machine": "brainstorm",
+        "artifact": "research.md",
+        "form": "requirements",
+        "title": "Collect evidence.",
+        "body": "This custom example uses the same agent-stage primitives as the built-ins.",
+        "sample": "Compare backup approaches. Record sources, limitations, and unresolved questions.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "synthesis",
+        "name": "Synthesize",
+        "machine": "plan",
+        "artifact": "report.md",
+        "form": "plan",
+        "title": "Make a report to review.",
+        "body": "The synthesis stage produces a report from the saved research.",
+        "sample": "Recommendation: start with recovery needs. Include source limitations and a restore-test plan.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "approval",
+        "name": "Human review",
+        "machine": "review",
+        "artifact": "decision",
+        "form": "evidence",
+        "title": "The workflow waits for you.",
+        "body": "Read the report, then approve it or send it back for revision. This demo does not publish or send anything.",
+        "sample": "Review report.md. Approve the handoff, or request clearer source limitations.",
+        "actor": "You",
+        "kind": "human"
+      }
+    ],
+    "route": [0, 1, 2]
+  }
+]
