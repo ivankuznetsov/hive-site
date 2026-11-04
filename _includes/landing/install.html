@@ -1,7 +1,7 @@
 <section class="fw-section fw-install" id="install" aria-labelledby="install-heading"><div class="wrap">
-  <div class="fw-section-heading"><div><p class="fw-kicker">Run it on your own machine</p><h2 id="install-heading">Start with a real task.</h2></div><p>Native web UI, TUI, or CLI.<br>The same workflows and saved state.</p></div>
+  <div class="fw-section-heading"><div><p class="fw-kicker">Run locally</p><h2 id="install-heading">Install Hive</h2></div><p>Open the local web UI, terminal UI, or CLI.</p></div>
   <div class="fw-install-layout"><div class="fw-install-commands">
-    <h3>1. Install Hive</h3>
+    <h3>1. Install the CLI</h3>
     <details class="fw-platform" open><summary>macOS · Homebrew</summary><pre><code>brew install ivankuznetsov/hive/hive</code></pre></details>
     <details class="fw-platform"><summary>Arch Linux · AUR</summary><pre><code>yay -S hive-bin</code></pre></details>
     <details class="fw-platform"><summary>Linux · glibc x86_64 / aarch64</summary><pre><code>tmpdir="$(mktemp -d)" &amp;&amp; trap 'rm -rf "$tmpdir"' EXIT \
@@ -9,9 +9,9 @@
        -o "$tmpdir/hive-install.sh" \
   &amp;&amp; bash "$tmpdir/hive-install.sh"</code></pre></details>
     <p class="fw-footnote">Current release: <a href="https://github.com/ivankuznetsov/hive/releases/tag/v{{ site.hive_version }}">v{{ site.hive_version }}</a>. Native install requires Ruby 3.4, Git, and your configured agent CLIs. Coding also uses authenticated <code>gh</code>. <a href="{{ '/docs/getting-started/' | relative_url }}">Full prerequisites →</a></p>
-  </div><div class="fw-install-first"><h3>2. Set up and open a project</h3><pre><code>hive setup
+  </div><div class="fw-install-first"><h3>2. Open your project</h3><pre><code>hive setup
 cd ~/Dev/your-project
 hive init .
 hive web status</code></pre><p>Setup provisions the local services. Open the reported loopback URL, use <code>hive tui</code>, or drive tasks from your agent.</p><a class="btn btn--primary" href="{{ '/docs/getting-started/' | relative_url }}">Follow the quickstart <span aria-hidden="true">→</span></a><p class="fw-footnote" id="fit">Hive is MIT-licensed. Agent usage is billed by your providers or subscriptions; multi-agent coding can be token-heavy.</p></div></div>
-  <div class="fw-hosted"><div><h3>Prefer a managed experience?</h3><p>HiveDev is the hosted product built on Hive. Coming soon.</p></div><a class="fw-text-link" href="https://hivedev.ai/">Join the HiveDev waitlist ↗</a></div>
+  <div class="fw-hosted"><div><h3>Hosted HiveDev</h3><p>A hosted product built on Hive. Coming soon.</p></div><a class="fw-text-link" href="https://hivedev.ai/">Join the HiveDev waitlist ↗</a></div>
 </div></section>

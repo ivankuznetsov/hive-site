@@ -1,6 +1,6 @@
 <section id="workflows" class="fw-workflows" aria-labelledby="workflows-heading">
   <div class="wrap">
-    <div class="fw-section-heading"><div><p class="fw-kicker">Same engine. Different work.</p><h2 id="workflows-heading">The work stays with the task.</h2></div><p>Coding is the flagship. The workflow is yours to define.</p></div>
+    <div class="fw-section-heading"><h2 id="workflows-heading">Workflow examples</h2></div>
     <div class="workflow-app" data-workflow-app hidden>
       <div class="workflow-tabs" role="tablist" aria-label="Choose an example workflow">
         {% for workflow in site.data.workflow_examples %}<button id="tab-{{ workflow.id }}" type="button" role="tab" aria-controls="workflow-panel" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}" tabindex="{% if forloop.first %}0{% else %}-1{% endif %}" data-workflow="{{ workflow.id }}">{{ workflow.label }} <span>{{ workflow.badge }}</span></button>{% endfor %}
@@ -8,7 +8,7 @@
       <div id="workflow-panel" role="tabpanel" aria-labelledby="tab-coding" tabindex="0">
         <div class="workflow-intro"><p data-summary></p><p data-example-note></p></div>
         <figure class="workflow-theatre" aria-label="Illustrated workflow with inspectable stage details">
-          <div class="workflow-toolbar"><span><span class="fw-hex" aria-hidden="true"></span><span data-task-name></span></span><div class="workflow-controls"><button type="button" data-overview>Overview</button><button type="button" data-play>Play example</button><button type="button" data-next>Next handoff <span aria-hidden="true">→</span></button></div></div>
+          <div class="workflow-toolbar"><span><span class="fw-hex" aria-hidden="true"></span><span data-task-name></span></span><div class="workflow-controls"><button type="button" data-overview>Overview</button><button type="button" data-play>Play example</button><button type="button" data-next>Next stage <span aria-hidden="true">→</span></button></div></div>
           <div class="workflow-scene">
             <div class="factory-viewport">
               <svg class="factory-svg" viewBox="0 0 1200 650" fill="none" aria-hidden="true" focusable="false">
@@ -26,9 +26,9 @@
               <p class="inspector-context" data-context></p>
             </div>
           </div>
-          <div class="workflow-saved"><span>Saved with the task</span><ul data-saved aria-label="Saved artifacts"></ul></div>
+          <div class="workflow-saved"><span>Saved artifacts</span><ul data-saved aria-label="Saved artifacts"></ul></div>
           <ol class="workflow-stations" data-stations aria-label="Inspect a stage"></ol>
-          <figcaption><span data-run-note>Illustration, not a live run.</span><button type="button" data-interrupt>See an interrupted attempt <span aria-hidden="true">↗</span></button></figcaption>
+          <figcaption><span data-run-note>Illustration, not a live run</span><button type="button" data-interrupt>Try a stage retry <span aria-hidden="true">↗</span></button></figcaption>
         </figure>
         <p class="workflow-announcement" role="status" aria-live="polite" data-announcement></p>
       </div>

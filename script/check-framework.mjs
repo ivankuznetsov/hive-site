@@ -70,7 +70,7 @@ try {
       check(
         `${spec.name}: hero and framework CTA`,
         (await p.locator("h1").innerText()).replace(/\s+/g, " ") ===
-          "Durable workflows for AI agents." &&
+          "Durable workflows for AI agents" &&
           (await p.locator(".fw-actions a").first().getAttribute("href")) ===
             "#install",
       );
@@ -259,7 +259,7 @@ try {
             !(await p.locator("#agents").innerText()).includes("any agent"),
         );
         const links = await p
-          .locator(".fw-actions a,.nav-hosted,.fw-hosted a")
+          .locator(".fw-actions a,.site-nav a,.fw-hosted a")
           .evaluateAll((as) => as.map((a) => a.getAttribute("href")));
         check(
           "framework and hosted destinations stay distinct",

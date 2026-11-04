@@ -59,7 +59,7 @@ function init(root) {
     q("[data-next]").textContent =
       state.position === state.workflow.route.length - 1
         ? "Finish example"
-        : "Next handoff →";
+        : "Next stage →";
   }
   function buildScene() {
     const points = LAYOUTS[state.workflow.id];
@@ -187,21 +187,23 @@ function init(root) {
     text(
       "[data-stage-title]",
       interrupted
-        ? "The attempt stopped. The work stayed."
+        ? "Draft interrupted"
         : complete
-          ? "The result keeps its history."
+          ? state.workflow.id === "research"
+            ? "Report approved"
+            : "Workflow complete"
           : revised
-            ? "Revise the same report."
+            ? "Revise report.md"
             : visit.title || stage.title,
     );
     text(
       "[data-stage-body]",
       interrupted
-        ? "The draft attempt was interrupted. Research and outline are still saved; this eligible example can retry from those inputs."
+        ? "The draft did not finish. Retry it using the saved research.md and outline.md."
         : complete
-          ? `Result: ${state.workflow.result}. Its inputs and decisions remain inspectable.`
+          ? `${state.workflow.result}. Saved inputs and decisions remain available below.`
           : revised
-            ? "Your decision returns this task to synthesis. The research and previous report remain available as context."
+            ? "The task returns to synthesis with your decision, research.md, and the previous report.md."
             : visit.body || stage.body,
     );
     text("[data-file]", stage.kind === "human" ? "report.md" : stage.artifact);
@@ -232,30 +234,30 @@ function init(root) {
     text(
       "[data-operation]",
       interrupted
-        ? "Saved inputs survive the interrupted attempt."
+        ? "Draft interrupted · research and outline saved"
         : waiting
-          ? "Waiting for a human decision."
+          ? "Waiting for approval"
           : complete
-            ? "Result and evidence, together."
+            ? "Workflow complete"
             : visit.phase === "fix"
-              ? "The finding returns to the builder."
-              : `One task → ${stage.name.toLowerCase()}`,
+              ? "Review → execute → recheck"
+              : `${stage.name} · ${stage.artifact}`,
     );
     text(
       "[data-context]",
       state.recovered
         ? "Recovery illustrated: this stage reruns, not an exact replay of the agent process."
         : waiting
-          ? "Approval is a real pause in this example. Choose an outcome to continue."
+          ? "Choose Approve report or Request revision to continue."
           : complete && state.decisions.length
             ? `Decisions: ${state.decisions.join(" → ")}`
-            : "Illustrated stage contents. Inspect the saved inputs below.",
+            : "Sample stage output; saved inputs are listed below.",
     );
     text(
       "[data-run-note]",
       interrupted || state.recovered
-        ? "Illustrative recovery, not a recorded failure."
-        : "Illustration, not a live run.",
+        ? "Illustrative recovery, not a recorded failure"
+        : "Illustration, not a live run",
     );
     q("[data-decision]").hidden = !waiting;
     q("[data-recovery]").hidden = !interrupted;
