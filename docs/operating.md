@@ -9,9 +9,8 @@ description: Run the daemon, Telegram bot, and babysitter as services, and drive
 # Operating
 {: .no_toc }
 
-Day-2 guide for running Hive's background services — the daemon, the
-experimental PR babysitter, and the Telegram bot — plus driving Hive from a
-coding agent.
+Manage the local web UI, daemon, experimental PR babysitter, and Telegram bot.
+You can also drive the same workflows from a coding agent or OpenClaw.
 
 1. TOC
 {:toc}
@@ -30,9 +29,9 @@ hive tui              # optional terminal interface to the same projects
 ```
 
 The default web service is loopback-only at `http://127.0.0.1:4567`. Setup does
-not publish it to the internet. `hive setup --no-service` skips web-service
-mutations; `hive web` runs a foreground web server when you want that mode.
-See the [release-pinned web reference](https://github.com/ivankuznetsov/hive/blob/v0.8.0/README.md#hive-web-default-native-experience).
+not publish it to the internet. `hive setup --no-service` skips changes to the
+web service; `hive web` runs a foreground web server when you want that mode.
+See the [web service reference for v0.8.0](https://github.com/ivankuznetsov/hive/blob/v0.8.0/README.md#hive-web-default-native-experience).
 
 Hivebox is discontinued as of v0.8.0. Existing images receive no new builds;
 use native installation (WSL with systemd on Windows). HiveDev is a separate
@@ -40,9 +39,8 @@ hosted product, currently [accepting waitlist signups](https://hivedev.ai/).
 
 ## The daemon
 
-The daemon is the worker: it reads the current scheduler projection and dispatches workflow
-verbs for enrolled projects, stopping at human-input or recovery gates. It's
-installed as a **per-user service** — systemd-user on Linux, launchd on macOS —
+The daemon advances ready stages for enrolled projects and stops at
+human-input or recovery gates. It's installed as a **per-user service** — systemd-user on Linux, launchd on macOS —
 and provisioned by `hive setup`. Per-project config only decides whether
 **that** project is picked up.
 
@@ -59,10 +57,11 @@ Enroll or unenroll a project by editing its `.hive-state/config.yml`
 (`daemon.enabled`) — see [Configuration]({{ '/docs/configuration/' | relative_url }}#daemon-enrollment).
 Full reference: [`daemon`]({{ '/docs/commands/daemon/' | relative_url }}).
 
-### Before you go live: the dry-run shakedown
+### Before unattended operation
+{: #before-you-go-live-the-dry-run-shakedown }
 
-Hive is token-heavy and acts on real repositories. Do a `--dry-run` shakedown
-on a project before letting the daemon drive it unattended, watch the queue in
+Hive is token-heavy and acts on real repositories. Use `--dry-run` on a project
+before letting the daemon drive it unattended, watch the queue in
 `hive tui`, and keep budgets/timeouts (and patrol/babysitter enrollment)
 conservative until you trust the loop. If costs run away, `hive daemon stop`
 halts dispatch immediately.

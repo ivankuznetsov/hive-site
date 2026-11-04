@@ -45,7 +45,7 @@ module HiveLlm
     body = raw.sub(/\A---\s*\n.*?\n---\s*\n/m, "")
     body = body.gsub(/\{\{\s*'([^']+)'\s*\|\s*relative_url\s*\}\}/) { "#{BASE}#{Regexp.last_match(1)}" }
     body = body.gsub(/\{\{\s*site\.hive_version\s*\}\}/, site.config["hive_version"].to_s)
-    body = body.gsub(/^\{:\s*\.no_toc\s*\}\s*$/, "")              # kramdown attr list
+    body = body.gsub(/^\{:\s*(?:\.no_toc|#[\w-]+)\s*\}\s*$/, "") # kramdown heading attributes
     body = body.gsub(/^1\.\s*TOC\s*$/, "").gsub(/^\{:toc\}\s*$/, "") # kramdown TOC scaffold
     "#{body.strip}\n"
   end

@@ -1,10 +1,4 @@
 /* Hive's framework site shares HiveDev's original visual family, not its product funnel. */
-@font-face {
-  font-family: "Space Grotesk";
-  src: url("../fonts/SpaceGrotesk.woff2") format("woff2");
-  font-weight: 300 700;
-  font-display: swap;
-}
 .framework-home {
   --bg: #0b0c0c;
   --bg-alt: #101211;
@@ -1287,22 +1281,14 @@
   border-radius: 6px;
   font: 500 20px/1.4 var(--display);
 }
-.fw-agent-grid .fw-agent-opt-in {
-  grid-column: 1/-1;
-  justify-content: space-between;
-  gap: 16px;
-  min-height: 64px;
-  font-size: 19px;
-}
-.fw-agent-opt-in small {
-  font: 12px/1.5 var(--font);
-  color: var(--accent-text);
-  margin-left: 12px;
-}
-.fw-agent-opt-in > span:last-child {
-  font: 12px/1.5 var(--font);
-  color: var(--muted);
-  max-width: 20ch;
+.fw-agent-grid li:has(a) { padding: 0; }
+.fw-agent-grid a {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: inherit;
+  padding: 20px 24px;
+  color: var(--text);
 }
 .fw-agent-note {
   font-size: 12px;
@@ -1317,14 +1303,7 @@
     font-size: 17px;
     padding: 16px;
   }
-  .fw-agent-grid .fw-agent-opt-in {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-  .fw-agent-opt-in > span:last-child {
-    max-width: none;
-  }
+  .fw-agent-grid a { padding: 16px; }
 }
 @media (max-width: 600px) {
   .fw-agents {
@@ -1340,9 +1319,7 @@
     min-height: 64px;
     padding: 16px 20px;
   }
-  .fw-agent-grid .fw-agent-opt-in {
-    font-size: 17px;
-  }
+  .fw-agent-grid a { padding: 16px 20px; }
   .fw-agents > div > p:not(.fw-kicker):not(.fw-agent-note) {
     font-size: 14px;
     max-width: none;

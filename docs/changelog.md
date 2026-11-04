@@ -69,4 +69,4 @@ Hive 0.7.3 makes it easier to see what your agents are doing, review their work,
 
 [Earlier releases](https://github.com/ivankuznetsov/hive/releases)
 
-**Known limitation:** Built-in browser-based task capture is unavailable on Linux ARM64 because Chrome for Testing has no payload for that platform. Hivebox web and agent workflows remain available.
+**Known limitation in 0.7.3:** Built-in browser-based task capture is unavailable on Linux ARM64 because Chrome for Testing has no payload for that platform. Hivebox web and agent workflows remain available.

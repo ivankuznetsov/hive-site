@@ -11,8 +11,7 @@ description: Remove Hive's services, config, cache, and symlinks while preservin
 
 Removes your user-scoped Hive install — service units, config, cache, versioned
 payloads, and the `hive`/`hv` symlinks — while preserving the work Hive has
-accumulated by default. Reach for it when you want to cleanly remove Hive from a
-machine.
+accumulated by default.
 
 ## Usage
 

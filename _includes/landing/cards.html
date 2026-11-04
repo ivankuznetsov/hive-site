@@ -5,10 +5,10 @@
     <article><h3>Human approval</h3><p>A human stage waits for a named decision, such as approving a report or sending the same task back for revision.</p><div class="fw-mini-proof"><span class="fw-status-dot"></span><span>Waiting for your approval</span></div></article>
     <article><h3>Stage retry</h3><p>A retry reruns the stage with its saved inputs. Recovery checks determine whether it can continue or needs human intervention.</p><div class="fw-mini-proof"><span>Attempt 1 stopped</span><span>→ attempt 2</span></div></article>
   </div>
-  <p class="fw-footnote">A retry reruns a stage; it is not deterministic replay and does not guarantee exactly-once external effects. <a href="{{ '/docs/concepts/' | relative_url }}#durability-and-recovery">How recovery works →</a></p>
+  <p class="fw-footnote"><a href="{{ '/docs/concepts/' | relative_url }}#durability-and-recovery">Recovery behavior and limits →</a></p>
   <div class="fw-agents" id="agents" aria-labelledby="agents-heading">
-    <div><p class="fw-kicker">Agent configuration</p><h2 id="agents-heading">Choose agents by stage</h2><p>Use different agents for research, writing, or code review. Set each agent stage’s CLI and model in your workflow configuration.</p><a class="fw-text-link" href="{{ '/docs/configuration/' | relative_url }}#agent-profiles">Configure your agents →</a></div>
-    <div><ul class="fw-agent-grid" aria-label="Supported agent CLIs"><li>Claude Code</li><li>Codex</li><li>Grok</li><li>Pi</li><li class="fw-agent-opt-in"><span>OpenCode <small>Opt-in</small></span><span>Explicit provider/model and scoped setup</span></li></ul><p class="fw-agent-note">Install and authenticate each CLI you select. Model and permission support vary by profile.</p></div>
+    <div><h2 id="agents-heading">Choose agents by stage</h2><p>Use different agents for research, writing, or code review. Choose an agent and model for each stage.</p><a class="fw-text-link" href="{{ '/docs/configuration/' | relative_url }}#agent-profiles">Configure your agents →</a></div>
+    <div><ul class="fw-agent-grid" aria-label="Supported agent CLIs"><li>Claude Code</li><li>Codex</li><li>Grok</li><li>Pi</li><li><a href="https://github.com/ivankuznetsov/hive/blob/v0.8.0/docs/getting-started.md#optional-opencode-profile">OpenCode</a></li></ul><p class="fw-agent-note">See the setup guide for each agent’s installation and model requirements.</p></div>
   </div>
   <p class="fw-footnote">Reusable workflows: <a href="{{ '/honeycombs/' | relative_url }}">Browse reviewed Honeycombs →</a></p>
 </div></section>

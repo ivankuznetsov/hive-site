@@ -10,7 +10,7 @@ description: Install Hive, set up the native local web UI, and run your first wo
 {: .no_toc }
 
 Hive is a durable, local-first workflow engine for AI agents. This first run
-uses its flagship **`coding`** workflow: a rough idea becomes a reviewed pull
+uses the built-in **`coding`** workflow: a rough idea becomes a reviewed pull
 request. The same engine also runs `content`, `bench`, and
 [workflows you define]({{ '/docs/custom-workflows/' | relative_url }}).
 

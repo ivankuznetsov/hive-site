@@ -8,30 +8,28 @@ description: Hive documentation — getting started, concepts, configuration, co
 
 # Hive documentation
 
-Hive is a durable, local-first workflow engine for AI agents. It runs multi-step work as a **folder-as-agent pipeline**: each task moves
-through stage folders, an AI agent does the work at each stage, and a daemon
-advances it in the background, asking for answers only when it needs them. Its
-flagship **`coding`** workflow turns a rough idea into a merge-ready pull
-request — but `coding` is one of several workflows. Hive also ships `content` (a research-to-article flow) and `bench` (evaluation
-campaigns), and lets you author your own. Native web, TUI, and CLI surfaces
-share the same workflow state. These docs cover installing it, the
-ideas behind it, configuring it, the command surface, and running it as a
-service.
+Hive runs local workflows for AI agents. Each task moves through named stages,
+with files that record the input, work, and result. The daemon advances ready
+stages and pauses when a task needs your input. Inspect the same work in the
+local web UI, TUI, or CLI.
+
+Start with the built-in `coding`, `content`, or `bench` workflow, or define
+your own stages in YAML. These docs cover installation, workflow behavior,
+configuration, commands, and background services.
 
 ## Start here
 
 - **[Getting started]({{ '/docs/getting-started/' | relative_url }})** — install, `hive init`, and your first task in the local web UI or TUI.
 - **[Concepts]({{ '/docs/concepts/' | relative_url }})** — folder-as-agent, the stage state machine, and the marker protocol.
 - **[Configuration]({{ '/docs/configuration/' | relative_url }})** — project config, patrol mode, reviewers, agent profiles, and the daemon.
-- **[Command reference]({{ '/docs/commands/' | relative_url }})** — every user-facing `hive` command.
-- **[Custom workflows]({{ '/docs/custom-workflows/' | relative_url }})** — the engine is generic: author your own per-project pipeline in YAML.
+- **[Command reference]({{ '/docs/commands/' | relative_url }})** — commands for everyday use and recovery.
+- **[Custom workflows]({{ '/docs/custom-workflows/' | relative_url }})** — define stages, instructions, and human decisions in YAML.
 - **[Operating]({{ '/docs/operating/' | relative_url }})** — daemon, bot, and babysitter as services.
 
 ## Looking for the source?
 
 Hive is open source (MIT) on [GitHub](https://github.com/ivankuznetsov/hive).
-The full engineering wiki lives in the repo; these docs are the curated,
-user-facing subset.
+The repository also contains the full CLI reference and engineering wiki.
 
 ## Workflows from private repositories
 

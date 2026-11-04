@@ -3,33 +3,28 @@ title: Concepts
 layout: doc
 nav_order: 2
 permalink: /docs/concepts/
-description: The load-bearing ideas behind Hive — folder-as-agent, the stage state machine, and the marker protocol — and how workflows (coding, content, or your own) ride on top of them.
+description: How task folders, stage outputs, markers, and recorded state keep Hive workflows inspectable and recoverable.
 ---
 
 # Concepts
 {: .no_toc }
 
-Hive has three load-bearing ideas: a task is a folder, stage folders form a
-state machine, and every stage writes an artefact that lets the next stage run
-with less ambiguity.
+A task is a folder of inputs and outputs. Its current stage determines what
+happens next, and markers record whether an agent is working, waiting, or done.
+A **workflow** defines those stages and their instructions.
 
-Those three are the **engine**. *Which* stages exist, and what each one does, is
-defined by a **workflow** — and Hive runs more than one. It ships three public built-in
-workflows: `coding`, the nine-stage idea → PR pipeline described below (its
-flagship, and the default `hive init` selects), `content`, a research-to-article
-pipeline; and `bench`, an evaluation workflow. You can also author your own per project — see
-[Custom workflows]({{ '/docs/custom-workflows/' | relative_url }}). Everything in
-this page applies to any workflow; `coding` is just the most involved, so it's
-the one worth walking through in full.
+Hive includes `coding` (idea to pull request), `content` (research to article),
+and `bench` (evaluation campaigns). You can also define a workflow per project.
+This guide uses the default `coding` workflow to explain the shared mechanics.
+See [Custom workflows]({{ '/docs/custom-workflows/' | relative_url }}) for authoring.
 
 1. TOC
 {:toc}
 
 ## Folder as agent
 
-A Hive task is not a ticket row or a single markdown blob. It is a directory
-that accumulates the artefacts needed to keep work inspectable: the original
-idea, brainstorm rounds, the plan, execution notes, review files, PR metadata,
+A Hive task is a directory that keeps its inputs and outputs together: the
+original idea, brainstorm rounds, the plan, execution notes, review files, PR metadata,
 logs, and a feature-worktree pointer.
 
 The folder's location **is** the task state. Moving a task from `2-brainstorm/`
@@ -56,8 +51,7 @@ move with marker checks, locking, JSON support, and a state-branch commit.
 The task outlives an individual agent attempt. Stage artifacts remain readable
 files under `.hive-state/`, alongside task history. Hive also uses a
 **machine-local SQLite runtime control plane** for attempts, delivery, leases,
-and coordination. The folder model is useful; it is not a claim that Hive has
-no database.
+and coordination.
 
 Recorded state, guarded retries, and explicit recovery requests let work
 continue after interruptions. The current stage may run again using saved
@@ -78,9 +72,8 @@ security sandbox. Tool permission support depends on the selected agent.
 
 The stages below are Hive's built-in **`coding`** workflow. A different workflow
 (`content`, or one you author) defines its own stages — but the mechanics are
-identical: each stage is a folder, the agent reads the prior artefacts and writes
-this stage's, and a marker negotiates the handoff. `coding` is the deepest of the
-built-ins, so it's the clearest illustration of the whole protocol.
+shared: each stage has a folder, the agent reads prior artifacts and writes
+its output, and markers record readiness for the next handoff.
 
 ```text
 1-inbox → 2-brainstorm → 3-plan → 4-execute → 5-open-pr → 6-review → 7-artifacts → 8-finalize → 9-done
@@ -89,7 +82,7 @@ capture     refine        design    build       draft PR    harden     collect  
 
 | Stage | What happens |
 |-------|--------------|
-| **1-inbox** | The capture stage. `hive new` writes `idea.md`; nothing runs automatically yet. |
+| **1-inbox** | The capture stage. `hive new` writes `idea.md`. No agent runs in the inbox; an enrolled daemon can advance ready tasks. |
 | **2-brainstorm** | The brainstorm agent reads `idea.md` and writes `brainstorm.md`, usually pausing to ask you questions, then marking the requirements clear. |
 | **3-plan** | The plan agent reads `brainstorm.md` and writes `plan.md`, fixing scope, implementation units, verification, and risks before any code work. |
 | **4-execute** | Creates an isolated feature worktree, writes `worktree.yml`, spawns the implementation agent, and finishes only when there's a clean new commit. |
@@ -141,23 +134,18 @@ trying to steer a long-running conversation.
 
 ## Knowledge sharing: the LLM wiki
 
-Compounding doesn't stop at a single task. Each Hive project keeps an
-**LLM-maintained wiki** — a `wiki/` directory of markdown pages, cataloged in
-`wiki/index.md` and cross-linked with `[[backlinks]]`, capturing the project's
-architecture, modules, conventions, and decisions. It's written for agents to
-read and kept current as work lands.
+Each Hive project keeps an **LLM-maintained wiki**: a `wiki/` directory of
+Markdown pages, cataloged in `wiki/index.md` and cross-linked with
+`[[backlinks]]`. It records the project's architecture, modules, conventions,
+and decisions for later tasks.
 
-The point is that knowledge accumulates instead of evaporating when a
-conversation ends. The convention is simple: an agent reads the relevant wiki
-pages before it starts — inheriting established patterns, past gotchas, and the
-*why* behind decisions — and files what it learns back, either as new pages or
-as an append-only changelog fragment under `wiki/log.d/`. Over time the project
-gets *cheaper and safer* to work in, because every task starts with more context
-than the last.
+Agents read relevant pages before starting work and record what they learn in
+new pages or append-only changelog fragments under `wiki/log.d/`. This gives
+the next task access to established patterns and the reasons behind decisions.
 
 It's searchable: Hive ships a managed indexer (QMD), so you or an agent can run
-`qmd search "<topic>"` and get the answer straight from the wiki instead of
-re-deriving it. The changelog is rebuilt from those fragments with
+`qmd search "<topic>"` to find relevant wiki pages. The changelog is rebuilt
+from those fragments with
 [`hive wiki compile-log`]({{ '/docs/commands/wiki/' | relative_url }}), which
 keeps concurrent edits from colliding on a single file.
 
@@ -170,5 +158,5 @@ keeps concurrent edits from colliding on a single file.
 ---
 
 Next: see [Configuration]({{ '/docs/configuration/' | relative_url }}) for the
-knobs that shape each stage, or the [Command reference]({{ '/docs/commands/' | relative_url }})
+settings that shape each stage, or the [Command reference]({{ '/docs/commands/' | relative_url }})
 for the verbs that drive them.

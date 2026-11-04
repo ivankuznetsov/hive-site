@@ -251,12 +251,10 @@ try {
         await p.locator("#agents").scrollIntoViewIfNeeded();
         await shot(p, "agent-choice", p.locator("#agents"));
         check(
-          "agent grid lists only supported profiles and labels OpenCode opt-in",
+          "agent grid links OpenCode to its setup guide",
           (await p.locator(".fw-agent-grid li").count()) === 5 &&
-            (await p.locator(".fw-agent-opt-in").innerText()).includes(
-              "Opt-in",
-            ) &&
-            !(await p.locator("#agents").innerText()).includes("any agent"),
+            (await p.getByRole("link", { name: "OpenCode", exact: true }).getAttribute("href")) ===
+              "https://github.com/ivankuznetsov/hive/blob/v0.8.0/docs/getting-started.md#optional-opencode-profile",
         );
         const links = await p
           .locator(".fw-actions a,.site-nav a,.fw-hosted a")

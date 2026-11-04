@@ -51,7 +51,7 @@ When you run `hive init` on a real terminal, it asks you to pick:
 
 All of these land in `<project>/.hive-state/config.yml`, which you can edit
 later. See [Configuration]({{ '/docs/configuration/' | relative_url }}) for the
-full list of knobs.
+project settings.
 
 When you run it in a script or pipe (non-interactive), it skips every question
 and uses the recommended defaults.

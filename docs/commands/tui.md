@@ -13,7 +13,8 @@ The interactive dashboard. It's a two-pane terminal UI over `hive status`: a
 left pane of your registered projects and a right pane of their tasks, each
 showing an icon, id, name, stage, status, and age. It refreshes once a second
 and lets you drive any workflow verb with a single keystroke. This is the
-recommended way to watch and steer Hive day to day.
+terminal interface for watching and steering Hive; the native web UI provides
+an alternative.
 
 ## Usage
 

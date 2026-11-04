@@ -51,6 +51,31 @@ reduced motion, no JavaScript, and existing Docs/search/catalog routes.
 On hosts with system libvips, Sharp may try to compile during `npm ci`.
 `SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm ci` uses its packaged binary instead.
 
+### Sitewide editorial and rendering review
+
+After a build, `npm run test:sitewide` inventories every generated HTML route,
+checks desktop/mobile in both themes, local links and fragments, raw Markdown
+and LLM exports, search/navigation, catalog copying, and benchmark controls.
+It uses the same Playwright/CDP environment variables as the homepage checker.
+Evidence goes to `test-results/sitewide/after/`; use `REVIEW_OUTPUT` to change
+the directory or `REVIEW_SCREENSHOTS=0` for a check without screenshot capture.
+Neither browser checker runs agents or allows network mutations.
+
+Before calling a change sitewide:
+
+- Read each page's copy, including generated catalog entries, not just shared
+  templates. Record changed and reviewed-no-change routes separately.
+- Ask what the reader needs here. Agent-choice cards name agents and link to
+  setup; provider/model configuration, permissions, and opt-in requirements
+  belong in the setup guide, not badges or subtitles on marketing cards.
+- Keep commands, limits, destructive-action warnings, availability, benchmark
+  definitions, and permission evidence where readers make those decisions.
+  Simplification must not become a stronger claim.
+- Check release-sensitive instructions against a tagged release. An archive
+  must not promote the discontinued installation as a current recommendation.
+- Review rendered copy and representative layouts in both themes and mobile.
+  Test counts are technical evidence, not proof of an editorial review.
+
 ## Structure
 
 ```

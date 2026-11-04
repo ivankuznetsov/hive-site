@@ -26,10 +26,18 @@
 
       var btn = document.getElementById("theme-toggle");
       if (!btn) { return; }
+      function updateLabel() {
+        var label = activeTheme() === "dark" ? "Light theme" : "Dark theme";
+        btn.textContent = label;
+        btn.setAttribute("aria-label", "Use " + label.toLowerCase());
+      }
+      updateLabel();
+      btn.hidden = false;
       btn.addEventListener("click", function () {
         var next = activeTheme() === "dark" ? "light" : "dark";
         jtd.setTheme(next);
         try { localStorage.setItem(STORAGE_KEY, next); } catch (e) {}
+        updateLabel();
       });
     });
   })();
