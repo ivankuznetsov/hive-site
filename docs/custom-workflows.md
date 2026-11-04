@@ -9,9 +9,18 @@ description: Define project workflows in YAML with stage instructions, saved art
 # Creating custom workflows
 {: .no_toc }
 
-Hive includes `coding`, `content`, and `bench` workflows. To run a different
-process, define its stages in a YAML descriptor and give each agent stage
-instructions. Examples include writing, research, triage, and weekly reports.
+Hive includes `coding`, `content`, and `bench` workflows. **Writing** and
+**Architecture** are separate installable [Honeycombs](/honeycombs/), not
+built-ins. For those existing processes, start with a package:
+
+```bash
+hive workflow install honeycomb/writing
+hive workflow install honeycomb/architecture
+```
+
+To run a different process, define its stages in a YAML descriptor and give
+each agent stage instructions. Examples include research, triage, and weekly
+reports.
 
 This guide builds a project-local workflow and explains its inputs, outputs,
 and approval behavior. For repository imports, see
@@ -61,7 +70,8 @@ the instruction files that each agent receives.
 ## Human approval
 
 Use `kind: human` when a person must approve an artifact or return it for
-revision. This custom Research example also appears on the homepage:
+revision. This minimal custom gate also appears in the homepage's YAML section.
+It is not a stage in the installed Writing or Architecture Honeycomb:
 
 ```yaml
 id: research-report
@@ -102,9 +112,11 @@ For the complete current descriptor contract, see the
 
 ## Anatomy of a descriptor
 
-This `writing` example has an inbox, three agent stages, and a final archive
-stage. Save the descriptor as `writing.yml` and provide the instruction files
-shown later in this guide:
+This custom `writing` example has an inbox, three agent stages, and a final
+archive stage. It is not the published Writing Honeycomb. Do not install both
+under the same ID; use another ID for this descriptor if `writing` is already
+installed. Save the descriptor as `writing.yml` and provide the instruction
+files shown later in this guide:
 
 ```yaml
 id: "writing"                 # must match the filename (writing.yml) and the

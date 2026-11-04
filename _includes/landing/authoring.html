@@ -1,5 +1,12 @@
 <section class="fw-section" id="define" aria-labelledby="define-heading"><div class="wrap fw-two-col">
-  <div><p class="fw-kicker">Custom workflows</p><h2 id="define-heading">Define stages in YAML</h2><p class="fw-lead">Use a YAML descriptor to set stage instructions, output files, and human decisions.</p><p>Here, <code>research.md</code> feeds <code>report.md</code>. Approval completes the report; rejection returns the task to synthesis. Neither publishes or sends it.</p><a class="fw-text-link" href="{{ '/docs/custom-workflows/' | relative_url }}#human-approval">Build a custom workflow →</a></div>
+  <div><p class="fw-kicker">Custom workflows</p><h2 id="define-heading">Define stages in YAML</h2><p class="fw-lead">Use a YAML descriptor to set stage instructions, output files, and human decisions.</p><p>This minimal custom gate is separate from the Writing and Architecture Honeycombs above. Here, <code>research.md</code> feeds <code>report.md</code>. Approval completes the report; rejection returns the task to synthesis. Neither publishes or sends it.</p><a class="fw-text-link" href="{{ '/docs/custom-workflows/' | relative_url }}#human-approval">Build a custom workflow →</a>
+    <div class="custom-gate" data-gate-example hidden aria-label="Try the custom human approval example">
+      <h3 data-gate-title tabindex="-1"></h3><p data-gate-detail></p><p class="custom-gate-files" data-gate-files></p>
+      <div class="workflow-decision"><button class="btn btn--primary" type="button" data-gate-approve>Approve report</button><button class="btn btn--ghost" type="button" data-gate-reject>Request revision</button><button class="btn btn--primary" type="button" data-gate-revise hidden>Revise sample report</button><button class="btn btn--ghost" type="button" data-gate-reset hidden>Reset example</button></div>
+      <p class="custom-gate-history" data-gate-history role="status" aria-live="polite"></p>
+    </div>
+    <script type="application/json" id="approval-example">{{ site.data.approval_example | jsonify }}</script>
+  </div>
   <div class="fw-descriptor"><div><span>research-report.yml</span><span>Custom example</span></div><pre><code>id: research-report
 stages:
   - name: research

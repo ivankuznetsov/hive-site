@@ -10,7 +10,7 @@ export function initialState(workflow) {
     workflow,
     position: 0,
     saved: first.kind === "inert" ? [first.artifact] : [],
-    status: "ready",
+    status: first.kind === "human" ? "waiting" : "ready",
     attempt: 1,
     decisions: [],
     recovered: false,
@@ -28,7 +28,9 @@ export function transition(state, action) {
     case "next": {
       if (["waiting", "interrupted", "complete"].includes(state.status))
         return state;
-      const saved = save(state.saved, stage.artifact);
+      const visit = visitAt(state.workflow, state.position);
+      const saved = (visit.outputs || stage.outputs || [stage.artifact])
+        .reduce(save, state.saved);
       if (state.position === state.workflow.route.length - 1)
         return { ...state, saved, status: "complete" };
       const position = state.position + 1;
@@ -38,12 +40,13 @@ export function transition(state, action) {
         ...state,
         position,
         saved,
-        attempt: 1,
+        attempt: visitAt(state.workflow, position).stage === visit.stage
+          ? state.attempt : 1,
         status: nextStage.kind === "human" ? "waiting" : "ready",
       };
     }
     case "interrupt":
-      return stage.kind === "agent" &&
+      return ["agent", "council"].includes(stage.kind) &&
         !["complete", "waiting", "interrupted"].includes(state.status)
         ? { ...state, status: "interrupted" }
         : state;
@@ -61,20 +64,25 @@ export function transition(state, action) {
         ? {
             ...state,
             status: "complete",
-            saved: save(state.saved, "approval.md"),
+            saved: save(state.saved, stage.artifact),
             decisions: [...state.decisions, "approved"],
           }
         : state;
-    case "reject":
-      return state.status === "waiting"
-        ? {
-            ...state,
-            position: state.position - 1,
-            status: "ready",
-            saved: save(state.saved, "approval.md"),
-            decisions: [...state.decisions, "revision requested"],
-          }
-        : state;
+    case "reject": {
+      if (state.status !== "waiting") return state;
+      const position = state.workflow.route.findIndex((visit) =>
+        state.workflow.stages[typeof visit === "number" ? visit : visit.stage].id === stage.rejectTo,
+      );
+      if (position < 0) return state;
+      return {
+        ...state,
+        position,
+        attempt: 1,
+        status: "ready",
+        saved: save(state.saved, stage.artifact),
+        decisions: [...state.decisions, "revision requested"],
+      };
+    }
     default:
       return state;
   }
@@ -101,18 +109,24 @@ export const LAYOUTS = {
     [690, 502],
     [510, 398],
   ],
-  content: [
-    [200, 210],
-    [420, 337],
-    [640, 210],
-    [860, 337],
-    [640, 464],
-    [420, 591],
+  writing: [
+    [150, 190],
+    [330, 294],
+    [510, 190],
+    [690, 294],
+    [870, 190],
+    [1050, 294],
+    [870, 398],
   ],
-  research: [
-    [260, 250],
-    [520, 400],
-    [780, 250],
+  architecture: [
+    [150, 190],
+    [330, 294],
+    [510, 190],
+    [690, 294],
+    [870, 190],
+    [1050, 294],
+    [870, 398],
+    [690, 502],
   ],
 };
 const DOCKS = {

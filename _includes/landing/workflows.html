@@ -7,8 +7,9 @@
       </div>
       <div id="workflow-panel" role="tabpanel" aria-labelledby="tab-coding" tabindex="0">
         <div class="workflow-intro"><p data-summary></p><p data-example-note></p></div>
+        <div class="workflow-package" data-package hidden><code data-install-command></code><a data-package-source></a><a href="{{ '/honeycombs/' | relative_url }}">Install and configure →</a></div>
         <figure class="workflow-theatre" aria-label="Illustrated workflow with inspectable stage details">
-          <div class="workflow-toolbar"><span><span class="fw-hex" aria-hidden="true"></span><span data-task-name></span></span><div class="workflow-controls"><button type="button" data-overview>Overview</button><button type="button" data-play>Play example</button><button type="button" data-next>Next stage <span aria-hidden="true">→</span></button></div></div>
+          <div class="workflow-toolbar"><span><span class="fw-hex" aria-hidden="true"></span><span data-task-name></span></span><div class="workflow-controls"><button type="button" data-overview>Overview</button><button type="button" data-play>Play example</button><button type="button" data-next>Next step <span aria-hidden="true">→</span></button></div></div>
           <div class="workflow-scene">
             <div class="factory-viewport">
               <svg class="factory-svg" viewBox="0 0 1200 650" fill="none" aria-hidden="true" focusable="false">
@@ -21,7 +22,6 @@
               <p class="inspector-kicker"><span data-stage-number></span><span data-stage-role></span></p>
               <h3 data-stage-title tabindex="-1"></h3><p class="inspector-description" data-stage-body></p>
               <div class="work-artifact"><div><span data-file></span><span data-state-label></span></div><p data-sample></p></div>
-              <div class="workflow-decision" data-decision hidden><p>Demo decision · no external action</p><button class="btn btn--primary" type="button" data-approve>Approve report</button><button class="btn btn--ghost" type="button" data-reject>Request revision</button></div>
               <div class="workflow-recovery" data-recovery hidden><p>This example is eligible to retry. Real recovery also checks safety and retry policy.</p><button class="btn btn--primary" type="button" data-retry>Retry this stage</button></div>
               <p class="inspector-context" data-context></p>
             </div>
@@ -34,10 +34,10 @@
       </div>
     </div>
     <div class="workflow-fallback" data-workflow-fallback>
-      {% for workflow in site.data.workflow_examples %}<details {% if forloop.first %}open{% endif %}><summary>{{ workflow.label }} <span>{{ workflow.badge }}</span></summary><p>{{ workflow.summary }} {{ workflow.note }}</p><ol>{% for stage in workflow.stages %}<li><strong>{{ stage.name }}</strong> — {{ stage.body }} <code>{{ stage.artifact }}</code></li>{% endfor %}</ol><p><strong>Result:</strong> {{ workflow.result }}. {% if workflow.id == 'research' %}Approval completes the report; rejection returns it to synthesis. Neither publishes or sends it.{% endif %}</p></details>{% endfor %}
+      {% for workflow in site.data.workflow_examples %}<details {% if forloop.first %}open{% endif %}><summary>{{ workflow.label }} <span>{{ workflow.badge }}</span></summary><p>{{ workflow.summary }} {{ workflow.note }}</p>{% if workflow.install %}<p><code>{{ workflow.install }}</code><br><a href="{{ workflow.source }}">{{ workflow.label }} {{ workflow.version }} source</a> · <a href="{{ '/honeycombs/' | relative_url }}">Install and configure</a></p>{% endif %}<ol>{% for stage in workflow.stages %}<li><strong>{{ stage.name }}</strong> — {{ stage.body }} <code>{{ stage.artifact }}</code></li>{% endfor %}</ol><p><strong>Result:</strong> {{ workflow.result }}. {{ workflow.completion }}</p></details>{% endfor %}
       <p>Artifacts remain saved when an attempt stops. Recovery can retry an eligible stage from recorded state; some failures need human intervention. <a href="{{ '/docs/concepts/' | relative_url }}#durability-and-recovery">Read about durability and recovery.</a></p>
     </div>
     <script type="application/json" id="workflow-examples">{{ site.data.workflow_examples | jsonify }}</script>
-    <p class="workflow-library">Also built in: <a href="{{ '/bench/' | relative_url }}">Bench</a> for evaluation campaigns. Or install a <a href="{{ '/honeycombs/' | relative_url }}">reviewed Honeycomb</a>.</p>
+    <p class="workflow-library">Also built in: the separate <code>content</code> workflow and <a href="{{ '/bench/' | relative_url }}">Bench</a> for evaluation campaigns. Or install a <a href="{{ '/honeycombs/' | relative_url }}">reviewed Honeycomb</a>.</p>
   </div>
 </section>

@@ -13,8 +13,9 @@ with files that record the input, work, and result. The daemon advances ready
 stages and pauses when a task needs your input. Inspect the same work in the
 local web UI, TUI, or CLI.
 
-Start with the built-in `coding`, `content`, or `bench` workflow, or define
-your own stages in YAML. These docs cover installation, workflow behavior,
+Start with the built-in `coding`, `content`, or `bench` workflow, install a
+[Writing or Architecture Honeycomb](/honeycombs/), or define your own stages
+in YAML. These docs cover installation, workflow behavior,
 configuration, commands, and background services.
 
 ## Start here

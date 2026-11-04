@@ -14,7 +14,9 @@ happens next, and markers record whether an agent is working, waiting, or done.
 A **workflow** defines those stages and their instructions.
 
 Hive includes `coding` (idea to pull request), `content` (research to article),
-and `bench` (evaluation campaigns). You can also define a workflow per project.
+and `bench` (evaluation campaigns). Writing and Architecture are separate
+installable [Honeycombs](/honeycombs/); Writing is not another name for the
+built-in `content` workflow. You can also define a workflow per project.
 This guide uses the default `coding` workflow to explain the shared mechanics.
 See [Custom workflows]({{ '/docs/custom-workflows/' | relative_url }}) for authoring.
 
