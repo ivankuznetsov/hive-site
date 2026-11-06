@@ -8,6 +8,28 @@ require "tmpdir"
 ROOT = File.expand_path("..", __dir__)
 SOURCE_SHA = "a" * 40
 
+module StylesheetAssertions
+  def css_at_rule_contents(styles, at_rule, after: nil)
+    search_offset = after ? styles.index(after) : 0
+    refute_nil search_offset, "expected stylesheet to contain #{after}" if after
+
+    opening = styles.match(/#{Regexp.escape(at_rule)}\s*\{/, search_offset)
+    refute_nil opening, "expected stylesheet to contain #{at_rule}"
+
+    depth = 1
+    cursor = opening.end(0)
+    while depth.positive?
+      brace = styles.match(/[{}]/, cursor)
+      refute_nil brace, "expected #{at_rule} to have a closing brace"
+
+      depth += brace[0] == "{" ? 1 : -1
+      cursor = brace.end(0)
+    end
+
+    styles[opening.end(0)...(cursor - 1)]
+  end
+end
+
 module CatalogFixtures
   module_function
 

@@ -1,0 +1,56 @@
+{% assign comparison = site.data.comparison %}
+<section class="comparison-matrix" aria-labelledby="comparison-matrix-title">
+  <div class="wrap">
+    <h2 id="comparison-matrix-title" class="section-title">{{ comparison.page.matrix_heading }}</h2>
+    <p class="section-lead">{{ comparison.page.matrix_introduction }}</p>
+
+    <div class="comparison-table-region" role="region" aria-labelledby="comparison-matrix-title" tabindex="0">
+      <table class="comparison-table">
+        <caption>{{ comparison.page.matrix_caption }}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Decision dimension</th>
+            {% for product in comparison.products %}
+              <th scope="col">{{ product.short_name }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for dimension in comparison.dimensions %}
+            {% assign dimension_cells = comparison.cells | where: "dimension_id", dimension.id %}
+            <tr>
+              <th id="comparison-dimension-{{ dimension.id }}" scope="row">{{ dimension.label }}</th>
+              {% for product in comparison.products %}
+                {% assign product_cells = dimension_cells | where: "product_id", product.id %}
+                {% assign cell = product_cells | first %}
+                <td data-label="{{ product.short_name }}" data-comparison-cell="{{ dimension.id }}-{{ product.id }}">
+                  {% if cell.support_status == "not_documented" %}
+                    <p class="comparison-unknown">not documented in the reviewed official sources as of {{ cell.reviewed_on }}</p>
+                    <div class="comparison-claim-meta">
+                      <div class="comparison-labels" aria-label="Claim support and scope">
+                        <span class="comparison-label comparison-label--unknown">Not documented</span>
+                        <span class="comparison-label comparison-label--scope">{{ comparison.scopes[cell.scope].label }}</span>
+                      </div>
+                      <ul class="comparison-citations" aria-label="Official sources reviewed">
+                        {% for source_id in cell.reviewed_source_ids %}
+                          {% assign source = comparison.sources[source_id] %}
+                          <li>
+                            <a href="{{ source.url }}">{{ source.title }}</a>
+                            <span>Reviewed <time datetime="{{ cell.reviewed_on }}">{{ cell.reviewed_on }}</time></span>
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    </div>
+                  {% else %}
+                    <p>{{ cell.claim }}</p>
+                    {% include comparison/claim-meta.html claim=cell %}
+                  {% endif %}
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
