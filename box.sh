@@ -34,6 +34,8 @@ if docker ps -a --format '{{.Names}}' | grep -qx "$NAME"; then
 fi
 
 mkdir -p "$DATA"
+# Docker interprets a relative -v source as a named volume.
+DATA="$(CDPATH= cd "$DATA" && pwd -P)"
 docker pull "$IMAGE"
 docker run -d --name "$NAME" --restart unless-stopped \
   -p "${BIND}:${PORT}:4567" -v "${DATA}:/data" "$IMAGE" >/dev/null

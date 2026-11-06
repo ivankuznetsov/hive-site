@@ -32,6 +32,8 @@ if ($existing) {
 }
 
 New-Item -ItemType Directory -Force -Path $Data | Out-Null
+# Docker interprets a relative -v source as a named volume.
+$Data = (Resolve-Path -LiteralPath $Data).Path
 docker pull $Image
 if ($LASTEXITCODE -ne 0) { Fail "docker pull failed." }
 docker run -d --name $Name --restart unless-stopped -p "${Bind}:${Port}:4567" -v "${Data}:/data" $Image | Out-Null
