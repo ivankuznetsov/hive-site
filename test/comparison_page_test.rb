@@ -294,7 +294,7 @@ class ComparisonPageTest < Minitest::Test
     layout = File.read(File.join(ROOT, "_layouts", "home.html"))
     footer = File.read(File.join(ROOT, "_includes", "landing", "footer.html"))
 
-    assert_equal 1, layout.scan("'/compare/'").length
+    assert_equal 2, layout.scan("'/compare/'").length
     assert_equal 1, footer.scan("'/compare/'").length
     assert_includes layout, "{{ '/' | relative_url }}#install"
     refute_includes layout, 'href="#install"'
@@ -302,7 +302,7 @@ class ComparisonPageTest < Minitest::Test
     html, = rendered_site
     assert_match(/<nav[^>]+aria-label="Primary".*href="\/compare\/"[^>]*>Compare<\/a>/m, html)
     assert_match(/<nav[^>]+aria-label="Footer".*href="\/compare\/"[^>]*>Compare<\/a>/m, html)
-    assert_equal 2, html.scan('href="/compare/"').length
+    assert_equal 3, html.scan('href="/compare/"').length
     assert_includes html, 'href="/#install"'
     refute_includes html, 'href="#install"'
   end

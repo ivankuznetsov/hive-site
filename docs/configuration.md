@@ -3,7 +3,7 @@ title: Configuration
 layout: doc
 nav_order: 3
 permalink: /docs/configuration/
-description: Project config, patrol mode, reviewers, agent profiles, the daemon, and token-cost knobs.
+description: Project configuration for agents, reviewers, patrol, services, budgets, and timeouts.
 ---
 
 # Configuration
@@ -23,29 +23,30 @@ file that `hive init` creates.
 | `<project>/.hive-state/config.yml` | Per-project | Default branch, worktree root, budgets, timeouts, stage agents, reviewers, daemon enrollment, patrol, and babysitter settings. |
 
 Per-project values are deep-merged onto Hive's built-in defaults, then
-validated. A bad value raises a clear config error rather than failing later —
-so it's safe to edit and re-run. Arrays (like `review.reviewers`) are replaced
+validated. An invalid value raises a configuration error. Arrays (like `review.reviewers`) are replaced
 wholesale, never merged element-by-element.
 
-## Launch & permission mode
+## Claude permission mode
 
 ```yaml
 claude:
-  mode: tmux                 # tmux (default) or headless
   permission_mode: bypassPermissions
 ```
 
-- **`mode`** — `tmux` runs Claude-backed stages in attachable tmux sessions
-  using your logged-in session; `headless` uses non-interactive spawns (good for
-  service-only hosts).
+Claude-backed stages run as headless `claude -p` processes in v0.8.0. The old
+`claude.mode` option is ignored; remove it when `hive doctor` warns. Follow
+stage logs under `.hive-state/logs/<slug>/`.
+
 - **`permission_mode`** — one of `acceptEdits`, `auto`, `bypassPermissions`,
   `default`, `dontAsk`, `plan`. `bypassPermissions` skips file-operation prompts
   (recommended for local runs); `auto` keeps Claude Code auto-mode rules.
 
 ## Agent profiles
 
-Each stage runs on a named agent profile. The three built-in profiles are
-`claude` (default), `codex`, and `pi`. You can point a stage at a different
+Each stage runs on a named agent profile. The supported built-in profiles are
+`claude` (default), `codex`, `grok`, `pi`, and opt-in `opencode`. OpenCode needs
+an explicit provider/model and scoped configuration; see the
+[OpenCode setup guide](https://github.com/ivankuznetsov/hive/blob/v0.8.0/docs/getting-started.md#optional-opencode-profile). You can point a stage at a different
 agent, and override a profile's binary, env var, or minimum version:
 
 ```yaml
@@ -59,10 +60,12 @@ agents:
     min_version: "0.125.0"
 ```
 
-## Token-cost knobs: budgets & timeouts
+## Budgets and timeouts
+{: #token-cost-knobs-budgets--timeouts }
 
-These are **generous sanity caps for runaway agents, not cost targets**. Lower
-them if you want a tighter ceiling per stage.
+Claude budgets are **opt-in** in v0.8.0. Built-in defaults do not cap Claude;
+existing project caps remain in force. The values below illustrate explicit
+limits, not defaults or cost targets. Set limits appropriate to your work.
 
 ```yaml
 budget_usd:
@@ -104,7 +107,7 @@ validates fixes, and opens PRs for the ones that pass. **Patrol is opt-in** — 
 project with no patrol config, or a patrol section without an explicit `mode:`,
 stays disabled.
 
-Set a single `mode` dial instead of hand-tuning knobs:
+Choose a scan cadence with `mode`:
 
 ```yaml
 patrol:

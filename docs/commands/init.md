@@ -41,18 +41,17 @@ hive init --force --json
 When you run `hive init` on a real terminal, it asks you to pick:
 
 - The planning agent (used for brainstorm and plan).
-- How Claude launches (`tmux` attachable pane, the default, or `headless`) and
-  its permission mode.
+- Claude permission mode. Claude runs headless in v0.8.0; there is no launch-mode prompt.
 - The development agent that implements the work (defaults to `codex`).
 - Which reviewers run during code review, and which run on patrol PRs.
 - The patrol frequency (`ultrapatrol`, `high`, `medium`, `low`, or `off`).
-- Per-stage budget and timeout caps (the defaults are generous).
+- Optional per-stage budget and timeout caps. Claude budgets are uncapped unless configured.
 - Whether to enroll the project in the auto-advance daemon and the experimental
   PR babysitter, and whether to autostart the daemon service now.
 
 All of these land in `<project>/.hive-state/config.yml`, which you can edit
 later. See [Configuration]({{ '/docs/configuration/' | relative_url }}) for the
-full list of knobs.
+project settings.
 
 When you run it in a script or pipe (non-interactive), it skips every question
 and uses the recommended defaults.

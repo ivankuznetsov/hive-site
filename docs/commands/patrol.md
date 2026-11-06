@@ -12,8 +12,7 @@ description: Opt-in repository scan that finds, fixes, validates, and opens PRs 
 Runs one repository-scan cycle for a registered project: it maps the codebase
 into feature slices, reviews each slice, attempts isolated fixes that clear the
 confidence gate, validates them with your configured commands, and opens PRs
-for fixes that pass. Reach for it when you want Hive to proactively surface and
-fix issues rather than waiting for you to file work.
+for fixes that pass.
 
 Patrol is **opt-in**. Each project must enable it in its config, and the
 [daemon]({{ '/docs/commands/daemon/' | relative_url }}) runs it automatically on

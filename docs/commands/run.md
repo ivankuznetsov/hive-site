@@ -55,7 +55,7 @@ project's config to turn it off permanently.
 # Run whatever stage this task is currently in
 hive run add-inbox-filter-260603-abcd
 
-# Recover a stuck task without the rebase ceremony, machine-readable
+# Run without rebasing and return structured output
 hive run add-inbox-filter-260603-abcd --no-rebase --json
 
 # Disambiguate a slug shared across two projects

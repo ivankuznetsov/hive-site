@@ -1,42 +1,14 @@
-<section class="cards" id="capabilities">
-  <div class="wrap">
-    <h2 class="section-title">What you get</h2>
-    <div class="cards__grid">
-      <article class="card">
-        <h3>Reviewed Honeycombs</h3>
-        <p>Discover versioned workflows with exact package links, designated review evidence, and every requested permission shown before installation.</p>
-        <p><a href="{{ '/honeycombs/' | relative_url }}">Browse Honeycombs &rarr;</a></p>
-      </article>
-      <article class="card">
-        <h3>Folder-as-agent transparency</h3>
-        <p>No database, no black box. Every artefact — idea, brainstorm, plan, reviews, PR
-           metadata — is a markdown file you can read, edit, or hand to another agent.</p>
-      </article>
-      <article class="card">
-        <h3>Multi-agent by design</h3>
-        <p>Stages run on configurable agent CLIs — Claude by default, Codex, or Pi — so each
-           step uses the model you trust for that job.</p>
-      </article>
-      <article class="card">
-        <h3>Async, parallel queue</h3>
-        <p>The daemon advances many tasks at once in the background. The live TUI flags the one
-           that needs an answer — answer in your editor, then get back to your day.</p>
-      </article>
-      <article class="card">
-        <h3>Patrol</h3>
-        <p>Opt-in autonomous repo patrol maps feature slices, reviews them, validates fixes,
-           and opens PRs for the ones that pass.</p>
-      </article>
-      <article class="card">
-        <h3>Babysitter</h3>
-        <p>Keeps open PRs green and mergeable — runs bounded repair attempts and auto-rebases
-           behind a moving <code>main</code>, then hands off when it's stuck.</p>
-      </article>
-      <article class="card">
-        <h3>Telegram bot</h3>
-        <p>Capture ideas, check the queue, and approve work from your phone — photos, documents,
-           and transcribed voice notes included.</p>
-      </article>
-    </div>
+<section class="fw-section" id="durability" aria-labelledby="durability-heading"><div class="wrap">
+  <div class="fw-section-heading"><h2 id="durability-heading">Task state and recovery</h2></div>
+  <div class="fw-capabilities">
+    <article><h3>Saved artifacts</h3><p>Stages write files such as <code>research.md</code> and <code>outline.md</code>. Later stages use those files; task history records the attempts.</p><div class="fw-mini-proof"><code>research.md</code><span>→ outline stage</span></div></article>
+    <article><h3>Human approval</h3><p>A human stage waits for a named decision, such as approving a report or sending the same task back for revision.</p><div class="fw-mini-proof"><span class="fw-status-dot"></span><span>Waiting for your approval</span></div></article>
+    <article><h3>Stage retry</h3><p>A retry reruns the stage with its saved inputs. Recovery checks determine whether it can continue or needs human intervention.</p><div class="fw-mini-proof"><span>Attempt 1 stopped</span><span>→ attempt 2</span></div></article>
   </div>
-</section>
+  <p class="fw-footnote"><a href="{{ '/docs/concepts/' | relative_url }}#durability-and-recovery">Recovery behavior and limits →</a></p>
+  <div class="fw-agents" id="agents" aria-labelledby="agents-heading">
+    <div><h2 id="agents-heading">Choose agents by stage</h2><p>Use different agents for research, writing, or code review. Choose an agent and model for each stage.</p><a class="fw-text-link" href="{{ '/docs/configuration/' | relative_url }}#agent-profiles">Configure your agents →</a></div>
+    <div><ul class="fw-agent-grid" aria-label="Supported agent CLIs"><li>Claude Code</li><li>Codex</li><li>Grok</li><li>Pi</li><li><a href="https://github.com/ivankuznetsov/hive/blob/v0.8.0/docs/getting-started.md#optional-opencode-profile">OpenCode</a></li></ul><p class="fw-agent-note">See the setup guide for each agent’s installation and model requirements.</p></div>
+  </div>
+  <p class="fw-footnote">Reusable workflows: <a href="{{ '/honeycombs/' | relative_url }}">Browse reviewed Honeycombs →</a></p>
+</div></section>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="{{ site.lang | default: 'en' }}">
 {% include landing_head.html %}
-<body class="landing">
+<body class="landing{% if page.framework_home %} framework-home{% endif %}">
   <a class="skip-link" href="#main">Skip to content</a>
 
   <header class="site-header">
@@ -11,15 +11,23 @@
         <span class="brand__name">Hive</span>
       </a>
       <nav class="site-nav" aria-label="Primary">
-        <a href="{{ '/box/' | relative_url }}">Box <span class="badge-alpha">alpha</span></a>
-        <a href="{{ '/bench/' | relative_url }}">Bench <span class="badge-alpha">alpha</span></a>
+        <a href="{{ '/docs/' | relative_url }}">Docs</a>
+        <a href="{{ '/' | relative_url }}#workflows">Workflows</a>
         <a href="{{ '/honeycombs/' | relative_url }}">Honeycombs</a>
         <a href="{{ '/compare/' | relative_url }}">Compare</a>
-        <a href="{{ '/docs/concepts/' | relative_url }}">Concepts</a>
-        <a href="{{ '/docs/' | relative_url }}">Docs</a>
         <a class="nav-icon-link" href="https://github.com/ivankuznetsov/hive">{% include icons/github.svg %}<span>GitHub</span></a>
-        <a class="nav-icon-link" href="https://discord.gg/Qg5E7rMt">{% include icons/discord.svg %}<span>Discord</span></a>
-        <a class="btn btn--primary btn--small" href="{{ '/' | relative_url }}#install">{% include icons/download.svg %}<span>Install</span></a>
+        <a class="nav-hosted" href="https://hivedev.ai/">Hosted <span aria-hidden="true">↗</span></a>
+        <a class="btn btn--primary btn--small" href="{{ '/' | relative_url }}#install">Get started</a>
+        <details class="site-menu"><summary>Menu</summary><div>
+          <a href="{{ '/docs/' | relative_url }}">Documentation</a>
+          <a href="{{ '/' | relative_url }}#workflows">Workflows</a>
+          <a href="{{ '/honeycombs/' | relative_url }}">Honeycombs</a>
+          <a href="{{ '/compare/' | relative_url }}">Compare</a>
+          <a href="{{ '/bench/' | relative_url }}">Bench</a>
+          <a href="https://github.com/ivankuznetsov/hive">GitHub</a>
+          <a href="https://hivedev.ai/">Hosted HiveDev</a>
+          <a href="https://discord.gg/Qg5E7rMt">Community</a>
+        </div></details>
       </nav>
     </div>
   </header>
@@ -29,5 +37,6 @@
   </main>
 
   {% include landing/footer.html %}
+  {% if page.framework_home %}<script type="module" src="{{ '/assets/js/workflow-view.mjs' | relative_url }}"></script>{% endif %}
 </body>
 </html>

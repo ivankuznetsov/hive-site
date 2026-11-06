@@ -12,8 +12,7 @@ description: Experimental background process that keeps open PRs green, mergeabl
 Manages the **experimental** PR babysitter — a background process that polls
 your open pull requests and keeps them mergeable. It auto-rebases green PRs that
 have fallen behind `main`, and asks your development agent to repair merge
-conflicts or red CI in an isolated worktree. Reach for it when you want open PRs
-to stay green without manual babysitting.
+conflicts or red CI in an isolated worktree.
 
 The babysitter is a separate process from the
 [daemon]({{ '/docs/commands/daemon/' | relative_url }}). It only touches projects

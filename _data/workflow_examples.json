@@ -1,0 +1,463 @@
+[
+  {
+    "id": "coding",
+    "label": "Coding",
+    "badge": "Built-in",
+    "task": "Screenote CLI",
+    "summary": "Nine stages: request → reviewed pull request",
+    "note": "Historical coding evidence below",
+    "result": "Reviewed pull request",
+    "stages": [
+      {
+        "id": "inbox",
+        "name": "Inbox",
+        "machine": "idea",
+        "artifact": "idea.md",
+        "form": "request",
+        "title": "Capture the request",
+        "body": "Hive creates a task folder for the request. Its files become inputs for later stages.",
+        "sample": "Build a scriptable screenshot CLI. Read every note, not just the first page.",
+        "actor": "You",
+        "kind": "inert"
+      },
+      {
+        "id": "brainstorm",
+        "name": "Brainstorm",
+        "machine": "brainstorm",
+        "artifact": "brainstorm.md",
+        "form": "requirements",
+        "title": "Resolve requirements",
+        "body": "Questions become requirements before implementation starts.",
+        "sample": "JSON output. Stable exit codes. Complete note results.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "plan",
+        "name": "Plan",
+        "machine": "plan",
+        "artifact": "plan.md",
+        "form": "plan",
+        "title": "Write the implementation plan",
+        "body": "The plan records scope, implementation steps, and checks for the next agent.",
+        "sample": "Reuse the API. Build the CLI. Check pagination and error handling.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "execute",
+        "name": "Execute",
+        "machine": "build",
+        "artifact": "task.md",
+        "form": "code",
+        "title": "Implement in a worktree",
+        "body": "The builder receives the plan and works on the task branch.",
+        "sample": "Plan → implementation → commit. The task keeps its prior documents.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "open-pr",
+        "name": "Open PR",
+        "machine": "pr",
+        "artifact": "pr.md",
+        "form": "pr",
+        "title": "Open a draft pull request",
+        "body": "The change and its context are linked in a draft pull request.",
+        "sample": "A draft PR is a review surface, not a claim that the work is finished.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "review",
+        "name": "Review",
+        "machine": "review",
+        "artifact": "reviews/",
+        "form": "pr",
+        "title": "Review the implementation",
+        "body": "In the recorded Screenote task, review caught notes disappearing after screenshot 100.",
+        "sample": "Finding: fetch every page, not just the first 100 screenshots.",
+        "actor": "Reviewer",
+        "kind": "agent"
+      },
+      {
+        "id": "artifacts",
+        "name": "Artifacts",
+        "machine": "artifacts",
+        "artifact": "artifact.md",
+        "form": "evidence",
+        "title": "Collect checks and evidence",
+        "body": "Save check results and supporting artifacts for the final handoff.",
+        "sample": "Targeted API and Go checks passed. The full Rails suite was blocked by missing libvips.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "finalize",
+        "name": "Finalize",
+        "machine": "finalize",
+        "artifact": "summary.md",
+        "form": "bundle",
+        "title": "Prepare the handoff",
+        "body": "The PR, review history, and handoff notes stay together.",
+        "sample": "Reviewed changes and their evidence. Ready for a human to inspect.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "done",
+        "name": "Done",
+        "machine": "done",
+        "artifact": "summary.md",
+        "form": "bundle",
+        "title": "Archive the completed task",
+        "body": "The task is archived with its artifacts. Completion does not promise an automatic merge.",
+        "sample": "The recorded Screenote PR was later merged. Inspect the historical result below.",
+        "actor": "Result",
+        "kind": "terminal"
+      }
+    ],
+    "route": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      {
+        "stage": 3,
+        "phase": "fix",
+        "title": "Fix the review findings",
+        "body": "The same task returns to execution with its review findings, requirements, and plan.",
+        "sample": "Fix: fetch all pages and surface real API errors."
+      },
+      {
+        "stage": 5,
+        "phase": "recheck",
+        "title": "Recheck the fix",
+        "body": "The change returns to review. Bounded review can still stop for human intervention.",
+        "sample": "The pagination fix is rechecked before the workflow moves on."
+      },
+      6,
+      7,
+      8
+    ]
+  },
+  {
+    "id": "writing",
+    "label": "Writing",
+    "badge": "Honeycomb",
+    "version": "1.0.2",
+    "task": "An honest backup guide",
+    "summary": "Seven stages: evidence → draft → editorial revisions → article",
+    "note": "Installable Writing Honeycomb · v1.0.2",
+    "result": "article.md with verification.md",
+    "install": "hive workflow install honeycomb/writing",
+    "source": "https://github.com/ivankuznetsov/honeycomb/tree/49a5d313c0498fe3170e71c544fc97877fe9c574/packages/writing/1.0.2",
+    "completion": "This sample reaches editorial consensus. The real workflow can instead return a NOT PUBLISHABLE notice for unsupported claims or the five-round limit.",
+    "stages": [
+      {
+        "id": "inbox",
+        "name": "Inbox",
+        "machine": "idea",
+        "artifact": "brief.md",
+        "form": "request",
+        "title": "Set the brief",
+        "body": "Specify the reader, angle, voice, freshness date, and sources the article must cover.",
+        "sample": "For small teams: explain what a successful backup does—and does not—prove about recovery.",
+        "actor": "You",
+        "kind": "inert"
+      },
+      {
+        "id": "repo-research",
+        "name": "Repo research",
+        "machine": "brainstorm",
+        "artifact": "repo-research.md",
+        "form": "requirements",
+        "title": "Check the team’s own evidence",
+        "body": "Inspect relevant repository files. Keep path-and-line references, candidate claims, and gaps that need external verification.",
+        "sample": "The backup script records successful uploads. The runbook has no timed restore result.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "web-research",
+        "name": "Web research",
+        "machine": "brainstorm",
+        "artifact": "web-research.md",
+        "form": "evidence",
+        "title": "Collect external sources",
+        "body": "Open the sources behind external claims. Record URLs, authors, dates, credibility limits, and unresolved questions.",
+        "sample": "Use database recovery documentation. A storage provider’s durability claim is not evidence of the team’s restore time.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "research",
+        "name": "Research",
+        "machine": "plan",
+        "artifact": "research.md",
+        "form": "plan",
+        "title": "Build a source-to-claim ledger",
+        "body": "Synthesize the two research files into an outline and a claim map: supported, qualified, disputed, or unsupported.",
+        "sample": "Supported: backups complete. Unsupported: recovery takes under an hour. Omit that promise; explain what a restore test must measure.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "draft",
+        "name": "Draft",
+        "machine": "finalize",
+        "artifact": "draft.md",
+        "form": "requirements",
+        "title": "Write from the evidence",
+        "body": "Use brief.md and research.md to write a complete draft. Material factual claims must trace back to the source ledger.",
+        "sample": "Explain the backup process, its limits, and how a restore drill tests the assumptions.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "editorial",
+        "name": "Editorial",
+        "machine": "review",
+        "artifact": "editorial.md",
+        "form": "evidence",
+        "title": "Two editors challenge the draft",
+        "body": "A grounding editor checks claim support. An adversarial editor checks the argument and usefulness. The council can revise and recheck for up to five rounds.",
+        "sample": "Grounding: remove the unsupported “one-hour recovery” promise. Adversarial: put the restore-test checklist before the conclusion.",
+        "actor": "Two editors",
+        "kind": "council",
+        "outputs": [
+          "editorial.md",
+          "reviews/triage.md"
+        ]
+      },
+      {
+        "id": "deliver",
+        "name": "Deliver",
+        "machine": "done",
+        "artifact": "article.md",
+        "form": "bundle",
+        "title": "Deliver the article and its checks",
+        "body": "Write article.md and verification.md with claim support, revision deltas, editorial rounds, and the terminal reason. Delivery does not publish the article.",
+        "sample": "Sample outcome: ready. Both editors agree; the recovery claim is qualified. Unsupported work or an exhausted round limit is marked NOT PUBLISHABLE.",
+        "actor": "Agent",
+        "kind": "agent",
+        "outputs": [
+          "article.md",
+          "verification.md"
+        ]
+      }
+    ],
+    "route": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      {
+        "stage": 5,
+        "phase": "review",
+        "artifact": "reviews/triage.md",
+        "outputs": [
+          "reviews/grounding-editor-01.md",
+          "reviews/adversarial-editor-01.md",
+          "reviews/triage.md",
+          "reviews/triage-01.md"
+        ]
+      },
+      {
+        "stage": 5,
+        "phase": "revise",
+        "artifact": "draft.md",
+        "form": "requirements",
+        "title": "Revise within the editorial council",
+        "body": "The council’s reviser replaces draft.md using both editor reports and triage. Research and earlier review decisions stay with the task.",
+        "sample": "Remove the untested recovery promise. Move the restore checklist earlier. Record both changes in the revision note.",
+        "outputs": [
+          "draft.md"
+        ],
+        "actor": "Reviser"
+      },
+      {
+        "stage": 5,
+        "phase": "recheck",
+        "artifact": "editorial.md",
+        "title": "Both editors check the revision",
+        "body": "The next round checks the new draft against the same evidence. This sample reaches consensus in round two; the package allows at most five rounds.",
+        "sample": "Grounding editor: ready. Adversarial editor: ready. The supported claims and material revisions are recorded.",
+        "outputs": [
+          "editorial.md",
+          "reviews/grounding-editor-02.md",
+          "reviews/adversarial-editor-02.md",
+          "reviews/triage.md",
+          "reviews/triage-02.md"
+        ]
+      },
+      6
+    ]
+  },
+  {
+    "id": "architecture",
+    "label": "Architecture",
+    "badge": "Honeycomb",
+    "version": "1.0.4",
+    "task": "Hive in the cloud",
+    "summary": "Eight stages: repository + web evidence → reviewed architecture",
+    "note": "Installable Architecture Honeycomb · v1.0.4",
+    "result": "architecture.md with owner decisions and reviewer findings",
+    "install": "hive workflow install honeycomb/architecture",
+    "source": "https://github.com/ivankuznetsov/honeycomb/tree/49a5d313c0498fe3170e71c544fc97877fe9c574/packages/architecture/1.0.4",
+    "completion": "The design includes isolated workers, saved task state, and a recovery test plan. Tenant isolation and operating costs still need validation before launch.",
+    "stages": [
+      {
+        "id": "inbox",
+        "name": "Inbox",
+        "machine": "idea",
+        "artifact": "brief.md",
+        "form": "request",
+        "title": "Start with an idea",
+        "body": "An idea is the outcome you want. Start in plain language; the workflow investigates what it will take.",
+        "sample": "I want to run Hive in the cloud. Let people connect a repository, start a workflow, and come back to the result without leaving their laptop running.",
+        "actor": "You",
+        "kind": "inert"
+      },
+      {
+        "id": "repo-research",
+        "name": "Repo research",
+        "machine": "brainstorm",
+        "artifact": "repo-research.txt",
+        "form": "requirements",
+        "title": "Find what needs to move to the cloud",
+        "body": "Inspect how Hive starts agents, stores task state, uses worktrees, and handles credentials. Record the code evidence and what still needs investigation.",
+        "sample": "Map the daemon, agent processes, task files, and Git worktrees. Identify which parts need a persistent home and which belong in an isolated worker.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "web-research",
+        "name": "Web research",
+        "machine": "brainstorm",
+        "artifact": "web-research.txt",
+        "form": "evidence",
+        "title": "Compare hosting and isolation options",
+        "body": "Check primary documentation for long-running workers, persistent storage, credential handling, and recovery. Save sources and limits for each option.",
+        "sample": "Compare containers and VMs for agent runs. Check storage persistence, idle costs, process limits, and what survives a worker restart.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "research",
+        "name": "Research",
+        "machine": "plan",
+        "artifact": "research.md",
+        "form": "plan",
+        "title": "Separate facts, assumptions, and choices",
+        "body": "Read both evidence collections. Synthesize only what changes the decision; do not silently turn gaps into facts.",
+        "sample": "Requirements: isolated agent runs and saved task state. Untested: tenant isolation and restart behavior. Owner choice: one worker per project or per run.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "draft",
+        "name": "Draft",
+        "machine": "finalize",
+        "artifact": "draft.md",
+        "form": "requirements",
+        "title": "Design the hosted workflow",
+        "body": "Describe components, data flow, failure paths, alternatives, rollout, rollback, and tests. Tie material decisions to the saved evidence.",
+        "sample": "A web app submits work to a queue. Isolated workers run Hive; persistent storage keeps task artifacts. Credentials are scoped to each project.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "review",
+        "name": "Review",
+        "machine": "review",
+        "artifact": "review.md",
+        "form": "evidence",
+        "title": "Challenge constraints and operations",
+        "body": "Two reviewers examine missing evidence, tradeoffs, interfaces, and operational risks. The council can revise and recheck within a two-round limit.",
+        "sample": "Constraints: who owns the task state if a worker disappears? Operations: can one project access another project’s credentials or files?",
+        "actor": "Two reviewers",
+        "kind": "council",
+        "outputs": [
+          "review.md",
+          "reviews/triage.md"
+        ]
+      },
+      {
+        "id": "architecture",
+        "name": "Architecture",
+        "machine": "finalize",
+        "artifact": "architecture.md",
+        "form": "bundle",
+        "title": "Deliver the design with open decisions",
+        "body": "Write the final architecture with traceable evidence, a test plan, owner decisions, and resolved, deferred, or rejected reviewer findings.",
+        "sample": "Define the app, queue, workers, storage, and credential boundaries. Include worker-loss and cross-project isolation tests, a rollout plan, and an operating-cost estimate.",
+        "actor": "Agent",
+        "kind": "agent"
+      },
+      {
+        "id": "done",
+        "name": "Done",
+        "machine": "done",
+        "artifact": "architecture.md",
+        "form": "bundle",
+        "title": "Keep the completed architecture",
+        "body": "Done is inert: no additional agent runs. The final design and its research and review trail remain together.",
+        "sample": "architecture.md describes how to host Hive and what to test before launch. The research, alternatives, and review findings stay attached.",
+        "actor": "Result",
+        "kind": "terminal"
+      }
+    ],
+    "route": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      {
+        "stage": 5,
+        "phase": "review",
+        "artifact": "reviews/triage.md",
+        "outputs": [
+          "reviews/constraints-01.md",
+          "reviews/operations-01.md",
+          "reviews/triage.md",
+          "reviews/triage-01.md"
+        ]
+      },
+      {
+        "stage": 5,
+        "phase": "revise",
+        "artifact": "draft.md",
+        "form": "requirements",
+        "title": "Revise the design inside the council",
+        "body": "The council’s reviser replaces draft.md from the saved findings. Resolve each blocker or record an evidence-backed disagreement; keep unresolved owner choices visible.",
+        "sample": "Persist task state outside the worker. Separate credentials and workspaces by project. Add worker-loss recovery and cross-project access tests.",
+        "outputs": [
+          "draft.md"
+        ],
+        "actor": "Reviser"
+      },
+      {
+        "stage": 5,
+        "phase": "recheck",
+        "artifact": "review.md",
+        "title": "Recheck the load-bearing changes",
+        "body": "Both reviewers assess the revised draft in round two. The package can finish at its round limit without consensus; unresolved findings must survive into architecture.md.",
+        "sample": "Worker-loss recovery now has a test plan. Tenant isolation and operating costs remain unverified until the prototype is tested.",
+        "outputs": [
+          "review.md",
+          "reviews/constraints-02.md",
+          "reviews/operations-02.md",
+          "reviews/triage.md",
+          "reviews/triage-02.md"
+        ]
+      },
+      6,
+      7
+    ]
+  }
+]

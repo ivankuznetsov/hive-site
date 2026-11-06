@@ -12,8 +12,8 @@ description: Permanently delete an active task — its worktree, branch, stage f
 Permanently deletes an active task. It stops any running agent for that task,
 closes the draft PR if one is open, removes the task's worktree and branch,
 deletes the task folder from every active stage, removes its logs, and records
-an audit entry. There is no archive, no undo, and no confirmation prompt — reach
-for it when you want a task gone for good.
+an audit entry. There is no archive, undo, or confirmation prompt. Check the
+target carefully before running this command.
 
 ## Usage
 
