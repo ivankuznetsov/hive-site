@@ -1,4 +1,3 @@
-<!-- Production deployment marker: GLM 5.3 Flash (0x Alpha) Pi high/max, 2026-08-27. -->
 {% assign b = site.data.bench %}
 {% assign original_campaign = b.campaigns | where: "id", "v2-ce" | first %}
 {% assign followup_campaign = b.campaigns | where: "id", "v3-mixed-workflows-three-seed-20260713" | first %}
@@ -152,8 +151,7 @@
       six. Their normalized token volume is
       {{ deepseek_all_candidate.normalized_mtokens_per_task }}M and
       {{ deepseek_mixed_candidate.normalized_mtokens_per_task }}M per recorded
-      task respectively&mdash;because cache reads are counted as part of total
-      generation volume. Missing all-Pro telemetry remains unknown rather than
+      task respectively; those totals include cache reads. Missing all-Pro telemetry remains unknown rather than
       inferred.
     </p>
     <p>
@@ -168,8 +166,8 @@
     </p>
     <p>
       These are scoped findings, not a universal model ranking.
-      {{ b.coverage.tasks }} tasks from
-      one Ruby/CLI project cannot establish broad superiority. The original
+      The {{ b.coverage.tasks }} tasks come from one Ruby/CLI project and
+      cannot establish broad superiority. The original
       rows have {{ original_campaign.judge_samples_per_cell }} sample per judge,
       the five active later campaigns have {{ followup_campaign.judge_samples_per_cell }},
       and the discussion layer is a single exchange; the results show what

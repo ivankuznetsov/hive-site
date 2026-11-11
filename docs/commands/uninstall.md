@@ -47,11 +47,11 @@ hive uninstall --force-purge-state
 
 By default, uninstall **keeps your work**. It prints the state directory it is
 preserving and lists each registered project's `.hive-state` path. An
-interactive run may ask whether to remove those project state directories;
-`--purge` skips that prompt and keeps them.
+interactive run asks whether to remove those project state directories, and
+answering `y` deletes them; `--purge` skips that prompt and keeps them.
 
-Project `.hive-state` directories are only deleted when you explicitly pass
-`--force-purge-state`.
+Project `.hive-state` directories are only deleted when you answer `y` to that
+prompt or explicitly pass `--force-purge-state`.
 
 ## Examples
 
