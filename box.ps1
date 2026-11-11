@@ -1,8 +1,8 @@
 # hivebox one-command install for Windows PowerShell:
 #   irm https://hivecli.sh/box.ps1 | iex
-# Same contract as install-box.sh: pull the published image, start the box
+# Same contract as box.sh: pull the published image, start the box
 # with a persistent data directory, print the URL. Overridable via
-# $env:HIVEBOX_IMAGE / _NAME / _PORT / _DATA.
+# $env:HIVEBOX_IMAGE / _NAME / _PORT / _DATA / _BIND.
 $ErrorActionPreference = "Stop"
 
 $Image = if ($env:HIVEBOX_IMAGE) { $env:HIVEBOX_IMAGE } else { "ghcr.io/ivankuznetsov/hivebox:latest" }

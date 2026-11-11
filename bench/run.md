@@ -113,8 +113,8 @@ git clone git@github.com:<your-user>/hive-bench.git /path/to/hive-bench
 export HIVE_BENCH_PATH=/path/to/hive-bench
 ```
 
-The command creates its submission branch from the checkout's current `HEAD`,
-so start from an up-to-date default branch and keep the checkout free of
+The command creates its submission branch from the checkout's
+`origin/<default-branch>`, so fetch first and keep the checkout free of
 unrelated changes.
 
 ### Submit step by step

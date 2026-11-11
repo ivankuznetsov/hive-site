@@ -50,7 +50,7 @@ hive daemon status      # is it running?
 hive daemon start --detach   # start once in the background while troubleshooting
 hive daemon tail        # follow the daemon log
 hive daemon stop
-hive daemon disable     # stop and remove autostart
+hive daemon disable my-project   # stop dispatching for one project (or --all)
 ```
 
 Enroll or unenroll a project by editing its `.hive-state/config.yml`
@@ -139,17 +139,22 @@ and `hive status --json` for programmatic use.
 Hive publishes one OpenClaw skill through ClawHub:
 
 ```bash
-openclaw skills install hive-cli
+openclaw skills install @ivankuznetsov/hive-cli
 ```
 
-Public listing: <https://clawhub.ai/ivankuznetsov/hive-cli>. That installs the
-`/hive` slash command. Run the guided setup:
+Public listing: <https://clawhub.ai/ivankuznetsov/skills/hive-cli>.
+That installs the `/hive` slash command. Run the guided setup:
 
 ```text
 /hive setup
 ```
 
-It installs the Hive CLI through the documented channel, verifies `hive`/`hv`,
-runs `hive daemon install`, and optionally initializes the current project.
-After setup, pass Hive commands through `/hive …`, e.g. `/hive status --json`,
-`/hive new . "build this feature"`, `/hive review <slug>`.
+Guided setup verifies `hive` or `hv`. If neither is installed, it offers an
+install through the documented channel and asks before changing user-global
+software. After approval it runs `hive setup --no-init --yes --json`, which
+provisions the daemon and the local web service without enrolling a project.
+Changes to the managed Claude, Codex, and Pi skills need a separate approval
+(`hive setup-agents --yes --json`). Enroll a project yourself with `hive init .`
+in your own terminal. After setup, pass Hive commands through `/hive …`, e.g.
+`/hive status --operational --json`, `/hive new . "build this feature"`,
+`/hive review <slug>`.

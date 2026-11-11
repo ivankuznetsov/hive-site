@@ -13,7 +13,7 @@ The low-level dispatcher. It resolves a task, figures out which stage it's in,
 auto-rebases the worktree onto the latest default branch when needed, runs that
 stage's agent, commits the result, and reports the next step. Most of the time
 you'll reach for the friendlier stage verbs
-(`hive brainstorm | plan | develop | open-pr | review | finalize | archive`)
+(`hive brainstorm | plan | develop | open-pr | review | artifacts | finalize | archive`)
 or [`hive tui`]({{ '/docs/commands/tui/' | relative_url }}) — `hive run` is what
 they call underneath, and what you use for recovery or scripting.
 

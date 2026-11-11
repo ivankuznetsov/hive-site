@@ -4,7 +4,7 @@ description: >-
   for coding, content, and custom workflows with saved artifacts and human decisions.
 lang: en
 
-# Custom domain (GitHub Pages). Served at the root, so baseurl is empty.
+# Custom domain (Cloudflare). Served at the root, so baseurl is empty.
 url: "https://hivecli.sh"
 baseurl: ""
 
@@ -19,7 +19,7 @@ theme: just-the-docs
 # Clean trailing-slash URLs: /docs/getting-started/ etc.
 permalink: pretty
 
-# Search is provided by Pagefind (built post-Jekyll in the deploy workflow),
+# Search is provided by Pagefind (built post-Jekyll by `npm run build`),
 # not Just the Docs' bundled lunr index.
 search_enabled: false
 
@@ -95,13 +95,12 @@ exclude:
   - package-lock.json
   - README.md
   - LICENSE
-  - .github
   - lib
   - script
   - test
   - test-results
   - implementation
+  - wiki
 
-# jekyll-sitemap / SEO
 sass:
   style: compressed

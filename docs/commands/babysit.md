@@ -27,6 +27,7 @@ hive babysit restart [--detach] [--dry-run]
 hive babysit status
 hive babysit reload
 hive babysit tail
+hive babysit install [--force]
 hive babysit --once PROJECT [--dry-run]
 hive babysit --once --all [--dry-run]
 ```
@@ -43,6 +44,7 @@ This command is text-only; it does not emit a `--json` envelope.
 | `status` | Reports running / not-running plus uptime, and recommends a restart if the process predates your current Hive install. |
 | `reload` | Re-reads config and log settings. Does not reload code into a detached process — use `restart` after upgrading Hive. |
 | `tail` | Follows the babysitter log. |
+| `install [--force]` | Installs and starts the per-user babysitter service (systemd user unit on Linux, launchd on macOS). `--force` overwrites an existing unit, and the previous one is backed up. Does not accept `--dry-run`. |
 | `--once PROJECT` | Runs a single poll tick for one project (handy for smoke tests and dry runs). |
 | `--once --all` | Runs a single tick across every enabled project. |
 | `--dry-run` | Runs without mutating GitHub: the agent writes a plan instead, and `git`/`gh` are replaced with read-only stubs. Use throwaway repos for destructive validation. |
