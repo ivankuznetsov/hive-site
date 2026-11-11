@@ -13,7 +13,8 @@
       <strong>Audit correction, 26 August 2026:</strong> the historical OpenCode
       GLM 5.3 Flash (0x Alpha) row is withdrawn from ranking and active coverage because its
       target exposed held-out history and its profile lacked Bash capability
-      parity. Its invalidated patch artifacts remain available for audit.
+      parity. Its invalidated patch artifacts remain
+      <a href="{{ '/bench/methodology/' | relative_url }}#withdrawn-opencode-glm-53-flash-0x-alpha-campaign">available for audit</a>.
     </p>
 
     <h2>Leaderboard</h2>
@@ -38,7 +39,7 @@
         <option value="cost">Cost per task</option>
         <option value="tokens">Tokens per task</option>
       </select>
-      <button type="button" data-bench-sort-direction aria-label="Change sort direction">Descending</button>
+      <button type="button" data-bench-sort-direction>Descending</button>
     </div>
     <div class="bench-table-scroll bench-table-scroll--summary" role="region" aria-label="Combined quality and efficiency leaderboard" tabindex="0">
     <table class="bench-table bench-summary-table" data-bench-sortable>
@@ -99,7 +100,7 @@
               {% else %}unknown{% endif %}</span>
             </td>
             <td data-label="Cost / task">
-              <span class="bench-cell-value">{% if candidate.cost_per_task_usd %}${{ candidate.cost_per_task_usd }}
+              <span class="bench-cell-value">{% if candidate.cost_per_task_usd %}{% assign rounded_task_cost = candidate.cost_per_task_usd | round: 2 %}{% assign one_decimal_task_cost = candidate.cost_per_task_usd | round: 1 %}${{ rounded_task_cost }}{% if rounded_task_cost == one_decimal_task_cost %}0{% endif %}
                 <small>{{ candidate.cost_sample }}/{{ candidate.total }} priced</small>
               {% elsif candidate.known_cost_per_task_usd %}{% assign rounded_known_cost = candidate.known_cost_per_task_usd | round: 2 %}{% assign one_decimal_known_cost = candidate.known_cost_per_task_usd | round: 1 %}${{ rounded_known_cost }}{% if rounded_known_cost == one_decimal_known_cost %}0{% endif %} known*
               {% else %}unknown{% endif %}</span>
@@ -209,7 +210,7 @@
     <p class="bench-meta">
       Every cell shows <code>Fable 5 / GPT-5.6 Sol</code>. The original rows use
       one score per judge; the five active later campaigns use three and display their
-      means. Later-campaign cells also show the complete, separate
+      means. Every cell also shows the complete, separate
       discussion-final pair. Click a score for its machine-readable record. Exact diffs are
       linked where the public raw-evidence bundle contains them. No task in
       any campaign has an objective gate.

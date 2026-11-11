@@ -35,9 +35,11 @@ hive uninstall --force-purge-state
 
 ## What it does
 
-1. Stops a running foreground daemon and bot.
-2. Deregisters the daemon and bot service units (launchd on macOS, systemd
-   user units on Linux), warning and continuing if one fails.
+1. Stops a running daemon, bot, and babysitter.
+2. Deregisters the daemon, bot, babysitter, and web service units (launchd on
+   macOS, systemd user units on Linux). A unit that cannot be removed is reported
+   as a warning and uninstall continues. If a service is busy or its state cannot
+   be verified, uninstall stops before removing any config, cache, or data.
 3. Removes Hive's config, cache, and versioned data directories.
 4. Removes the `hive` and `hv` symlinks from your bin directory.
 

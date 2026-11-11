@@ -186,7 +186,6 @@ section:nth-of-type(even) { background: var(--bg-alt); }
   max-width: 62ch;
   margin: 0 0 1.5rem;
 }
-.accent { color: var(--accent); }
 
 // --- Hero -----------------------------------------------------------------
 .hero {
@@ -237,16 +236,6 @@ section:nth-of-type(even) { background: var(--bg-alt); }
 }
 
 // --- Pipeline -------------------------------------------------------------
-.pipeline__diagram {
-  margin: 0 0 2.5rem;
-  padding: 1.25rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow-x: auto;
-}
-.pipeline__diagram img { display: block; min-width: 760px; width: 100%; height: auto; }
-
 .pipeline__stages {
   list-style: none;
   margin: 0;
@@ -262,102 +251,8 @@ section:nth-of-type(even) { background: var(--bg-alt); }
   padding: 1.25rem;
   position: relative;
 }
-.pipeline__stages .stage-no {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.6rem; height: 1.6rem;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-weight: 600;
-  font-size: 0.85rem;
-  margin-right: 0.5rem;
-}
 .pipeline__stages strong { font-size: 1.05rem; }
-.pipeline__stages .stage-verb {
-  display: inline-block;
-  margin-left: 0.5rem;
-  color: var(--accent);
-  font-size: 0.8rem;
-  text-transform: none;
-  letter-spacing: 0;
-}
 .pipeline__stages p { margin: 0.6rem 0 0; color: var(--muted); font-size: 0.95rem; }
-
-// --- Capability cards -----------------------------------------------------
-.cards__grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.25rem;
-}
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.5rem;
-  transition: border-color 0.15s ease, transform 0.05s ease;
-}
-.card:hover { border-color: var(--accent); transform: translateY(-2px); }
-.card h3 { margin: 0 0 0.6rem; font-size: 1.15rem; }
-.card p { margin: 0; color: var(--muted); }
-
-// --- Proof ----------------------------------------------------------------
-.proof__inner {
-  display: grid;
-  grid-template-columns: 1.6fr 1fr;
-  gap: 2rem;
-  align-items: start;
-}
-.proof__community {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.5rem;
-}
-.proof__community h3 { margin: 0 0 0.5rem; }
-.proof__community p { color: var(--muted); margin: 0 0 1rem; }
-.proof__community .btn { display: block; text-align: center; margin-bottom: 0.6rem; }
-
-// --- Fit ------------------------------------------------------------------
-.fit__cols {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.25rem;
-}
-.fit__col {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.5rem;
-}
-.fit__col h3 { margin: 0 0 0.75rem; }
-.fit__col ul { margin: 0; padding-left: 1.1rem; color: var(--muted); }
-.fit__col li { margin-bottom: 0.6rem; }
-.fit__col--yes { border-top: 3px solid var(--accent); }
-.fit__col--no { border-top: 3px solid var(--border); }
-.fit__note {
-  margin-top: 1.5rem;
-  color: var(--muted);
-  font-size: 0.95rem;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1rem 1.25rem;
-}
-
-// --- Install --------------------------------------------------------------
-.install__channels {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-.install .section-lead { max-width: 80ch; }
-.install__channel h3 { margin: 0 0 0.5rem; font-size: 1rem; }
-.install__channel--wide { grid-column: 1 / -1; }
-.install__then { margin-top: 2rem; }
-.install__more { margin-top: 1.25rem; color: var(--muted); }
 
 // --- CTA ------------------------------------------------------------------
 .cta { text-align: center; }
@@ -393,38 +288,15 @@ section:nth-of-type(even) { background: var(--bg-alt); }
 
 // --- Responsive -----------------------------------------------------------
 @media (max-width: 860px) {
-  .pipeline__stages,
-  .cards__grid { grid-template-columns: repeat(2, 1fr); }
-  .proof__inner,
-  .fit__cols,
-  .install__channels,
+  .pipeline__stages { grid-template-columns: repeat(2, 1fr); }
   .site-footer__inner { grid-template-columns: 1fr; }
   .site-footer__links { justify-content: flex-start; gap: 2rem; }
 }
 @media (max-width: 600px) {
   .site-nav { gap: 0.9rem; }
   .site-nav a:not(.btn) { display: none; }
-  .pipeline__stages,
-  .cards__grid { grid-template-columns: 1fr; }
+  .pipeline__stages { grid-template-columns: 1fr; }
   section { padding-block: 3.5rem; }
-  // The wide pipeline SVG can't shrink legibly on phones; the numbered
-  // stage cards below carry the same sequence, so drop the diagram here.
-  .pipeline__diagram { display: none; }
-}
-
-/* Alpha badge for the Box nav/eyebrow. */
-.badge-alpha {
-  display: inline-block;
-  font-size: 0.62em;
-  font-weight: 600;
-  letter-spacing: 0;
-  text-transform: none;
-  padding: 0.15em 0.5em;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent, #d97757) 18%, transparent);
-  color: var(--accent, #d97757);
-  vertical-align: middle;
-  margin-left: 0.3em;
 }
 
 /* --- hive-bench /bench leaderboard --- */
@@ -691,8 +563,6 @@ section:nth-of-type(even) { background: var(--bg-alt); }
 @media (max-width: 600px) {
   .site-menu { display: block; }
   .site-nav > a:first-child { display: inline-flex; }
-  .install__channels { grid-template-columns: minmax(0, 1fr); }
-  .install__channel { min-width: 0; }
 }
 
 // Secondary pages share the approved Hive identity without inheriting hero layout.

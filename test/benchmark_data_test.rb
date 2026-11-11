@@ -641,7 +641,7 @@ class BenchmarkDataTest < Minitest::Test
       assert_match(/Both\s+judgments are family-disjoint/m, about)
       assert_match(/differ by\s+<strong>4\.483<\/strong> points for all-Pro and\s+<strong>2\.994<\/strong>/m, about)
       assert_match(/spread still fell from\s+<strong>2\.082<\/strong> to\s+<strong>1\.251<\/strong>/m, about)
-      assert_match(/all-Pro averages \$0\.55\s+across five priced cells.*?Pro\/Flash\/Pro averages\s+\$0\.6 across all\s+six/m, about)
+      assert_match(/all-Pro averages \$0\.55\s+across five priced cells.*?Pro\/Flash\/Pro averages\s+\$0\.60 across all\s+six/m, about)
       assert_match(/50\.754M and\s+34\.774M per recorded\s+task/m, about)
       assert_match(/Pi max campaign averages\s+\$6\.94 per task across\s+all six priced cells and 33\.343M\s+normalized tokens per task/m, about)
       assert_match(/wall-time mean is\s+95\.5 minutes across\s+5 recorded cells/m, about)
@@ -760,7 +760,7 @@ class BenchmarkDataTest < Minitest::Test
       refute_nil mixed_deepseek_summary
       assert_includes mixed_deepseek_summary, "5.783"
       assert_includes mixed_deepseek_summary, "Fable 6.75 · Sol 4.817"
-      assert_includes mixed_deepseek_summary, "$0.6"
+      assert_includes mixed_deepseek_summary, "$0.60"
       assert_includes mixed_deepseek_summary, "6/6 priced"
       assert_includes mixed_deepseek_summary, "34.774M"
       assert_includes mixed_deepseek_summary, "6/6 measured"
@@ -783,7 +783,7 @@ class BenchmarkDataTest < Minitest::Test
       assert_includes ox_pi_max_summary, "33.343M"
       assert_includes ox_pi_max_summary, "5/6 timed"
       assert_includes ox_pi_max_summary, "6/6 measured"
-      assert_includes ox_pi_max_summary, "$6.9381"
+      assert_includes ox_pi_max_summary, "$6.94"
       assert_includes ox_pi_max_summary, "6/6 priced"
       refute_includes ox_pi_max_summary, "bench-family-badge"
       refute_includes summary, "GLM 5.3 Flash (0x Alpha) via OpenCode high"

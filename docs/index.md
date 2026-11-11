@@ -36,4 +36,5 @@ The repository also contains the full CLI reference and engineering wiki.
 
 See [Installing private workflows](/docs/private-workflows/) for repository
 access, Git authentication, exact-revision imports and runtime setup. This
-feature is unreleased; the guide explains how to check CLI availability.
+feature is available in Hive v0.8.0 and later; older builds cannot run it.
+The guide explains how to check CLI availability.

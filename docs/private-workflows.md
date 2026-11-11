@@ -9,11 +9,10 @@ description: Install a project workflow from a private Git repository, authentic
 # Installing workflows from private repositories
 {: .no_toc }
 
-**Availability: unreleased.** Direct Git installation requires a Hive build
-containing the private-source importer. Check `hive workflow --help` for the
-`--from` and `--ref` options. If they are missing, your installed build cannot
-run the commands below. A private repository invitation alone does not enable
-this feature.
+**Availability: Hive v0.8.0 and later.** Direct Git installation is available
+only in those builds; older builds cannot run the commands below. Check
+`hive workflow --help` for the `--from` and `--ref` options. A private
+repository invitation alone does not enable this feature.
 
 1. TOC
 {:toc}

@@ -16,7 +16,16 @@ Released 27 October 2026. Read the [full release and upgrade notes](https://gith
 - Agents receive only MCP servers granted in Hive config by default. Use `hive mcp import` and grant the servers your stages need.
 - Review checks its final fixes and current CI before completing, or stops for a human when the result remains unverified.
 - Claude budgets are opt-in. Existing project caps remain effective until changed.
-- Hivebox is discontinued. Use native Hive, including its local web UI; existing container images receive no new builds.
+- Pi 1.0.4 or newer is required.
+- Let running Claude stages finish before you upgrade. Afterwards, run `tmux ls` and stop any leftover Hive Claude session with `tmux kill-session -t <name>`.
+- Hivebox is discontinued. Use native Hive, including its local web UI (on Windows, inside WSL with systemd enabled); existing container images receive no new builds.
+
+## Hive 0.7.4
+
+- Read a daily digest of recent merged changes across your projects in Hive web or with `hive digest`, written from PR descriptions and relevant diffs by your configured agent, with links to source PRs.
+- Automatic digest generation is on by default; an explicit disabled setting is respected. Telegram delivery stays opt-in.
+- Project summaries show merged PR counts, the commits in those PRs, and lines changed, with each repository linked from its heading.
+- Fixed completed workflow tasks disappearing from the board. The Done view groups them by workflow.
 
 ## Hive 0.7.3
 

@@ -51,12 +51,14 @@ quick-actions menu):
 | Command | What it does |
 |---------|--------------|
 | `/status [project]` | Lists actionable tasks as `Title — Stage`, with inline action buttons. Pass `--json` for the raw status envelope. |
+| `/waiting` | Lists tasks waiting on your input (brainstorm questions, plan approval, and other human-input gates), with inline action buttons. Replies "Nothing is waiting on you." when there are none. |
 | `/queue` | Same actionable view, all projects. |
 | `/idea [text]` | Starts a new inbox idea. Works with photos, documents, and captions too. |
 | `/answer <slug>` | Answers brainstorm questions for a task, by typed reply or voice note. |
 | `/approve <slug>` | Approves and advances a task. |
 | `/autofix <slug>` | Runs the recovery sequence for a recoverable failure. |
 | `/details <slug>` | Shows diagnostic details for a task. |
+| `/close <slug> --reason <reason> --evidence <ref>` | Starts closing out delivered work. `--reason` is `already_delivered`, `superseded`, or `cancelled`; `--evidence` is required unless the reason is `cancelled`. Nothing is archived until you tap Verify evidence and then Confirm and archive. |
 | `/done` | Ends the active brainstorm conversation. |
 | `/help` | Lists the supported commands. |
 

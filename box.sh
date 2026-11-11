@@ -2,7 +2,7 @@
 # hivebox one-command install: pull the published image, start the box,
 # print the URL. The whole box state lives in one directory — back it up
 # and you have backed up everything. Designed to be served as
-# https://hivecli.sh/box and piped to sh; every variable is overridable.
+# https://hivecli.sh/box.sh and piped to sh; every variable is overridable.
 set -eu
 
 IMAGE="${HIVEBOX_IMAGE:-ghcr.io/ivankuznetsov/hivebox:latest}"

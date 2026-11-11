@@ -146,9 +146,9 @@
     </p>
     <p>
       DeepSeek is the cheapest fully attributable provider path measured so
-      far: all-Pro averages ${{ deepseek_all_candidate.cost_per_task_usd | round: 2 }}
+      far: all-Pro averages {% assign rounded_cost = deepseek_all_candidate.cost_per_task_usd | round: 2 %}{% assign one_decimal_cost = deepseek_all_candidate.cost_per_task_usd | round: 1 %}${{ rounded_cost }}{% if rounded_cost == one_decimal_cost %}0{% endif %}
       across five priced cells, and Pro/Flash/Pro averages
-      ${{ deepseek_mixed_candidate.cost_per_task_usd | round: 2 }} across all
+      {% assign rounded_cost = deepseek_mixed_candidate.cost_per_task_usd | round: 2 %}{% assign one_decimal_cost = deepseek_mixed_candidate.cost_per_task_usd | round: 1 %}${{ rounded_cost }}{% if rounded_cost == one_decimal_cost %}0{% endif %} across all
       six. Their normalized token volume is
       {{ deepseek_all_candidate.normalized_mtokens_per_task }}M and
       {{ deepseek_mixed_candidate.normalized_mtokens_per_task }}M per recorded
@@ -158,7 +158,7 @@
     </p>
     <p>
       The Pi max campaign averages
-      ${{ ox_pi_max_candidate.cost_per_task_usd | round: 2 }} per task across
+      {% assign rounded_cost = ox_pi_max_candidate.cost_per_task_usd | round: 2 %}{% assign one_decimal_cost = ox_pi_max_candidate.cost_per_task_usd | round: 1 %}${{ rounded_cost }}{% if rounded_cost == one_decimal_cost %}0{% endif %} per task across
       all six priced cells and {{ ox_pi_max_candidate.normalized_mtokens_per_task }}M
       normalized tokens per task. Its wall-time mean is
       {{ ox_pi_max_candidate.mean_minutes }} minutes across

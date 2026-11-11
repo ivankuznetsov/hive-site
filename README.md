@@ -84,12 +84,20 @@ _includes/landing/    Landing section partials
 _layouts/             home (landing) + doc (docs, wraps content for Pagefind)
 docs/                 Curated docs — getting-started, concepts, configuration,
                       operating, and commands/* (user-facing subset of the wiki)
+bench/                hive-bench leaderboard, methodology, run guide, and the
+                      published candidate patches (rendered from _data/bench.json)
+honeycombs/           Honeycomb catalog page (rendered from _data/honeycombs.json)
+box/, box.sh, box.ps1 Archived Hivebox page; installer scripts stay served for
+                      existing installs but are no longer advertised
+_data/                Checked-in data snapshots: bench, honeycombs, workflow examples
 _plugins/             AI-native generator: per-page .md, llms.txt, llms-full.txt
-_sass/custom/         Brand overrides for the Just the Docs theme
-assets/               CSS (landing.scss), images, demo media
+_sass/                Brand color schemes + overrides for the Just the Docs theme
+assets/               CSS (landing.scss, framework.css), JS, fonts, images, media
 schemas/              Public Honeycomb JSON schemas served at /schemas/*
 _headers, _redirects  Cloudflare Pages config (markdown content-type + CORS)
-script/               Bundler wrapper + explicit Honeycomb catalog sync
+lib/, script/         Honeycomb catalog sync, Bundler wrapper, browser checkers
+test/                 Workflow-state (node) and data/rendering (minitest) suites
+implementation/       Provenance of reused design assets
 ```
 
 ## Content

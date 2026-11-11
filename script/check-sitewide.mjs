@@ -33,7 +33,7 @@ const views = [
   ["catalog-high-risk", "/honeycombs/", ".honeycomb-card:nth-child(3)"],
   ["leaderboard", "/bench/", ".bench-board"], ["methodology", "/bench/methodology/"],
   ["methodology-table", "/bench/methodology/", ".bench-config-table"],
-  ["bench-run", "/bench/run/"], ["box", "/box/"], ["box-install", "/box/", "#install"],
+  ["bench-run", "/bench/run/"], ["box", "/box/"],
   ["not-found", "/404.html"], ["footer", "/", ".site-footer"],
 ];
 const result = { routes, pages: [], screenshots: [], checks: [], failures: [], errors: [], blocked: [] };
