@@ -32,6 +32,8 @@ if ($existing) {
 }
 
 New-Item -ItemType Directory -Force -Path $Data | Out-Null
+# Docker interprets a relative -v source as a named volume.
+$Data = (Resolve-Path -LiteralPath $Data).Path
 docker pull $Image
 if ($LASTEXITCODE -ne 0) { Fail "docker pull failed." }
 docker run -d --name $Name --restart unless-stopped -p "${Bind}:${Port}:4567" -v "${Data}:/data" $Image | Out-Null
@@ -40,7 +42,9 @@ if ($LASTEXITCODE -ne 0) { Fail "docker run failed." }
 Write-Host ""
 Write-Host "hivebox is running."
 Write-Host ""
-Write-Host "  Open:  http://localhost:$Port"
+# A wildcard is valid for listening but is not a browser destination.
+$OpenHost = if ($Bind -eq "0.0.0.0") { "localhost" } else { $Bind }
+Write-Host "  Open:  http://${OpenHost}:$Port"
 Write-Host "  Data:  $Data"
 Write-Host ""
 Write-Host "The first GitHub sign-in claims the box as its owner."

@@ -25,7 +25,7 @@ command -v docker >/dev/null 2>&1 ||
 docker info >/dev/null 2>&1 ||
   die "Docker is installed but not reachable (daemon stopped, or this user needs the docker group). Start it and re-run."
 
-if docker ps -a --format '{{.Names}}' | grep -qx "$NAME"; then
+if docker ps -a --format '{{.Names}}' | grep -Fqx "$NAME"; then
   printf 'hivebox install: a container named %s already exists.\n\n' "$NAME" >&2
   printf '  Resume it:        docker start %s\n' "$NAME" >&2
   printf '  Update to latest: docker pull %s && docker rm -f %s && re-run this script\n' "$IMAGE" "$NAME" >&2
@@ -34,11 +34,15 @@ if docker ps -a --format '{{.Names}}' | grep -qx "$NAME"; then
 fi
 
 mkdir -p "$DATA"
+# Docker interprets a relative -v source as a named volume.
+DATA="$(CDPATH= cd "$DATA" && pwd -P)"
 docker pull "$IMAGE"
 docker run -d --name "$NAME" --restart unless-stopped \
   -p "${BIND}:${PORT}:4567" -v "${DATA}:/data" "$IMAGE" >/dev/null
 
 printf '\nhivebox is running.\n\n'
-printf '  Open:  http://localhost:%s\n' "$PORT"
+# A wildcard is valid for listening but is not a browser destination.
+case "$BIND" in 0.0.0.0) OPEN_HOST=localhost ;; *) OPEN_HOST="$BIND" ;; esac
+printf '  Open:  http://%s:%s\n' "$OPEN_HOST" "$PORT"
 printf '  Data:  %s\n\n' "$DATA"
 printf 'The first GitHub sign-in claims the box as its owner.\n'

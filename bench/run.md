@@ -25,7 +25,7 @@ benchmark project with the named workflow. You do not need to copy a workflow
 descriptor or clone hive-bench to select it.
 
 The `bench` workflow ships with Hive v{{ site.hive_version }}. See the
-[release workflow reference](https://github.com/ivankuznetsov/hive/blob/v0.8.0/docs/workflows.md#run-the-built-in-benchmark-workflow)
+[release workflow reference](https://github.com/ivankuznetsov/hive/blob/v{{ site.hive_version }}/docs/workflows.md#run-the-built-in-benchmark-workflow)
 for its packaged runtime and campaign stages.
 
 ```sh

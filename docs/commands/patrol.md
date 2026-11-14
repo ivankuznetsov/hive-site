@@ -36,8 +36,6 @@ opts in through its `.hive-state/config.yml`:
 ```yaml
 patrol:
   mode: medium
-  min_confidence_to_fix: medium
-  max_prs_per_cycle: 3
   commands:
     test: bundle exec rake test
 ```
@@ -54,8 +52,9 @@ patrol:
 ## Configuration
 
 Patrol intensity is controlled by `patrol.mode` (`ultrapatrol` / `high` /
-`medium` / `low` / `off`) plus the keys above. Opened PRs flow into the normal
-`6-review` stage by default so your reviewers see them. See
+`medium` / `low` / `off`). Each fix runs as its own Patrol Fix task
+(`fix` → `validate` → `review` → `publish`), so it is validated and reviewed
+before a PR is published. See
 [Configuration]({{ '/docs/configuration/' | relative_url }}#patrol) for the full
 set of patrol settings.
 
