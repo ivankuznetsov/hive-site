@@ -45,7 +45,7 @@ module HiveLlm
     body = raw.sub(/\A---\s*\n.*?\n---\s*\n/m, "")
     body = body.gsub(/\{\{\s*'([^']+)'\s*\|\s*relative_url\s*\}\}/) { "#{BASE}#{Regexp.last_match(1)}" }
     body = body.gsub(/\{\{\s*site\.hive_version\s*\}\}/, site.config["hive_version"].to_s)
-    body = body.gsub(/^\{:\s*\.no_toc\s*\}\s*$/, "")              # kramdown attr list
+    body = body.gsub(/^\{:\s*(?:\.no_toc|#[\w-]+)\s*\}\s*$/, "") # kramdown heading attributes
     body = body.gsub(/^1\.\s*TOC\s*$/, "").gsub(/^\{:toc\}\s*$/, "") # kramdown TOC scaffold
     "#{body.strip}\n"
   end
@@ -76,10 +76,10 @@ module HiveLlm
   def llms_txt(site, pages)
     out = +"# Hive\n\n"
     out << "> #{site.config['description'].to_s.strip}\n\n"
-    out << "Hive is an open-source (MIT) command-line tool that turns a rough idea " \
-           "into a merge-ready pull request through a multi-agent pipeline " \
-           "(brainstorm → plan → execute → review → finalize) you watch and can " \
-           "step into. Each page below is also available as raw markdown.\n\n"
+    out << "Hive is an open-source (MIT), local-first workflow engine for AI agents. " \
+           "It runs coding, content, bench, and custom workflows with saved artifacts, " \
+           "human decisions, and recovery from recorded state. Native web, TUI, and CLI " \
+           "surfaces share the same engine. Each page below is also available as raw markdown.\n\n"
     out << "## Docs\n\n"
     section_pages(pages).each { |p| out << "#{link_line(p)}\n" }
     out << "\n## Command reference\n\n"

@@ -1,0 +1,9 @@
+{
+  "id": "research-report",
+  "stages": [
+    { "id": "research", "kind": "agent", "artifact": "research.md" },
+    { "id": "synthesis", "kind": "agent", "artifact": "report.md" },
+    { "id": "approval", "kind": "human", "artifact": "approval.md", "rejectTo": "synthesis" }
+  ],
+  "route": [0, 1, 2]
+}

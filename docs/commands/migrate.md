@@ -4,15 +4,20 @@ layout: doc
 parent: Command reference
 nav_order: 17
 permalink: /docs/commands/migrate/
-description: Upgrade a project's tasks and config to the current Hive stage layout. Safe to re-run.
+description: Historical hive migrate reference and current guidance for converting older Hive state.
 ---
 
 # hive migrate
 
-Upgrades a project's tasks and config to the current Hive layout. Run it once on
-an older project to rename outdated stage folders, rewrite renamed config keys,
-and backfill task ids and display names. It's the explicit, idempotent upgrade
-path for projects created before recent layout changes.
+**Removed from current Hive.** Do not use the commands below with v0.8.0.
+For older installations, back up retained state and follow the
+[current-format conversion guide](https://github.com/ivankuznetsov/hive/blob/v0.8.0/docs/guides/current-format-migration.md).
+Startup and update do not convert historical state automatically.
+
+The following reference is preserved for older installations.
+
+In earlier releases, this command renamed outdated stage folders, rewrote
+renamed configuration keys, and backfilled task IDs and display names.
 
 ## Usage
 
@@ -49,5 +54,5 @@ hive migrate
 hive migrate ~/Dev/your-project
 ```
 
-When [`hive status`]({{ '/docs/commands/status/' | relative_url }}) warns about
-legacy stage directories, `hive migrate` is what clears them.
+Current Hive reports retained legacy state for attention. Use the conversion
+guide above, not this historical command, to plan an upgrade.

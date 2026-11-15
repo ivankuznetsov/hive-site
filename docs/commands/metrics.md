@@ -9,9 +9,8 @@ description: Report how often Hive fix-agent commits get reverted, optionally sc
 
 # hive metrics
 
-Reports how often Hive's review fix-agent commits are later reverted — a quick
-signal for whether automated fixes are sticking or getting backed out. Reach for
-it when you want to gauge the quality of the fix pass across your projects.
+Reports how often Hive's review fix-agent commits are later reverted. Use it
+to track the rollback rate across projects or within a time window.
 
 ## Usage
 

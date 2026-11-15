@@ -9,19 +9,39 @@ description: Run the daemon, Telegram bot, and babysitter as services, and drive
 # Operating
 {: .no_toc }
 
-Day-2 guide for running Hive's background services — the daemon, the
-experimental PR babysitter, and the Telegram bot — plus driving Hive from a
-coding agent.
+Manage the local web UI, daemon, experimental PR babysitter, and Telegram bot.
+You can also drive the same workflows from a coding agent or OpenClaw.
 
 1. TOC
 {:toc}
 
+## Native setup and local web UI
+
+On supported Linux and macOS installations, `hive setup` provisions Hive-owned
+dependencies and the per-user daemon, babysitter, and local web service. It
+previews changes and asks for confirmation; non-interactive setup needs
+`--yes`. Project enrollment is configured separately with `hive init`.
+
+```bash
+hive setup
+hive web status       # inspect readiness and open the reported URL
+hive tui              # optional terminal interface to the same projects
+```
+
+The default web service is loopback-only at `http://127.0.0.1:4567`. Setup does
+not publish it to the internet. `hive setup --no-service` skips changes to the
+web service; `hive web` runs a foreground web server when you want that mode.
+See the [web service reference for v0.8.0](https://github.com/ivankuznetsov/hive/blob/v0.8.0/README.md#hive-web-default-native-experience).
+
+Hivebox is discontinued as of v0.8.0. Existing images receive no new builds;
+use native installation (WSL with systemd on Windows). HiveDev is a separate
+hosted product, currently [accepting waitlist signups](https://hivedev.ai/).
+
 ## The daemon
 
-The daemon is the worker: it polls `hive status --json` and dispatches workflow
-verbs for enrolled projects, stopping at human-input or recovery gates. It's
-installed as a **per-user service** — systemd-user on Linux, launchd on macOS —
-and enabled by default at install time. Per-project config only decides whether
+The daemon advances ready stages for enrolled projects and stops at
+human-input or recovery gates. It's installed as a **per-user service** — systemd-user on Linux, launchd on macOS —
+and provisioned by `hive setup`. Per-project config only decides whether
 **that** project is picked up.
 
 ```bash
@@ -30,17 +50,18 @@ hive daemon status      # is it running?
 hive daemon start --detach   # start once in the background while troubleshooting
 hive daemon tail        # follow the daemon log
 hive daemon stop
-hive daemon disable     # stop and remove autostart
+hive daemon disable my-project   # stop dispatching for one project (or --all)
 ```
 
 Enroll or unenroll a project by editing its `.hive-state/config.yml`
 (`daemon.enabled`) — see [Configuration]({{ '/docs/configuration/' | relative_url }}#daemon-enrollment).
 Full reference: [`daemon`]({{ '/docs/commands/daemon/' | relative_url }}).
 
-### Before you go live: the dry-run shakedown
+### Before unattended operation
+{: #before-you-go-live-the-dry-run-shakedown }
 
-Hive is token-heavy and acts on real repositories. Do a `--dry-run` shakedown
-on a project before letting the daemon drive it unattended, watch the queue in
+Hive is token-heavy and acts on real repositories. Use `--dry-run` on a project
+before letting the daemon drive it unattended, watch the queue in
 `hive tui`, and keep budgets/timeouts (and patrol/babysitter enrollment)
 conservative until you trust the loop. If costs run away, `hive daemon stop`
 halts dispatch immediately.
@@ -118,17 +139,22 @@ and `hive status --json` for programmatic use.
 Hive publishes one OpenClaw skill through ClawHub:
 
 ```bash
-openclaw skills install hive-cli
+openclaw skills install @ivankuznetsov/hive-cli
 ```
 
-Public listing: <https://clawhub.ai/ivankuznetsov/hive-cli>. That installs the
-`/hive` slash command. Run the guided setup:
+Public listing: <https://clawhub.ai/ivankuznetsov/skills/hive-cli>.
+That installs the `/hive` slash command. Run the guided setup:
 
 ```text
 /hive setup
 ```
 
-It installs the Hive CLI through the documented channel, verifies `hive`/`hv`,
-runs `hive daemon install`, and optionally initializes the current project.
-After setup, pass Hive commands through `/hive …`, e.g. `/hive status --json`,
-`/hive new . "build this feature"`, `/hive review <slug>`.
+Guided setup verifies `hive` or `hv`. If neither is installed, it offers an
+install through the documented channel and asks before changing user-global
+software. After approval it runs `hive setup --no-init --yes --json`, which
+provisions the daemon and the local web service without enrolling a project.
+Changes to the managed Claude, Codex, and Pi skills need a separate approval
+(`hive setup-agents --yes --json`). Enroll a project yourself with `hive init .`
+in your own terminal. After setup, pass Hive commands through `/hive …`, e.g.
+`/hive status --operational --json`, `/hive new . "build this feature"`,
+`/hive review <slug>`.

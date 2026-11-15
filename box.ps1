@@ -1,8 +1,8 @@
 # hivebox one-command install for Windows PowerShell:
 #   irm https://hivecli.sh/box.ps1 | iex
-# Same contract as install-box.sh: pull the published image, start the box
+# Same contract as box.sh: pull the published image, start the box
 # with a persistent data directory, print the URL. Overridable via
-# $env:HIVEBOX_IMAGE / _NAME / _PORT / _DATA.
+# $env:HIVEBOX_IMAGE / _NAME / _PORT / _DATA / _BIND.
 $ErrorActionPreference = "Stop"
 
 $Image = if ($env:HIVEBOX_IMAGE) { $env:HIVEBOX_IMAGE } else { "ghcr.io/ivankuznetsov/hivebox:latest" }
@@ -32,6 +32,8 @@ if ($existing) {
 }
 
 New-Item -ItemType Directory -Force -Path $Data | Out-Null
+# Docker interprets a relative -v source as a named volume.
+$Data = (Resolve-Path -LiteralPath $Data).Path
 docker pull $Image
 if ($LASTEXITCODE -ne 0) { Fail "docker pull failed." }
 docker run -d --name $Name --restart unless-stopped -p "${Bind}:${Port}:4567" -v "${Data}:/data" $Image | Out-Null
@@ -40,7 +42,9 @@ if ($LASTEXITCODE -ne 0) { Fail "docker run failed." }
 Write-Host ""
 Write-Host "hivebox is running."
 Write-Host ""
-Write-Host "  Open:  http://localhost:$Port"
+# A wildcard is valid for listening but is not a browser destination.
+$OpenHost = if ($Bind -eq "0.0.0.0") { "localhost" } else { $Bind }
+Write-Host "  Open:  http://${OpenHost}:$Port"
 Write-Host "  Data:  $Data"
 Write-Host ""
 Write-Host "The first GitHub sign-in claims the box as its owner."

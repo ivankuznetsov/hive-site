@@ -13,7 +13,7 @@ The low-level dispatcher. It resolves a task, figures out which stage it's in,
 auto-rebases the worktree onto the latest default branch when needed, runs that
 stage's agent, commits the result, and reports the next step. Most of the time
 you'll reach for the friendlier stage verbs
-(`hive brainstorm | plan | develop | open-pr | review | finalize | archive`)
+(`hive brainstorm | plan | develop | open-pr | review | artifacts | finalize | archive`)
 or [`hive tui`]({{ '/docs/commands/tui/' | relative_url }}) — `hive run` is what
 they call underneath, and what you use for recovery or scripting.
 
@@ -55,7 +55,7 @@ project's config to turn it off permanently.
 # Run whatever stage this task is currently in
 hive run add-inbox-filter-260603-abcd
 
-# Recover a stuck task without the rebase ceremony, machine-readable
+# Run without rebasing and return structured output
 hive run add-inbox-filter-260603-abcd --no-rebase --json
 
 # Disambiguate a slug shared across two projects

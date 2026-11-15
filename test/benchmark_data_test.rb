@@ -772,7 +772,7 @@ class BenchmarkDataTest < Minitest::Test
       refute_nil mixed_deepseek_summary
       assert_includes mixed_deepseek_summary, "5.783"
       assert_includes mixed_deepseek_summary, "Fable 6.75 · Sol 4.817"
-      assert_includes mixed_deepseek_summary, "$0.6"
+      assert_includes mixed_deepseek_summary, "$0.60"
       assert_includes mixed_deepseek_summary, "6/6 priced"
       assert_includes mixed_deepseek_summary, "34.774M"
       assert_includes mixed_deepseek_summary, "6/6 measured"
@@ -795,7 +795,7 @@ class BenchmarkDataTest < Minitest::Test
       assert_includes ox_pi_max_summary, "33.343M"
       assert_includes ox_pi_max_summary, "5/6 timed"
       assert_includes ox_pi_max_summary, "6/6 measured"
-      assert_includes ox_pi_max_summary, "$6.9381"
+      assert_includes ox_pi_max_summary, "$6.94"
       assert_includes ox_pi_max_summary, "6/6 priced"
       refute_includes ox_pi_max_summary, "bench-family-badge"
       refute_includes summary, "GLM 5.3 Flash (0x Alpha) via OpenCode high"

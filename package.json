@@ -3,11 +3,13 @@
   "private": true,
   "description": "Reproducible build and deployment tooling for the Hive website.",
   "scripts": {
-    "test": "ruby script/bundle exec ruby -Itest test/run.rb",
+    "test": "node --test test/workflow-state.test.mjs && ruby script/bundle exec ruby -Itest test/run.rb",
     "build": "npm test && ruby script/bundle exec jekyll build && pagefind --site _site",
     "deploy": "wrangler deploy",
     "preview": "wrangler versions upload",
-    "sync:honeycombs": "ruby script/bundle exec ruby script/sync-honeycombs"
+    "sync:honeycombs": "ruby script/bundle exec ruby script/sync-honeycombs",
+    "test:browser": "node script/check-framework.mjs",
+    "test:sitewide": "node script/check-sitewide.mjs"
   },
   "devDependencies": {
     "pagefind": "^1.3.0",

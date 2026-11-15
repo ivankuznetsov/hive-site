@@ -24,10 +24,9 @@ implementation, review, and judging runs.
 benchmark project with the named workflow. You do not need to copy a workflow
 descriptor or clone hive-bench to select it.
 
-> **Release status:** the built-in `bench` workflow is currently available in
-> [Hive PR #734](https://github.com/ivankuznetsov/hive/pull/734), not in the
-> latest `v0.4.1` release. Use a source checkout of that PR until a release
-> containing it is published.
+The `bench` workflow ships with Hive v{{ site.hive_version }}. See the
+[release workflow reference](https://github.com/ivankuznetsov/hive/blob/v{{ site.hive_version }}/docs/workflows.md#run-the-built-in-benchmark-workflow)
+for its packaged runtime and campaign stages.
 
 ```sh
 hive init /path/to/benchmark-project --workflow bench
@@ -114,8 +113,8 @@ git clone git@github.com:<your-user>/hive-bench.git /path/to/hive-bench
 export HIVE_BENCH_PATH=/path/to/hive-bench
 ```
 
-The command creates its submission branch from the checkout's current `HEAD`,
-so start from an up-to-date default branch and keep the checkout free of
+The command creates its submission branch from the checkout's
+`origin/<default-branch>`, so fetch first and keep the checkout free of
 unrelated changes.
 
 ### Submit step by step

@@ -1,21 +1,17 @@
-<section class="hero">
-  <div class="wrap hero__inner">
-    <p class="eyebrow">Open-source agent workflow engine &amp; meta-harness · orchestrates Claude · Codex · Pi</p>
-    <h1 class="hero__title">Turn a rough idea into a<br><span class="accent">merge-ready pull request</span></h1>
-    <p class="hero__sub">
-      Hive orchestrates your coding agents — Claude, Codex, Pi — to run work as a
-      folder-as-agent pipeline: brainstorm, plan, execute, review, finalize, and ship the
-      PR. No babysitting terminals; tasks advance in parallel in the background and your
-      only job is to answer questions in a doc. Idea → PR is its flagship
-      <code>coding</code> workflow — and you can
-      <a href="{{ '/docs/custom-workflows/' | relative_url }}">author your own</a> for
-      writing, research, triage, anything.
-    </p>
-    <div class="hero__cta">
-      <a class="btn btn--primary" href="#install">{% include icons/download.svg %}<span>Install Hive</span></a>
-      <a class="btn btn--ghost" href="#demo">{% include icons/play.svg %}<span>See the 2-min demo</span></a>
-      <a class="btn btn--ghost" href="https://github.com/ivankuznetsov/hive">{% include icons/github.svg %}<span>View on GitHub</span></a>
+{% include landing/machinery.html %}
+<section class="fw-hero" aria-labelledby="hero-heading">
+  <div class="wrap fw-hero-inner">
+    <div class="fw-hero-copy">
+      <p class="fw-kicker"><span class="fw-hex" aria-hidden="true"></span>Open-source workflow engine</p>
+      <h1 id="hero-heading">Durable workflows<br>for AI agents</h1>
+      <p class="fw-lead">Run coding, content, and custom workflows locally. Hive saves outputs, waits for approvals, and can retry interrupted stages.</p>
+      <div class="fw-actions"><a class="btn btn--primary" href="#install">Get started <span aria-hidden="true">→</span></a><a class="btn btn--ghost" href="{{ '/docs/' | relative_url }}">Read the docs</a></div>
     </div>
-    <p class="hero__note">Free &amp; open source (MIT). Power-user TUI — <a href="#fit">see if it's for you</a>.</p>
+    <svg class="fw-hero-art" viewBox="-150 -180 300 310" fill="none" aria-hidden="true">
+      <path class="hero-grid" d="m-150-95 300 174m-300-116 300 174m-300-58 200 116m-50-290-300 174m300-116-300 174m300-58-200 116"/>
+      <g class="factory-machine is-active"><use href="#machine-idea"/></g>
+      <g class="factory-packet" transform="translate(0 -5)"><g transform="matrix(1 .5774 -1 .5774 0 0)"><path d="M-16-13h32v26h-32z"/><path class="packet-ink" d="M-10-7H10M-10 0H10M-10 7H5"/></g></g>
+      <g class="factory-bee" transform="translate(-48 -39) scale(1.5)"><use href="#factory-bee"/></g>
+    </svg>
   </div>
 </section>

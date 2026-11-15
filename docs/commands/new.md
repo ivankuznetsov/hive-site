@@ -11,7 +11,7 @@ description: Capture a new idea into a Hive project's inbox so you can move it t
 
 Captures an idea into a project's inbox. It turns your text into a task folder
 under the `1-inbox` stage, assigns it a stable id, and commits it to Hive's
-state branch. This is how every task starts.
+state branch. Use it from a terminal or an automation script.
 
 ## Usage
 
@@ -39,8 +39,8 @@ hive: captured <task>/idea.md
 next: mv <task> <hive-state>/stages/2-brainstorm/ && hive run <id-or-task>
 ```
 
-A task sitting in `1-inbox` is intentionally inert; nothing runs until you move
-it forward.
+No agent runs inside `1-inbox`. An enrolled daemon can advance a ready task
+automatically; the printed manual hint is useful when daemon dispatch is off.
 
 ## Examples
 
