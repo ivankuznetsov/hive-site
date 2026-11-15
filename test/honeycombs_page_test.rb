@@ -4,6 +4,8 @@ require "open3"
 require_relative "test_helper"
 
 class HoneycombsPageTest < Minitest::Test
+  include StylesheetAssertions
+
   def test_populated_page_renders_discoverable_entries_permissions_trust_and_no_js_baseline
     community = CatalogFixtures.entry(
       name: "alpha-tool",
@@ -67,12 +69,14 @@ class HoneycombsPageTest < Minitest::Test
     footer = File.read(File.join(ROOT, "_includes", "landing", "footer.html"))
     styles = File.read(File.join(ROOT, "assets", "css", "landing.scss"))
     script = File.read(File.join(ROOT, "assets", "js", "honeycomb-copy.js"))
+    responsive_styles = css_at_rule_contents(styles, "@media (max-width: 720px)")
 
     assert_includes page, "permalink: /honeycombs/"
     assert_includes layout, "'/honeycombs/'"
     assert_includes cards, "'/honeycombs/'"
     assert_includes footer, "'/honeycombs/'"
-    assert_match(/@media \(max-width: .*\).*honeycomb/m, styles)
+    assert_match(/\.honeycomb-catalog-heading,\s*\.honeycomb-card__header\s*\{[^}]*flex-direction:\s*column/m,
+                 responsive_styles)
     refute_match(/fetch\s*\(|XMLHttpRequest|https?:\/\//, script)
   end
 
