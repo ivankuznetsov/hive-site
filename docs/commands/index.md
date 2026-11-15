@@ -20,11 +20,11 @@ and `hive --help`.
 
 | Group | Commands |
 |-------|----------|
-| **Workflow** | [`new`]({{ '/docs/commands/new/' | relative_url }}), [`run`]({{ '/docs/commands/run/' | relative_url }}), [`approve`]({{ '/docs/commands/approve/' | relative_url }}) |
-| **Dashboard** | [`tui`]({{ '/docs/commands/tui/' | relative_url }}), [`status`]({{ '/docs/commands/status/' | relative_url }}) |
+| **Workflow** | [`new`]({{ '/docs/commands/new/' | relative_url }}), [`run`]({{ '/docs/commands/run/' | relative_url }}), [`approve`]({{ '/docs/commands/approve/' | relative_url }}), [`decide`]({{ '/docs/commands/decide/' | relative_url }}), [`workflow`]({{ '/docs/commands/workflow/' | relative_url }}) |
+| **Dashboard** | [`tui`]({{ '/docs/commands/tui/' | relative_url }}), [`status`]({{ '/docs/commands/status/' | relative_url }}), [`web`]({{ '/docs/commands/web/' | relative_url }}) |
 | **Review** | [`findings`]({{ '/docs/commands/findings/' | relative_url }}) |
 | **Autonomy** | [`patrol`]({{ '/docs/commands/patrol/' | relative_url }}), [`babysit`]({{ '/docs/commands/babysit/' | relative_url }}), [`daemon`]({{ '/docs/commands/daemon/' | relative_url }}), [`bot`]({{ '/docs/commands/bot/' | relative_url }}) |
-| **Lifecycle** | [`init`]({{ '/docs/commands/init/' | relative_url }}), [`update`]({{ '/docs/commands/update/' | relative_url }}), [`uninstall`]({{ '/docs/commands/uninstall/' | relative_url }}), [`drop`]({{ '/docs/commands/drop/' | relative_url }}) |
+| **Lifecycle** | [`setup`]({{ '/docs/commands/setup/' | relative_url }}), [`init`]({{ '/docs/commands/init/' | relative_url }}), [`update`]({{ '/docs/commands/update/' | relative_url }}), [`uninstall`]({{ '/docs/commands/uninstall/' | relative_url }}), [`drop`]({{ '/docs/commands/drop/' | relative_url }}), [`mcp`]({{ '/docs/commands/mcp/' | relative_url }}) |
 | **Diagnostics** | [`doctor`]({{ '/docs/commands/doctor/' | relative_url }}), [`metrics`]({{ '/docs/commands/metrics/' | relative_url }}), [`wiki`]({{ '/docs/commands/wiki/' | relative_url }}) |
 
 For installations with older state, read [Historical state conversion]({{ '/docs/commands/migrate/' | relative_url }}).

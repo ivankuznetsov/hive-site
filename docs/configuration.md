@@ -19,7 +19,7 @@ file that `hive init` creates.
 
 | File | Scope | Holds |
 |------|-------|-------|
-| `~/.config/hive/config.yml` | Global | Registered projects and bot settings (allowlist, voice transcription). |
+| `~/.config/hive/config.yml` | Global | Registered projects, `daemon` settings (concurrency limits, timeouts), `bot` settings (allowlist, voice transcription), the `mcp` server catalog, `web` settings, and other global blocks such as `update`, `answer_digest`, `daily_digest`, `screenote`, `providers`, and `command_receipts`. |
 | `<project>/.hive-state/config.yml` | Per-project | Default branch, worktree root, budgets, timeouts, stage agents, reviewers, daemon enrollment, patrol, and babysitter settings. |
 
 Per-project values are deep-merged onto Hive's built-in defaults, then
@@ -96,16 +96,16 @@ review:
     - { name: codex-ce-code-review,  agent: codex,  output_basename: codex-ce-code-review }
   triage: { enabled: true, agent: claude, bias: courageous }
   fix:    { agent: claude }
-  max_passes: 2
-  max_wall_clock_sec: 5400
+  max_passes: 3
+  max_wall_clock_sec: 28800
 ```
 
 ## Patrol
 
 Patrol is autonomous repository patrol: it maps feature slices, reviews them,
 validates fixes, and opens PRs for the ones that pass. **Patrol is opt-in** — a
-project with no patrol config, or a patrol section without an explicit `mode:`,
-stays disabled.
+project with no patrol config stays disabled. Turn it on with `mode:` set to
+anything but `off`, or with `enabled: true`.
 
 Choose a scan cadence with `mode`:
 
@@ -122,23 +122,31 @@ patrol:
 | `low` | On new commits (baseline SHA-check cadence) |
 | `off` | Disabled |
 
-`hive init` offers `medium` as the suggested starting mode, but that's only a
-prompt default — it's never applied unless you accept it (or set `mode:`
-yourself). Patrol scans are **per-project**: each project runs at most one scan
-at a time, and different projects patrol in parallel rather than competing for a
-single global slot. See the [`patrol`]({{ '/docs/commands/patrol/' | relative_url }})
-command page.
+`hive init` offers `medium` as the suggested starting mode. Pressing Enter at
+the interactive prompt accepts it, and a non-interactive `hive init` writes
+`mode: medium` without asking. Patrol scans are **per-project**: each project
+runs at most one scan at a time, and different projects patrol in parallel
+rather than competing for a single global slot. See the
+[`patrol`]({{ '/docs/commands/patrol/' | relative_url }}) command page.
 
 ## Daemon enrollment
 
-The daemon is global autostart infrastructure; per-project config only decides
-whether **this** project is picked up for dispatch, and bounds concurrency:
+The daemon is global autostart infrastructure. Per-project config only decides
+whether **this** project is picked up for dispatch:
 
 ```yaml
 daemon:
   enabled: true
-  max_concurrent_runs: 1          # task-dispatch slots for this project
-  max_concurrent_patrol_scans: 1  # separate per-project cap for patrol scans
+```
+
+The concurrency limits are global. Set them under `daemon:` in
+`~/.config/hive/config.yml`; the values below are the shipped defaults:
+
+```yaml
+daemon:
+  max_concurrent_runs: 3          # global cap on task-dispatch slots
+  max_concurrent_per_project: 3   # task-dispatch slots for one project
+  max_concurrent_patrol_scans: 1  # patrol scans for one project
 ```
 
 Patrol scans run on a **separate** in-flight budget from task dispatch, so a
@@ -161,6 +169,35 @@ babysitter:
 
 See [`babysit`]({{ '/docs/commands/babysit/' | relative_url }}) and
 [Operating]({{ '/docs/operating/' | relative_url }}).
+
+## MCP servers
+
+Hive launches agents with only the MCP servers it grants them. Servers live in
+the global catalog (`mcp.servers` in `~/.config/hive/config.yml`), and a project
+or stage grants them by name:
+
+```yaml
+# ~/.config/hive/config.yml
+mcp:
+  inherit_user: false
+  servers:
+    docs: { url: https://mcp.example.com/mcp }
+
+# <project>/.hive-state/config.yml
+mcp:
+  use: [docs]              # project-wide default
+execute:
+  mcp: { use: [docs] }     # replaces the project grant for this stage
+```
+
+- Project files cannot define servers. Copy yours into the catalog with
+  `hive mcp import`.
+- Background roles (`babysitter`, `patrol`, `refactor_patrol`, `daily_digest`)
+  get only the grant in their own block.
+- `inherit_user` defaults to `false`. A project's own value overrides the
+  global one, and `true` turns isolation off so agents use their own MCP config.
+- `hive mcp login docs --agent codex` (or `--agent claude`) signs that agent in
+  to an HTTP server. It needs an interactive terminal.
 
 ## Telegram bot
 

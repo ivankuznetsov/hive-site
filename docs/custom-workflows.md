@@ -25,7 +25,8 @@ reports.
 This guide builds a project-local workflow and explains its inputs, outputs,
 and approval behavior. For repository imports, see
 [Installing private workflows](/docs/private-workflows/); direct Git import
-is unreleased. New to Hive? Start with [Concepts](/docs/concepts/) and
+is available in Hive v0.8.0 and later (older builds cannot run it). New to
+Hive? Start with [Concepts](/docs/concepts/) and
 [Getting started](/docs/getting-started/).
 
 1. TOC

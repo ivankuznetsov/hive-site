@@ -29,6 +29,9 @@ hive daemon tail
 hive daemon stop
 hive daemon disable PROJECT | --all
 hive daemon reload
+hive daemon quiesce [--timeout SECONDS]
+hive daemon resume [--timeout SECONDS]
+hive daemon clear-hold PROJECT [SLUG]
 hive daemon queue [list | show <id> | prune]
 ```
 
@@ -44,14 +47,18 @@ hive daemon queue [list | show <id> | prune]
 | `tail` | Follows the daemon log. |
 | `stop` | Gracefully stops the daemon, waiting for in-flight children before escalating. Idempotent. |
 | `reload` | Reloads config at the next tick; in-flight work continues. |
-| `queue [list\|show\|prune]` | Read-only inspection of the dispatch-request queue the bot writes and the daemon consumes. |
+| `quiesce [--timeout SECONDS]` | Closes admission, drains owned work, flushes SQLite, and reports success only after it verifies a paused generation. `--timeout` defaults to 600 seconds. |
+| `resume [--timeout SECONDS]` | Reconciles the closed generation, reopens admission, and restores the managed services that were running before the pause. |
+| `clear-hold PROJECT [SLUG]` | Clears the persisted dropped-project hold for `PROJECT`, or only `SLUG`'s quarantine. Stop the daemon first. Does not accept `--json`. |
+| `queue [list\|show\|prune]` | Inspects the dispatch-request queue the bot writes and the daemon consumes. `list` (the default) and `show <id>` are read-only. `prune` deletes expired requests the daemon has not claimed yet. |
 
 Most subcommands (`stop`, `status`, `reload`, `enable`, `disable`, `install`,
-`queue`) accept `--json` and emit a typed envelope for automated callers.
+`queue`, `quiesce`, `resume`) accept `--json` and emit a typed envelope for
+automated callers. `clear-hold` does not accept `--json`.
 
 ## Key configuration
 
-Concurrency and cost caps live under `daemon:` in `~/Dev/hive/config.yml`:
+Concurrency and cost caps live under `daemon:` in the global `~/.config/hive/config.yml`:
 
 | Key | Default | Purpose |
 |-----|---------|---------|

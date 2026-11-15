@@ -13,5 +13,4 @@ permalink: /box/
 {% include box/hero.html %}
 {% include box/demo.html %}
 {% include box/how.html %}
-{% include box/install.html %}
 {% include box/cta.html %}

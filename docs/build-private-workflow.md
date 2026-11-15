@@ -13,11 +13,11 @@ This guide builds a small `weekly-brief` workflow that turns supplied notes into
 a draft and stops for human review. It needs no external API or shared database,
 so a collaborator can test it with their own Hive project and agent configuration.
 
-**Direct Git import is unreleased.** The installation steps require a Hive build
-whose `hive workflow --help` includes `--from` and `--ref`. Authoring the files
-requires no special build; importing them through this command does. See
-[Private workflow installation](/docs/private-workflows/) for availability and
-authentication details.
+**Direct Git import is available in Hive v0.8.0 and later.** Older builds cannot
+run the installation steps; check that `hive workflow --help` includes `--from`
+and `--ref`. Authoring the files requires no special build; importing them
+through this command does. See [Private workflow installation](/docs/private-workflows/)
+for availability and authentication details.
 
 1. TOC
 {:toc}
@@ -99,9 +99,9 @@ highlights. State missing information explicitly. Keep the text suitable for
 its intended audience; leave internal workflow status out of the draft.
 
 Do not publish, send messages, create another task or change project settings.
-On successful completion, end draft.md with <!-- hive:done -->.
+On successful completion, end draft.md with a final line <!-- COMPLETE -->.
 If the input cannot support a useful draft, explain the missing input in
-draft.md and omit the completion marker.
+draft.md and end it with <!-- WAITING --> instead.
 ```
 
 The completion marker lets Hive recognize successful stage work. It does not
