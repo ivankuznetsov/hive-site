@@ -9,7 +9,7 @@ layout: default
 {%- assign md_url = page.url | slice: 0, _len | append: '.md' | relative_url -%}
 <div class="llm-actions" data-md-url="{{ md_url }}">
   <a class="llm-btn" href="{{ md_url }}">View as markdown</a>
-  <button type="button" class="llm-btn llm-copy">Copy for LLM</button>
+  <button type="button" class="llm-btn llm-copy" hidden>Copy for LLM</button>
 </div>
 <div data-pagefind-body>
   {{ content }}
@@ -20,14 +20,18 @@ layout: default
     if (!actions) { return; }
     var btn = actions.querySelector(".llm-copy");
     var url = actions.getAttribute("data-md-url");
-    if (!btn || !url) { return; }
+    if (!btn || !url || !navigator.clipboard || !navigator.clipboard.writeText) { return; }
+    btn.hidden = false;
     btn.addEventListener("click", function () {
       fetch(url)
-        .then(function (r) { return r.text(); })
+        .then(function (r) {
+          if (!r.ok) { throw new Error("Markdown unavailable"); }
+          return r.text();
+        })
         .then(function (text) { return navigator.clipboard.writeText(text); })
         .then(function () {
           var original = btn.textContent;
-          btn.textContent = "Copied ✓";
+          btn.textContent = "Copied";
           btn.disabled = true;
           setTimeout(function () { btn.textContent = original; btn.disabled = false; }, 1800);
         })

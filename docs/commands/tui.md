@@ -13,7 +13,8 @@ The interactive dashboard. It's a two-pane terminal UI over `hive status`: a
 left pane of your registered projects and a right pane of their tasks, each
 showing an icon, id, name, stage, status, and age. It refreshes once a second
 and lets you drive any workflow verb with a single keystroke. This is the
-recommended way to watch and steer Hive day to day.
+terminal interface for watching and steering Hive; the native web UI provides
+an alternative.
 
 ## Usage
 
@@ -42,7 +43,7 @@ the full width.
 | `j` / `k` (or arrows) | Move the cursor within the focused pane. |
 | `1`–`9` | Scope the right pane to the Nth project; `0` returns to all projects. |
 | `Enter` | Contextual action on the selected task (edit waiting input, tail a running agent's log, open a red-status detail, or run the suggested command). |
-| `b` `p` `d` `r` `P` `F` `a` | Run brainstorm / plan / develop / review / open-pr / finalize / archive on the selected task. |
+| `b` `p` `d` `P` `r` `A` `F` `a` | Run brainstorm / plan / develop / open-pr / review / artifacts / finalize / archive on the selected task. |
 | `n` | Capture a new idea (with an image-paste composer). |
 | `i` | Open a read-only info panel for the selected task. |
 | `o` | Open the task's folder in your editor for read-only browsing. |

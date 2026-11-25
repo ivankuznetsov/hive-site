@@ -1,19 +1,18 @@
 ---
 layout: home
-title: Hive — Run AI workflows that survive
+framework_home: true
+title: Hive — durable workflows for AI agents
 nav_exclude: true
 description: >-
-  Hive is a durable, local-first workflow engine for AI agents. It turns rough
-  ideas into reviewed outcomes across pull requests, research, content, audits,
-  and operations while keeping every workflow artifact inspectable.
+  Hive is the open-source, local-first workflow engine for AI agents. Coordinate
+  coding, content, and custom workflows with saved artifacts, human decisions,
+  and recovery from recorded state.
 ---
 
 {% include landing/hero.html %}
-{% include landing/proof.html %}
+{% include landing/workflows.html %}
 {% include landing/cards.html %}
+{% include landing/proof.html %}
 {% include landing/paths.html %}
-{% include landing/cta.html %}
+{% include landing/authoring.html %}
 {% include landing/install.html %}
-{% include landing/demo.html %}
-{% include landing/pipeline.html %}
-{% include landing/fit.html %}

@@ -8,6 +8,25 @@ description: What changed in Hive, grouped by the work you do.
 
 # Changelog
 
+## Hive 0.8.0
+
+Released 27 October 2026. Read the [full release and upgrade notes](https://github.com/ivankuznetsov/hive/releases/tag/v0.8.0) before upgrading.
+
+- Claude stages now run headless as `claude -p`; `claude.mode` and the launch-mode prompt are removed.
+- Agents receive only MCP servers granted in Hive config by default. Use `hive mcp import` and grant the servers your stages need.
+- Review checks its final fixes and current CI before completing, or stops for a human when the result remains unverified.
+- Claude budgets are opt-in. Existing project caps remain effective until changed.
+- Pi 1.0.4 or newer is required.
+- Let running Claude stages finish before you upgrade. Afterwards, run `tmux ls` and stop any leftover Hive Claude session with `tmux kill-session -t <name>`.
+- Hivebox is discontinued. Use native Hive, including its local web UI (on Windows, inside WSL with systemd enabled); existing container images receive no new builds.
+
+## Hive 0.7.4
+
+- Read a daily digest of recent merged changes across your projects in Hive web or with `hive digest`, written from PR descriptions and relevant diffs by your configured agent, with links to source PRs.
+- Automatic digest generation is on by default; an explicit disabled setting is respected. Telegram delivery stays opt-in.
+- Project summaries show merged PR counts, the commits in those PRs, and lines changed, with each repository linked from its heading.
+- Fixed completed workflow tasks disappearing from the board. The Done view groups them by workflow.
+
 ## Hive 0.7.3
 
 Hive 0.7.3 makes it easier to see what your agents are doing, review their work, and keep tasks moving when a provider or process fails.
@@ -59,4 +78,4 @@ Hive 0.7.3 makes it easier to see what your agents are doing, review their work,
 
 [Earlier releases](https://github.com/ivankuznetsov/hive/releases)
 
-**Known limitation:** Built-in browser-based task capture is unavailable on Linux ARM64 because Chrome for Testing has no payload for that platform. Hivebox web and agent workflows remain available.
+**Known limitation in 0.7.3:** Built-in browser-based task capture is unavailable on Linux ARM64 because Chrome for Testing has no payload for that platform. Hivebox web and agent workflows remain available.

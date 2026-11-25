@@ -15,8 +15,7 @@ re-injects it into the next implementation pass; rejecting it drops it back out.
 
 Findings are stored as markdown checkboxes in the task's review file. `hive
 findings` reads them, and `hive accept-finding` / `hive reject-finding` flip the
-checkboxes for you, with safe atomic writes and locking so they never race a
-running task.
+checkboxes for you, using atomic writes and task locking.
 
 ## Usage
 

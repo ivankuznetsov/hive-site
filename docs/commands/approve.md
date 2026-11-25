@@ -10,10 +10,13 @@ description: Advance a task to the next stage with marker checks, locking, and a
 # hive approve
 
 Moves a task from one stage to the next and records it on Hive's state branch.
-It's the safe, agent-callable equivalent of manually `mv`-ing a task folder
-into the next stage directory — same effect, plus a marker check that stops you
-advancing unfinished work, idempotency assertions, locking, and an atomic
-move-and-commit that rolls back if the commit fails.
+It checks completion markers, supports assertions about the current stage,
+and locks the task during the move. The move-and-commit rolls back if the
+commit fails.
+
+For a `kind: human` stage, use `hive decide` to record its named outcome. See
+[Human approval](/docs/custom-workflows/#human-approval) for the decision ID and
+approve/reject commands.
 
 ## Usage
 

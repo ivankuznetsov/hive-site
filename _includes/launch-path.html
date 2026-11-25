@@ -16,7 +16,7 @@
   <div class="wrap">
     <p class="eyebrow">First run</p>
     <h2 class="section-title" id="launch-run-title">{{ path.sample_title }}</h2>
-    <p class="section-lead">Start in a clean git repository after installing Hive. Run <code>hive setup --service</code>, start a stopped daemon with <code>hive daemon start --detach</code>, and open the UI with <code>hive web start --detach</code>.</p>
+    <p class="section-lead"><a href="{{ '/docs/first-run/' | relative_url }}#prepare">Prepare Hive and a fresh local Git repository</a>, using the name <code>hive-{{ include.path_id }}-sample</code>. Run these commands from that repository.</p>
     <div class="launch-run__grid">
       <article class="launch-command">
         <p class="launch-command__label">1 · Select the workflow</p>
@@ -24,12 +24,12 @@
       </article>
       <article class="launch-command">
         <p class="launch-command__label">2 · Launch the sample</p>
-        <pre><code>hive new . {{ path.sample_input | jsonify }}</code></pre>
+        <pre><code>hive new hive-{{ include.path_id }}-sample {{ path.sample_input | jsonify | escape }}</code></pre>
       </article>
     </div>
     <article class="launch-input">
       <h3>Sample input</h3>
-      <p>{{ path.sample_input }}</p>
+      <p>{{ path.sample_input | escape }}</p>
       <p><strong>First artifact target:</strong> <code>{{ path.first_artifact }}</code>. The launch acceptance target is visible progress and this artifact within five minutes; no measured result is published yet.</p>
     </article>
   </div>
@@ -40,25 +40,24 @@
     <p class="eyebrow">The native state model</p>
     <h2 class="section-title" id="launch-journey-title">Know what happened and what to do next</h2>
     <p class="section-lead">These labels and controls come from Hive web, task actions, and status operational bands. A sample is only useful if its waiting and failure paths are as clear as success.</p>
-    <ol class="state-journey">
+    <ul class="state-journey" role="list">
       {% for state in path.journey %}
         {% assign state_id = state[0] %}
         {% assign state_detail = state[1] %}
         <li class="state-card state-card--{{ state_id | replace: '_', '-' }}">
-          <p class="state-card__step">{{ forloop.index | prepend: '00' | slice: -2, 2 }}</p>
           <h3>{{ site.data.launch_paths.state_labels[state_id] }}</h3>
           <p>{{ state_detail.detail }}</p>
           <p class="state-card__action"><strong>Action:</strong> {{ state_detail.action }}</p>
         </li>
       {% endfor %}
-    </ol>
+    </ul>
   </div>
 </section>
 
 <section class="launch-artifacts" id="artifacts" aria-labelledby="launch-artifacts-title">
   <div class="wrap">
     <p class="eyebrow">Inspectable output</p>
-    <h2 class="section-title" id="launch-artifacts-title">A memorable fixture, artifact by artifact</h2>
+    <h2 class="section-title" id="launch-artifacts-title">{{ path.name }} fixture artifacts</h2>
     <p class="section-lead">Every linked file says “Deterministic replay fixture.” Use it to understand the handoff shape, then compare it with a real clean replay.</p>
     <div class="artifact-grid">
       {% for artifact in path.artifacts %}
@@ -77,7 +76,7 @@
   <div class="wrap launch-evidence__grid">
     <div>
       <p class="eyebrow">Evidence boundary</p>
-      <h2 class="section-title" id="launch-evidence-title">Fixture proof is not live proof</h2>
+      <h2 class="section-title" id="launch-evidence-title">Replay and timing evidence</h2>
       <p>{{ path.evidence.blocker }}</p>
       <dl class="evidence-ledger">
         <div><dt>Sample output</dt><dd>Deterministic fixture</dd></div>

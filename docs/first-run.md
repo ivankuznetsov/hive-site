@@ -1,7 +1,7 @@
 ---
 title: First run — Build or Content
 layout: doc
-nav_order: 2
+nav_order: 1.5
 permalink: /docs/first-run/
 description: Choose Hive's Build or Content sample, read every native state, inspect the first artifact, and recover safely.
 ---
@@ -9,7 +9,7 @@ description: Choose Hive's Build or Content sample, read every native state, ins
 # First run — Build or Content
 {: .no_toc }
 
-Choose one outcome after you have [installed and attached Hive]({{ '/docs/getting-started/' | relative_url }}).
+Choose one outcome after you have [installed Hive]({{ '/docs/getting-started/' | relative_url }}).
 Both routes use the same local daemon, native web UI, durable task files, and
 guarded approval/recovery controls.
 
@@ -27,20 +27,26 @@ guarded approval/recovery controls.
 
 ## Prepare
 
-Use a clean git repository. Confirm the daemon and native web UI before adding
-the sample:
+Run `hive setup --no-init` and review the service setup plan. This leaves
+workflow selection to the sample's `hive init` command. Check the daemon with
+`hive daemon status`. If it is stopped, run `hive daemon start --detach`.
+Use `hive web status` to find the local UI URL. If the web service is stopped,
+start it with `hive web start --detach`.
+
+Use a fresh, local Git repository with an initial commit and no remote. For
+Build, create `hive-build-sample` as shown below. For Content, use
+`hive-content-sample` in both commands.
 
 ```bash
-hive --version
-hive setup --service
-hive daemon status || hive daemon start --detach
-hive web start --detach
+mkdir hive-build-sample
+cd hive-build-sample
+git init -b main
+git commit --allow-empty -m "Start Hive sample"
 ```
 
-The commands above return control to the shell. Initialize the repository with
-the workflow selected on the path page, then paste its exact sample into **Add
-idea**. Each path also renders a `hive new` command generated from that same
-full sample text, including its safety and publication boundaries.
+Run the `hive init` command from your chosen path and review its project
+settings. Then paste the sample into **Add idea** in Hive web or use the
+`hive new` command on the path page.
 
 ## Read the state before acting
 

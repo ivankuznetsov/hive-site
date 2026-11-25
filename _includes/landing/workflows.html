@@ -1,0 +1,41 @@
+<section id="workflows" class="fw-workflows" aria-labelledby="workflows-heading">
+  <div class="wrap">
+    <div class="fw-section-heading"><h2 id="workflows-heading">Workflow examples</h2></div>
+    <div class="workflow-app" data-workflow-app hidden>
+      <div class="workflow-tabs" role="tablist" aria-label="Choose an example workflow">
+        {% for workflow in site.data.workflow_examples %}<button id="tab-{{ workflow.id }}" type="button" role="tab" aria-controls="workflow-panel" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}" tabindex="{% if forloop.first %}0{% else %}-1{% endif %}" data-workflow="{{ workflow.id }}">{{ workflow.label }} <span>{{ workflow.badge }}</span></button>{% endfor %}
+      </div>
+      <div id="workflow-panel" role="tabpanel" aria-labelledby="tab-coding" tabindex="0">
+        <div class="workflow-package" data-package hidden><code data-install-command></code><a data-package-source></a><a href="{{ '/honeycombs/' | relative_url }}">Install and configure →</a></div>
+        <figure class="workflow-theatre" aria-label="Illustrated workflow with inspectable stage details">
+          <div class="workflow-toolbar"><span><span class="fw-hex" aria-hidden="true"></span><span data-task-name></span></span><div class="workflow-controls"><button type="button" data-overview>Overview</button><button type="button" data-play>Play example</button><button type="button" data-next>Next step <span aria-hidden="true">→</span></button><button type="button" data-interrupt>Try recovery</button></div></div>
+          <div class="workflow-scene">
+            <div class="factory-viewport">
+              <svg class="factory-svg" viewBox="0 0 1200 650" fill="none" aria-hidden="true" focusable="false">
+                <defs><pattern id="workflow-grid" width="120" height="69.28" patternUnits="userSpaceOnUse"><path d="M0 0 120 69.28M120 0 0 69.28"/></pattern></defs>
+                <g class="factory-camera"><path class="factory-ground" d="M-400-300h2000v1400H-400z" fill="url(#workflow-grid)"/><g data-belts></g><path class="factory-return" data-return hidden/><g data-machines></g>{% include landing/packet.html %}<g class="factory-bee" data-bee><use href="#factory-bee"/></g></g>
+              </svg>
+              <p class="factory-caption" data-operation></p>
+            </div>
+            <div class="workflow-inspector" id="stage-details">
+              <p class="inspector-kicker"><span data-stage-number></span><span data-stage-role></span></p>
+              <h3 data-stage-title tabindex="-1"></h3><p class="inspector-description" data-stage-body></p>
+              <div class="work-artifact"><div><span data-file></span><span data-state-label></span></div><p data-sample></p></div>
+              <div class="workflow-recovery" data-recovery hidden><p>This example is eligible to retry. Real recovery also checks safety and retry policy.</p><button class="btn btn--primary" type="button" data-retry>Retry this stage</button></div>
+              <p class="inspector-context" data-context></p>
+            </div>
+          </div>
+          <div class="workflow-saved"><span>Saved artifacts</span><ul data-saved aria-label="Saved artifacts"></ul></div>
+          <ol class="workflow-stations" data-stations aria-label="Inspect a stage"></ol>
+        </figure>
+        <p class="workflow-announcement" role="status" aria-live="polite" data-announcement></p>
+      </div>
+    </div>
+    <div class="workflow-fallback" data-workflow-fallback>
+      {% for workflow in site.data.workflow_examples %}<details {% if forloop.first %}open{% endif %}><summary>{{ workflow.label }} <span>{{ workflow.badge }}</span></summary><p>{{ workflow.summary }} {{ workflow.note }}</p>{% if workflow.install %}<p><code>{{ workflow.install }}</code><br><a href="{{ workflow.source }}">{{ workflow.label }} {{ workflow.version }} source</a> · <a href="{{ '/honeycombs/' | relative_url }}">Install and configure</a></p>{% endif %}<ol>{% for stage in workflow.stages %}<li><strong>{{ stage.name }}</strong> — {{ stage.body }} <code>{{ stage.artifact }}</code>{% if stage.id == 'inbox' %}<p>{{ stage.sample }}</p>{% endif %}</li>{% endfor %}</ol><p><strong>Result:</strong> {{ workflow.result }}. {{ workflow.completion }}</p></details>{% endfor %}
+      <p>Artifacts remain saved when an attempt stops. Recovery can retry an eligible stage from recorded state; some failures need human intervention. <a href="{{ '/docs/concepts/' | relative_url }}#durability-and-recovery">Read about durability and recovery.</a></p>
+    </div>
+    <script type="application/json" id="workflow-examples">{{ site.data.workflow_examples | jsonify }}</script>
+    <p class="workflow-library">Also built in: the separate <code>content</code> workflow and <a href="{{ '/bench/' | relative_url }}">Bench</a> for evaluation campaigns. Or install a <a href="{{ '/honeycombs/' | relative_url }}">reviewed Honeycomb</a>.</p>
+  </div>
+</section>

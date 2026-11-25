@@ -149,7 +149,8 @@ The historical OpenCode GLM 5.3 Flash (0x Alpha) campaign was withdrawn on 26 Au
 Its resolved profile allowed only Read, Write, and Edit, without Bash, and its
 target exposed held-out repository history. That row is excluded from ranking,
 active coverage, and aggregate discussion statistics. Its patch bundle remains
-available only as an explicitly invalidated audit artifact. The Bash-enabled,
+available only as an explicitly invalidated audit artifact
+([`add-i-key`]({{ '/bench/patches/v3-opencode-ox-alpha-high-20260825-r3/all-ox-alpha-opencode-high/add-i-key.patch' | relative_url }}), [`daemon`]({{ '/bench/patches/v3-opencode-ox-alpha-high-20260825-r3/all-ox-alpha-opencode-high/daemon.patch' | relative_url }}), [`fix-review`]({{ '/bench/patches/v3-opencode-ox-alpha-high-20260825-r3/all-ox-alpha-opencode-high/fix-review.patch' | relative_url }}), [`fix-tmux`]({{ '/bench/patches/v3-opencode-ox-alpha-high-20260825-r3/all-ox-alpha-opencode-high/fix-tmux.patch' | relative_url }}), [`install`]({{ '/bench/patches/v3-opencode-ox-alpha-high-20260825-r3/all-ox-alpha-opencode-high/install.patch' | relative_url }}), [`web-install`]({{ '/bench/patches/v3-opencode-ox-alpha-high-20260825-r3/all-ox-alpha-opencode-high/web-install.patch' | relative_url }})). The Bash-enabled,
 sealed Pi max campaign is published as a separate valid row.
 
 ## Current scoring

@@ -3,32 +3,31 @@ title: Custom workflows
 layout: doc
 nav_order: 6
 permalink: /docs/custom-workflows/
-description: Run Hive's three built-in workflows, install reviewed Honeycombs, or author a project workflow in YAML.
+description: Define project workflows in YAML with stage instructions, saved artifacts, agent permissions, and human approval.
 ---
 
 # Creating custom workflows
 {: .no_toc }
 
-Hive ships three workflows out of the box: `coding`, the nine-stage
-inbox → … → done pipeline that opens PRs; `content`, a research and writing
-pipeline; and `bench`, a reproducible agent-benchmark campaign. Software
-delivery is the flagship proof, not the engine's boundary.
+Hive includes `coding`, `content`, and `bench` workflows. **Writing** and
+**Architecture** are separate installable [Honeycombs](/honeycombs/), not
+built-ins. For those existing processes, start with a package:
 
-The engine underneath is generic. A workflow is nothing more than an **ordered
-list of stages described in a YAML file**. You can install reviewed,
-versioned [Honeycombs](/honeycombs/) or author your own per project in a few
-minutes. Writing. Research. Triage. Translation. A
-weekly-report generator. Any task that moves through a sequence of steps, where
-an AI agent does the work at each step, is a workflow Hive can run. You describe
-the steps; the daemon runs the pipeline.
+```bash
+hive workflow install honeycomb/writing
+hive workflow install honeycomb/architecture
+```
 
-This guide takes you from the mental model to an owner-authored workflow you can
-run today and separates that path from installing a reviewed package.
-To reuse a workflow from a repository, see
-[Installing private workflows](/docs/private-workflows/), which describes the
-unreleased direct Git importer and its setup requirements.
-If you're new to Hive's core ideas, read [Concepts](/docs/concepts/) and
-[Getting started](/docs/getting-started/) first.
+To run a different process, define its stages in a YAML descriptor and give
+each agent stage instructions. Examples include research, triage, and weekly
+reports.
+
+This guide builds a project-local workflow and explains its inputs, outputs,
+and approval behavior. For repository imports, see
+[Installing private workflows](/docs/private-workflows/); direct Git import
+is available in Hive v0.8.0 and later (older builds cannot run it). New to
+Hive? Start with [Concepts](/docs/concepts/) and
+[Getting started](/docs/getting-started/).
 
 1. TOC
 {:toc}
@@ -49,48 +48,81 @@ directory, and at any moment it lives under exactly one stage folder:
   5-done/        <- and finishes here
 ```
 
-That's the whole data model. A task's stage is *which folder it's in*. Advancing
-a task is the folder moving from `N-stage` to `N+1-stage`. There is no hidden
-database tracking state — the filesystem *is* the state.
+A task's stage is visible in its folder location. Stage documents and task
+history stay under `.hive-state/`; a machine-local SQLite runtime control plane
+also coordinates attempts, delivery, and leases. See
+[durability and recovery](/docs/concepts/#durability-and-recovery).
 
-Two things make it move:
+An **agent stage** reads earlier task files and writes its output according
+to a Markdown instruction file. The **daemon** runs ready stages and advances
+tasks in enrolled projects; it pauses for human input or recovery. Configure
+project enrollment with [`hive init`](/docs/commands/init/).
 
-- **An agent stage runs an AI agent** with an *instruction* — a markdown file
-  telling it what to do. The agent reads the task's prior files and writes the
-  stage's output file. That output becomes context for the next stage.
-- **The hive daemon advances tasks for you.** Enabled by default at
-  [`hive init`](/docs/commands/init/), it watches your projects, runs each ready
-  stage's agent, and moves the task to the next stage automatically. You
-  *author the workflow, create a task, and watch* — the daemon does the driving.
+Use [`hive run`](/docs/commands/run/) to run the current stage and
+[`hive approve`](/docs/commands/approve/) for eligible stage transitions. Use
+`hive decide` for an explicit human decision, as shown below. Prefer these
+supported commands to moving folders: they apply locking and state checks.
 
-That second point is the one to internalize. In normal use you never touch the
-folders yourself. The daemon does.
-
-Because the model is just folders, though, you *can* reach in by hand when you
-need to — [`hive run`](/docs/commands/run/) to run the current stage,
-[`hive approve`](/docs/commands/approve/) to advance it, or literally `mv` the
-folder to move it. That always works, and it's invaluable for intervention:
-stepping a stuck task, re-running one that went sideways, nudging something past
-a gate. But it's the escape hatch, not the workflow. Day to day, you create the
-task and let the daemon take it from there.
-
-A **workflow descriptor** is the YAML that names the stages and says which are
-agent stages, what each one reads and writes, and what instruction drives it.
-That file is the thing you author. Everything else follows from it.
+The **workflow descriptor** names the stages, their inputs and outputs, and
+the instruction files that each agent receives.
 
 ---
 
+## Human approval
+
+Use `kind: human` when a person must approve an artifact or return it for
+revision. This minimal custom gate also appears in the homepage's YAML section.
+It is not a stage in the installed Writing or Architecture Honeycomb:
+
+```yaml
+id: research-report
+stages:
+  - name: research
+    kind: agent
+    state_file: research.md
+    instruction: ./research-report/research.md
+  - name: synthesis
+    kind: agent
+    state_file: report.md
+    instruction: ./research-report/synthesis.md
+  - name: approval
+    kind: human
+    state_file: approval.md
+    input: report.md
+    outcomes:
+      approve: { complete: true, artifact: report.md }
+      reject: { to: synthesis }
+```
+
+Provide the two instruction files, then validate your descriptor with
+`hive workflow validate research-report --json`. When the task reaches the
+human stage, the waiting response supplies a visit-specific decision ID:
+
+```bash
+hive decide <task> approve --from approval --decision-id <decision-id>
+hive decide <task> reject --from approval --decision-id <decision-id> --note "clarify source limitations"
+```
+
+Approval requires a non-empty, regular task-local `report.md` and completes
+that result. Rejection records the decision and returns the same task to
+synthesis. Neither outcome publishes, deploys, sends, or otherwise acts outside
+Hive. External effects require a separately configured and authorized step.
+
+For the complete current descriptor contract, see the
+[v0.8.0 workflow reference](https://github.com/ivankuznetsov/hive/blob/v0.8.0/docs/workflows.md).
+
 ## Anatomy of a descriptor
 
-A descriptor is short enough to read top to bottom and understand completely.
-Here's a real one — a `writing` pipeline that takes an idea and returns a
-finished piece — fully annotated:
+This custom `writing` example has an inbox, three agent stages, and a final
+archive stage. It is not the published Writing Honeycomb. Do not install both
+under the same ID; use another ID for this descriptor if `writing` is already
+installed. Save the descriptor as `writing.yml` and provide the instruction
+files shown later in this guide:
 
 ```yaml
 id: "writing"                 # must match the filename (writing.yml) and the
                               # SAFE_SLUG rule: lowercase, starts with a letter,
-                              # [a-z0-9-]. Cannot be a built-in
-                              # (coding/content/bench).
+                              # [a-z0-9-]. Cannot be a built-in (coding/content/bench).
 stages:
   - name: inbox               # stage 1. Its folder is "1-inbox".
     kind: terminal            # terminal = no agent; a gate the task rests at.
@@ -112,52 +144,48 @@ stages:
     state_file: edit.md
     instruction: ./writing/edit.md
 
-  - name: done                # terminal is a no-agent gate. A final agent or
-    kind: terminal            # council stage is also valid when it emits a
-    state_file: done.md       # COMPLETE marker and non-empty deliverable.
+  - name: done                # this simple example ends in an inert exit gate
+    kind: terminal
+    state_file: done.md
 ```
 
-Read it once and the shape is clear: an entry gate, three agents that each do
-one job, an exit gate. The task flows top to bottom. Each agent stage names the
-file it produces and the instruction that drives it.
+Each agent stage names the file it produces and the instruction it receives.
+The task advances through the declared stages as their completion checks pass.
 
 ### Field reference
 
-Every field a stage can carry, and what it means:
+Core descriptor and stage fields:
 
 | Field | Required | Meaning |
 |---|---|---|
 | `id` | yes | Workflow id. Matches the filename stem and `SAFE_SLUG`; not a built-in. |
 | `stages` | yes | Ordered list. Indices are implicit: stage *N* lives in folder `N-<name>`. |
 | `name` | yes | Stage name (`SAFE_SLUG`). The folder is `<index>-<name>`. |
-| `kind` | yes | `agent` (runs an agent), `council` (runs a review council), or `terminal` (a gate, no agent). |
+| `kind` | yes | `agent`, `human` (explicit decision), `council`, or an inert/terminal gate. See the release reference for the full contract. |
 | `state_file` | yes | A **bare filename** (no `/`) the stage reads/writes inside the task folder. |
 | `instruction` | agent stages | Markdown file the agent is given. Relative to the descriptor. Exactly one of `instruction` or `skill`. |
 | `skill` | agent stages | A skill name to invoke instead of an inline instruction. |
 | `advance_verb` | optional | The verb that *arrives at* this stage (defaults to the stage name). The first stage must not declare one. |
-| `permissions` | optional, agent/council | Per-stage tool/permission scope (`read-only`, `scoped`, `yolo`). |
+| `permissions` | optional, agent only | Per-stage tool/permission scope (`read-only`, `scoped`, `yolo`). |
 
-The parser is strict on purpose, so a typo fails at author time instead of
-halfway through a run. The rules it enforces:
+Validation checks the descriptor before execution, including these rules:
 
 - Stage indices are `1..N` in order; names and folders are unique.
-- The last stage may be `kind: terminal`, `kind: agent`, or `kind: council`.
-  A final agent/council stage archives only after a terminal `COMPLETE` marker
-  and a non-empty deliverable.
+- The final stage must have a valid completion contract: for example a terminal gate, an agent deliverable, or a completing human outcome.
 - `state_file` is a bare basename (no `/`, not `.`/`..`).
 - Agent stages declare **exactly one** of `skill` or `instruction`.
 - `instruction` must point at a readable file.
 
-None of these are arbitrary. A final producing stage needs explicit completion
-evidence before Hive can archive it; a `state_file` with a slash in it could
-write outside the task folder. The parser catches both contracts before a run.
+Validation makes the stage contract explicit before a run. Keep state files
+inside the task folder, provide readable instructions, and declare a supported
+completion path.
 
 ---
 
 ## Creating a workflow
 
-You don't write the YAML from a blank page. Hive scaffolds it for you, and which
-command you reach for depends on one thing: whether the project already exists.
+Hive can scaffold a workflow in an existing project or initialize a project
+with a new workflow.
 
 ### A. In an existing project — `hive workflow new`
 
@@ -173,8 +201,6 @@ This scaffolds a **blank** `inbox → work → done` starter:
 ```
 .hive-state/workflows/writing.yml          # the descriptor
 .hive-state/workflows/writing/work.md       # the work-stage instruction (a stub)
-.hive-state/workflows/writing/README.md     # package summary and author metadata
-.hive-state/workflows/writing/honeycomb.yml # publish-preflight metadata
 ```
 
 and prints:
@@ -185,75 +211,47 @@ edit: .../workflows/writing/work.md (the `work` stage instruction — a placehol
 next: hive new my-project --workflow writing "<your idea>"
 ```
 
-Now **edit the instruction(s)** that the `edit:` line points at. The blank stub
-literally says *"Edit this file to define what the `work` stage should do."* —
-so if you skip this step, the agent reads that sentence and does nothing useful.
-Define the work, then create a task.
+Edit the instruction file shown on the `edit:` line before creating a task.
+The blank starter contains a placeholder, not a runnable brief.
 
 #### Seed from a sample instead of the blank stub
 
-A one-stage blank is a fine starting point when you know exactly what you're
-building. More often you want a real, multi-stage pipeline to shape, not a bare
-stub. Pass `--template`:
+Use `--template research` for a multi-stage starting point:
 
 ```bash
-hive workflow new synthesis --template research
+hive workflow new field-notes --template research
 ```
 
-This renders a curated sample descriptor with **your** id and copies its real
-stage instructions in — actual briefs, not placeholders. Pass an unknown
-template name and Hive lists what's available:
+The command copies a descriptor and stage instructions using your chosen ID.
+Review and adapt the instructions before running a task. An unknown template
+name lists the available choices:
 
 ```
 $ hive workflow new x --template bogus
 hive workflow: unknown workflow template "bogus" (available: blank, research)
 ```
 
-The two owner-authored samples that ship:
-
 | Template | Stages |
 |---|---|
 | `blank` (default) | `inbox → work → done` (one placeholder instruction) |
 | `research` | `inbox → gather → synthesize → report → done` |
 
-A multi-stage template prints `edit: <id>/ (N stage instructions to fill in)` —
-edit those to your taste, then create a task.
-
-### Install a reviewed Honeycomb
-
-Architecture, Writing, and SEO Content are full reviewed Honeycomb packages,
-not reduced scaffold templates. Preview their exact package identity,
-permissions, dependencies, and agent-slot configuration, then approve the
-install:
-
-```bash
-hive workflow install honeycomb/architecture --yes
-hive workflow install honeycomb/writing --yes
-hive workflow install honeycomb/seo-content --yes --allow-escalation
-hive workflow list
-```
-
-The public [Honeycomb catalog](/honeycombs/) links every listed package to its
-source and review evidence. Hive pins installed tasks to an immutable catalog
-commit and release digest; updates affect new tasks without invalidating task
-generations already in progress. The authoritative lifecycle and trust contract
-lives in [Hive's workflow documentation](https://github.com/ivankuznetsov/hive/blob/main/docs/workflows.md).
+In v0.8.0, Writing and Architecture are reviewed Honeycomb packages, no longer
+scaffold templates. [Browse the catalog](/honeycombs/) to inspect their
+permissions and installation instructions. The `writing` descriptor in this
+guide is a separate example you author yourself.
 
 ### B. In a fresh project — `hive init --new-workflow`
 
-Starting from nothing? Bootstrap the project *and* bind it to a custom workflow
-in a single command — no `init` → create → re-init dance:
+Initialize a project and set its default workflow in one command:
 
 ```bash
 hive init --new-workflow writing ~/Dev/my-writing
 ```
 
 This runs [`init`](/docs/commands/init/), scaffolds the `writing` descriptor and
-its blank `work.md` instruction, and sets it as the project's `default_workflow`.
-To build the multi-stage example above, edit the descriptor and add the three
-instruction files yourself; for the maintained reviewed writing package, use
-`hive workflow install honeycomb/writing --yes`. Because the owner-authored
-default is already bound, a plain
+its instructions, and sets it as the project's `default_workflow`. Edit the
+scaffolded instructions, and because the default is already bound, a plain
 [`hive new`](/docs/commands/new/) routes through it — no `--workflow` flag
 needed:
 
@@ -265,15 +263,10 @@ hive new my-writing "an essay on folder-as-agent pipelines"
 
 ## Writing stage instructions
 
-The descriptor is the skeleton. The instruction files are where the work
-actually lives — each one is a single agent's brief, and the quality of your
-pipeline is the quality of these files.
-
-There's one convention that consistently works: **tell the agent what to read
-(the prior stages' outputs) and what to produce (this stage's `state_file`).**
-You don't have to wire context by hand — earlier `.md` artifacts in the task
-folder are passed to the agent automatically. Your job is to point at the right
-ones and be specific about the output.
+Each instruction file tells an agent what to read and what to produce. Name
+the prior stages' outputs and the current stage's `state_file` explicitly.
+Earlier Markdown artifacts in the task folder are passed to the agent
+automatically, but the instructions should identify which files matter.
 
 Here are the three instructions for the `writing` pipeline.
 
@@ -312,8 +305,7 @@ fix flow and tone, verify the takeaway lands. Output the full final text.
 
 Notice how each stage builds on the last. `research` produces the outline;
 `draft` reads `research.md` and follows it; `edit` sees both `idea.md` and
-`draft.md` and polishes. The pipeline is a relay, and each instruction tells its
-runner what baton it's receiving and what it's handing off.
+`draft.md` and revises the final text.
 
 ---
 
@@ -329,68 +321,65 @@ hive new my-project --workflow writing "an essay on durable automation"
 > --workflow writing my-project "…"`. Either ordering is accepted. (If the
 > project's `default_workflow` is `writing`, drop the flag entirely.)
 
-That's the whole interaction. Hive captures your idea into `idea.md` under
-`1-inbox/`, and — with the daemon running — takes it from there. It runs
-`research`, then `draft`, then `edit`, moving the task forward one stage at a
-time until it lands in `done`. You don't touch a thing. You just watch:
+Hive saves the request in `idea.md` under `1-inbox/`. With the project enrolled
+and the daemon running, ready stages advance through research, draft, and edit.
+Inspect progress and respond when a stage needs input or recovery:
 
 ```bash
-hive status            # where every task is, across all your projects
+hive status
 ```
 
-You'll also see Hive print a manual `next:` line — something like
-`mv … && hive run <id>`. That's the fallback for when the daemon is off, or for
-when you want to step a task yourself: [`hive run <id>`](/docs/commands/run/)
-runs its current stage now, [`hive approve <id>`](/docs/commands/approve/)
-advances it, and `mv` moves the folder directly. Reach for these to intervene —
-to unstick something, re-run a stage, push past a gate. They are not the normal
-path. The normal path is: create the task, watch
-[`hive status`](/docs/commands/status/), let the daemon drive.
+The CLI also prints a manual `next:` hint for projects without daemon dispatch.
+Use [`hive run`](/docs/commands/run/) for the current stage and
+[`hive approve`](/docs/commands/approve/) for eligible transitions. Human
+decision stages use `hive decide`; moving a folder is not a substitute for
+recording that decision.
 
 ---
 
 ## A complete worked example, start to finish
 
-Here's everything above in one sequence — a fresh project to a finished essay,
-with the daemon doing the work in between:
+Create the project, replace the blank starter with the annotated descriptor
+above, and save the three instruction files before running a task:
 
 ```bash
-# 1. A fresh project bound to a blank owner-authored workflow.
-hive init --new-workflow weekly-report ~/Dev/reports
-cd ~/Dev/reports
+# 1. Initialize a project with a blank owner-authored workflow.
+hive init --new-workflow writing ~/Dev/essays
+cd ~/Dev/essays
 
-# 2. Define the one-stage starter. Expand the descriptor when you need more stages.
-$EDITOR .hive-state/workflows/weekly-report/work.md
-$EDITOR .hive-state/workflows/weekly-report.yml
+# 2. Save the descriptor and research/draft/edit instructions from this guide.
+$EDITOR .hive-state/workflows/writing.yml
+$EDITOR .hive-state/workflows/writing/{research,draft,edit}.md
+hive workflow validate writing --json
+hive workflow commit writing
 
-# 3. Create a task — no --workflow needed, the default is already bound.
-hive new reports "summarize this week's shipped work"
+# 3. Create a task using the project's default workflow.
+hive new essays "what folder-as-agent pipelines teach us about durable automation"
 
-# 4. The daemon takes it from here: inbox -> work -> done.
-hive status            # watch it move through the stages, across all projects
-# (only if you want to step it yourself: `hive run <id>`, or `mv` the folder)
+# 4. Inspect progress; the enrolled daemon advances ready stages.
+hive status
 ```
 
-When the task reaches `5-done`, `edit.md` holds your finished piece. The daemon
-got it there. You authored the workflow once and dropped in an idea — that was
-the entire job.
+When the task reaches `5-done`, inspect the finished piece in `edit.md` and its
+supporting files. If you did not enable daemon dispatch, use the manual
+commands described above.
 
 ---
 
 ## Advanced options
 
-Once the basics click, a handful of fields let you shape pipelines that go
-beyond the linear-agent default.
+Use these fields to control stage behavior and permissions.
 
 - **`kind: terminal` vs `agent`** — terminal stages are gates with no agent: the
-  entry inbox, the exit done, or any human-review pause you want to insert
-  mid-pipeline. Agent stages run the AI. Put a terminal stage between two agents
-  and the task rests there until you advance it — a built-in approval gate.
+  entry inbox, exit archive, or an inert pause. Agent stages run the AI. For
+  an explicit, recorded approval or revision decision, use
+  [`kind: human`](#human-approval).
 - **`skill` instead of `instruction`** — point a stage at a named skill rather
   than an inline markdown brief: `skill: ce-brainstorm`. Use this to reuse
   packaged behavior instead of re-describing it.
-- **Per-stage permissions** — scope an agent stage's tools so a stage can only do
-  what it needs to:
+- **Per-stage permissions** — declare the tool access an agent stage needs.
+  Enforcement depends on the selected agent profile:
+
   ```yaml
   - name: research
     kind: agent
@@ -398,6 +387,7 @@ beyond the linear-agent default.
     instruction: ./writing/research.md
     permissions: read-only        # or: { preset: scoped, tools: [Read, Grep] }
   ```
+
   Three presets: `read-only`, `scoped` (an allow-list of tools, dirs, and bash),
   and `yolo` (no scoping). A present-but-blank `permissions:` is rejected
   (fail-closed) — so you can never silently grant full access by leaving the key
@@ -409,29 +399,21 @@ beyond the linear-agent default.
 
 ---
 
-## Gotchas (learned the hard way)
-
-A few sharp edges. Each one is here because it bit someone first.
+## Before running a workflow
+{: #gotchas-learned-the-hard-way }
 
 - **Edit the scaffolded instruction before running.** A blank `hive workflow new`
-  leaves a placeholder, and running it as-is hands the agent the literal text
-  *"Edit this file…"* — which it will dutifully not act on. The `edit:` line in
-  the command output tells you exactly what to open. (Seeding with `--template`
-  sidesteps this entirely: you get real instructions.)
-- **A final agent or council must prove completion.** It needs a terminal
-  `COMPLETE` marker and a non-empty deliverable before Hive archives the task.
-- **`state_file` is a bare filename.** Something like `sub/idea.md` is rejected
-  during descriptor validation. Keep it flat: `idea.md`, `work.md`.
+  leaves a placeholder. The `edit:` line tells you what to open. Templates
+  include instructions, but still need review for your task.
+- **Declare a completion path.** A terminal gate, an agent deliverable, or a
+  completing human outcome can finish a workflow.
+- **`state_file` is a bare filename.** Keep it flat: `idea.md`, `work.md`.
 - **`id` can't shadow a built-in** (`coding`, `content`, `bench`), and it must match the
   descriptor filename.
-- **Owner-authored workflows are per project.** Hive discovers them from
+- **Custom workflows are per project.** Hive discovers them from
   `<hive_state_path>/workflows/*.yml`, and once discovered they're available to
   `hive new --workflow`, `status`, `run`, `approve`, and the daemon — the same
-  surfaces the built-ins use. Honeycombs are separately installed, versioned
-  packages selected into a project.
-- **`workflow publish` is still legacy.** It creates the older pending-review
-  package shape, not the current Honeycomb v2 catalog contract. Do not describe
-  its output as listed or installable without a separate reviewed v2 package.
+  surfaces the built-ins use.
 
 ---
 
@@ -441,13 +423,12 @@ A few sharp edges. Each one is here because it bit someone first.
   the marker protocol the pipeline runs on.
 - [Getting started](/docs/getting-started/) — install Hive and run your first
   task end to end.
-- [Command reference](/docs/commands/) — every `hive` verb, including
+- [Command reference](/docs/commands/) — workflow commands, including
   [`init`](/docs/commands/init/), [`new`](/docs/commands/new/),
   [`run`](/docs/commands/run/), [`approve`](/docs/commands/approve/), and
   [`status`](/docs/commands/status/).
-- The built-in `coding`, `content`, and `bench` workflows — full-featured
-  descriptors to learn from when your own pipeline outgrows the basics.
-- [Honeycombs](/honeycombs/) — installable workflows with package and review evidence.
+- The built-in `coding`, `content`, and `bench` workflows — full-featured descriptors to
+  learn from when your own pipeline outgrows the basics.
 
 ## Share a workflow privately
 

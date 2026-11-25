@@ -1,7 +1,7 @@
 ---
 title: FAQ
 layout: doc
-nav_order: 7
+nav_order: 9
 permalink: /docs/faq/
 description: Answers about Hive's native web UI, built-in and installable workflows, local-first state, and agent support.
 ---
@@ -11,28 +11,25 @@ description: Answers about Hive's native web UI, built-in and installable workfl
 
 ## Does Hive have a native web UI?
 
-Yes. Run `hive setup`, then `hive web` to serve the native Rails UI at
-`http://127.0.0.1:4567`. It reads and operates the same local project registry
-and workflow state as the TUI and CLI; it is not a separate hosted state store.
-The [Hive web reference](https://github.com/ivankuznetsov/hive/blob/main/wiki/commands/web.md)
-documents loopback access, GitHub login, service installation, and the separate
-Hivebox container mode.
+Yes. Run `hive setup` and then `hive web status` to check the managed UI and
+find its URL. The default is `http://127.0.0.1:4567`. The UI uses the same
+local project registry and workflow state as the TUI and CLI. The
+[web command reference]({{ '/docs/commands/web/' | relative_url }}) covers
+loopback access, sign-in, and service management.
 
 ## Is Hive only for software delivery?
 
-No. The flagship `coding` workflow is Hive's strongest public proof, not its
-boundary. Hive also ships `content` and `bench`, installs reviewed
-[Honeycomb workflows]({{ '/honeycombs/' | relative_url }}), and runs workflows
-you author for research, writing, audits, triage, and operations. The
-[workflow source documentation](https://github.com/ivankuznetsov/hive/blob/main/docs/workflows.md)
-is the authoritative contract.
+Hive ships `coding`, `content`, and `bench`. You can install reviewed
+[Honeycomb workflows]({{ '/honeycombs/' | relative_url }}) or
+[write your own workflow]({{ '/docs/custom-workflows/' | relative_url }}).
+The [Content sample]({{ '/content/' | relative_url }}) walks through
+research, drafting, and critique.
 
 ## Which agents can run stages?
 
-Hive has built-in profiles for Claude, Codex, Pi, and Grok. Projects and
-workflow descriptors can choose profiles per stage. See the
-[agent-profile reference](https://github.com/ivankuznetsov/hive/blob/main/wiki/modules/agent_profile.md)
-for the current invocation and authentication contracts.
+Hive provides profiles for Claude Code, Codex, Pi, Grok, and opt-in
+OpenCode. Configure an [agent profile]({{ '/docs/configuration/' | relative_url }}#agent-profiles)
+for each stage.
 
 ## Why folders instead of a database?
 

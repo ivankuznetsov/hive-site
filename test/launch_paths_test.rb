@@ -35,12 +35,15 @@ class LaunchPathsTest < Minitest::Test
 
   def test_first_run_guide_and_primary_navigation_link_both_paths
     guide = read("docs/first-run.md")
-    layout = read("_layouts/home.html")
+    homepage = read("index.md")
+    docs_index = read("docs/index.md")
     homepage_paths = read("_includes/landing/paths.html")
+
+    assert_includes homepage, "{% include landing/paths.html %}"
+    assert_includes docs_index, "{{ '/docs/first-run/' | relative_url }}"
 
     PATH_IDS.each do |id|
       assert_includes guide, "{{ '/#{id}/' | relative_url }}"
-      assert_includes layout, "{{ '/#{id}/' | relative_url }}"
       assert_includes homepage_paths, "{{ '/#{id}/' | relative_url }}"
     end
   end
@@ -86,10 +89,10 @@ class LaunchPathsTest < Minitest::Test
     guide = read("docs/first-run.md")
     data = YAML.safe_load_file(File.join(ROOT, "_data/launch_paths.yml"), aliases: false)
 
-    assert_includes include_body, "hive new . {{ path.sample_input | jsonify }}"
+    assert_includes include_body, "hive new hive-{{ include.path_id }}-sample {{ path.sample_input | jsonify | escape }}"
     refute_includes include_body, "path.launch_command"
-    assert_includes include_body, "hive setup --service"
-    assert_includes guide, "hive setup --service"
+    assert_includes include_body, "{{ '/docs/first-run/' | relative_url }}#prepare"
+    assert_includes guide, "hive setup --no-init"
     assert_includes data.dig("paths", "build", "sample_input"), "never expose environment variables or secrets"
     assert_includes data.dig("paths", "content", "sample_input"), "stop at a reviewable article"
   end

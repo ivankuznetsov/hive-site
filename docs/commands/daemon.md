@@ -9,11 +9,10 @@ description: The always-on dispatcher that auto-advances ready tasks through eve
 
 # hive daemon
 
-The operator surface for Hive's auto-advancing dispatcher. One long-running
-process watches every registered project and automatically dispatches the next
-workflow verb (`plan`, `develop`, `open-pr`, `review`, `artifacts`, `finalize`)
-for any task that's ready to move, then archives tasks once their PR merges.
-Reach for it when you want Hive to drive tasks forward on its own.
+Manages the background process that advances ready tasks in enrolled
+projects. In the coding workflow, it dispatches `plan`, `develop`, `open-pr`,
+`review`, `artifacts`, and `finalize`, then archives eligible completed tasks
+after their PR merges.
 
 The daemon stops at human-input gates — questions, triage, plan approval, and
 finalize while the PR is still open — so it never advances past a point that
@@ -30,6 +29,9 @@ hive daemon tail
 hive daemon stop
 hive daemon disable PROJECT | --all
 hive daemon reload
+hive daemon quiesce [--timeout SECONDS]
+hive daemon resume [--timeout SECONDS]
+hive daemon clear-hold PROJECT [SLUG]
 hive daemon queue [list | show <id> | prune]
 ```
 
@@ -45,14 +47,18 @@ hive daemon queue [list | show <id> | prune]
 | `tail` | Follows the daemon log. |
 | `stop` | Gracefully stops the daemon, waiting for in-flight children before escalating. Idempotent. |
 | `reload` | Reloads config at the next tick; in-flight work continues. |
-| `queue [list\|show\|prune]` | Read-only inspection of the dispatch-request queue the bot writes and the daemon consumes. |
+| `quiesce [--timeout SECONDS]` | Closes admission, drains owned work, flushes SQLite, and reports success only after it verifies a paused generation. `--timeout` defaults to 600 seconds. |
+| `resume [--timeout SECONDS]` | Reconciles the closed generation, reopens admission, and restores the managed services that were running before the pause. |
+| `clear-hold PROJECT [SLUG]` | Clears the persisted dropped-project hold for `PROJECT`, or only `SLUG`'s quarantine. Stop the daemon first. Does not accept `--json`. |
+| `queue [list\|show\|prune]` | Inspects the dispatch-request queue the bot writes and the daemon consumes. `list` (the default) and `show <id>` are read-only. `prune` deletes expired requests the daemon has not claimed yet. |
 
 Most subcommands (`stop`, `status`, `reload`, `enable`, `disable`, `install`,
-`queue`) accept `--json` and emit a typed envelope for automated callers.
+`queue`, `quiesce`, `resume`) accept `--json` and emit a typed envelope for
+automated callers. `clear-hold` does not accept `--json`.
 
 ## Key configuration
 
-Concurrency and cost caps live under `daemon:` in `~/Dev/hive/config.yml`:
+Concurrency and cost caps live under `daemon:` in the global `~/.config/hive/config.yml`:
 
 | Key | Default | Purpose |
 |-----|---------|---------|
@@ -68,16 +74,16 @@ Concurrency and cost caps live under `daemon:` in `~/Dev/hive/config.yml`:
 hive daemon install
 hive daemon enable my-project
 
-# Shake it down in dry-run for a while, then go live
+# Inspect dispatch decisions in dry-run before enabling work
 hive daemon start --dry-run
 hive daemon tail
 hive daemon stop
 hive daemon start --detach
 
-# Cost runaway? Stop everything, or drop one project mid-flight
+# Stop dispatch, or disable one project
 hive daemon stop
 hive daemon disable my-project
 ```
 
-See [Operating]({{ '/docs/operating/' | relative_url }}) for the full day-2
-guide: service setup, autostart, dry-run shakedown, and troubleshooting.
+See [Operating]({{ '/docs/operating/' | relative_url }}) for the service setup,
+autostart, dry runs, and troubleshooting.
