@@ -21,11 +21,13 @@ configuration, commands, and background services.
 ## Start here
 
 - **[Getting started]({{ '/docs/getting-started/' | relative_url }})** — install, `hive init`, and your first task in the local web UI or TUI.
+- **[First run]({{ '/docs/first-run/' | relative_url }})** — try the Build or Content sample and inspect its task state.
 - **[Concepts]({{ '/docs/concepts/' | relative_url }})** — folder-as-agent, the stage state machine, and the marker protocol.
 - **[Configuration]({{ '/docs/configuration/' | relative_url }})** — project config, patrol mode, reviewers, agent profiles, and the daemon.
 - **[Command reference]({{ '/docs/commands/' | relative_url }})** — commands for everyday use and recovery.
 - **[Custom workflows]({{ '/docs/custom-workflows/' | relative_url }})** — define stages, instructions, and human decisions in YAML.
 - **[Operating]({{ '/docs/operating/' | relative_url }})** — daemon, bot, and babysitter as services.
+- **[FAQ]({{ '/docs/faq/' | relative_url }})** — local web UI, workflow choices, supported agents, and OpenClaw.
 
 ## Looking for the source?
 

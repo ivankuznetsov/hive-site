@@ -124,6 +124,7 @@ from saved inputs; unresolved or unsafe failures need intervention.
 
 ## Where to go next
 
+- **[First run]({{ '/docs/first-run/' | relative_url }})** — try a Build or Content sample and inspect the artifacts it produces.
 - **[Concepts]({{ '/docs/concepts/' | relative_url }})** — artifacts, stage state, human decisions, and durability limits.
 - **[Custom workflows]({{ '/docs/custom-workflows/' | relative_url }})** — define agent stages and an explicit human gate.
 - **[Configuration]({{ '/docs/configuration/' | relative_url }})** — agents, permissions, reviewers, and limits.

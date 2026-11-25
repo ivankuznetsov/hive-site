@@ -13,5 +13,6 @@ description: >-
 {% include landing/workflows.html %}
 {% include landing/cards.html %}
 {% include landing/proof.html %}
+{% include landing/paths.html %}
 {% include landing/authoring.html %}
 {% include landing/install.html %}

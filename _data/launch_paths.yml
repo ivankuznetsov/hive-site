@@ -1,0 +1,183 @@
+state_labels:
+  launch: Add idea
+  queued: Queued for the daemon
+  running: Agent running
+  approval_waiting: Needs your input
+  provider_limit: Waiting on provider / scheduler
+  recoverable_failure: Needs recovery
+  terminal_failure: Error
+  success: Archived
+  artifact_inspection: Artifacts
+  retry_resume: Retry stage
+  next_action: Next action
+
+hive_source_revision: "354ff1c3a6eb636aaa345a8347806b540f1f9983"
+
+paths:
+  build:
+    name: Build
+    eyebrow: Software flagship
+    headline: Ship one safe, reviewable change
+    promise: Turn a bounded product idea into an inspectable plan, patch, review, and handoff without hiding the state between them.
+    workflow: coding
+    accent: honey
+    sample_title: Make health visible
+    sample_input: Starting from this empty Git repository, create a minimal Rack service with a GET /healthz endpoint that returns status, application version, and git SHA. Add a focused test, use unknown when Git metadata is unavailable, and never expose environment variables or secrets.
+    init_command: hive init . --workflow coding
+    first_artifact: brainstorm.md
+    reviewed_outcome: A reviewed patch and artifact handoff, followed by a real clean-repository test run.
+    journey:
+      launch:
+        detail: Submit the bounded health-endpoint idea in the native composer or with hive new.
+        action: Keep the sample narrow enough to review end to end.
+      queued:
+        detail: The daemon owns dispatch; wait for the authoritative task snapshot to change.
+        action: Open the task instead of submitting the same idea again.
+      running:
+        detail: The active stage writes durable files and streams logs while the task page follows along.
+        action: Look for brainstorm.md as the first inspectable artifact.
+      approval_waiting:
+        detail: Hive pauses when an answer or approval is required.
+        action: Read the current artifact before answering or approving.
+      provider_limit:
+        detail: A quota hold is preserved as dependency state; it is not success or a terminal verdict.
+        action: Wait for provider capacity and keep the task unchanged.
+      recoverable_failure:
+        detail: A bounded stage failure keeps its diagnostic and existing artifacts.
+        action: Inspect the cause, then use the guarded Retry stage control.
+      terminal_failure:
+        detail: An unrecovered Error stops the walkthrough.
+        action: Diagnose and repair the recorded cause before another run.
+      success:
+        detail: Archived means the workflow reached its terminal state with its handoff files intact.
+        action: Verify the repository diff and real test output separately.
+      artifact_inspection:
+        detail: Expand the idea, brainstorm, plan, patch, review, and artifact handoff in Hive web.
+        action: Compare each decision with the resulting diff.
+      retry_resume:
+        detail: Retry stage clears only the observed recoverable marker and queues the same stage.
+        action: Confirm the new snapshot before retrying again.
+      next_action:
+        detail: The current action label and Approve or Run stage control are the source of truth.
+        action: Replay the sample in a clean throwaway repository; the fixture stops before a pull request.
+    artifacts:
+      - label: Input
+        file: idea.md
+        description: The bounded health-endpoint request.
+        url: https://github.com/ivankuznetsov/hive/blob/354ff1c3a6eb636aaa345a8347806b540f1f9983/docs/fixtures/launch-paths/build/idea.md
+      - label: First artifact
+        file: brainstorm.md
+        description: Scope, boundaries, and the no-git fallback decision.
+        url: https://github.com/ivankuznetsov/hive/blob/354ff1c3a6eb636aaa345a8347806b540f1f9983/docs/fixtures/launch-paths/build/brainstorm.md
+      - label: Plan
+        file: plan.md
+        description: The implementation and request-test sequence.
+        url: https://github.com/ivankuznetsov/hive/blob/354ff1c3a6eb636aaa345a8347806b540f1f9983/docs/fixtures/launch-paths/build/plan.md
+      - label: Patch
+        file: patch.diff
+        description: A complete clean-repository Rack app and focused test patch.
+        url: https://github.com/ivankuznetsov/hive/blob/354ff1c3a6eb636aaa345a8347806b540f1f9983/docs/fixtures/launch-paths/build/patch.diff
+      - label: Review
+        file: review.md
+        description: One bounded correction and a truthful test caveat.
+        url: https://github.com/ivankuznetsov/hive/blob/354ff1c3a6eb636aaa345a8347806b540f1f9983/docs/fixtures/launch-paths/build/review.md
+      - label: Outcome
+        file: artifact.md
+        description: The inspectable response and clean-replay next action.
+        url: https://github.com/ivankuznetsov/hive/blob/354ff1c3a6eb636aaa345a8347806b540f1f9983/docs/fixtures/launch-paths/build/artifact.md
+    evidence:
+      sample_status: deterministic_fixture
+      live_full_replay_status: not_completed
+      observed_at: "2026-07-21T15:23:25Z"
+      live_first_artifact_time:
+      measured_full_completion_time:
+      blocker: No clean provider-backed Build replay has been run for this launch package. The fixture proves artifact shape only.
+    sources:
+      walkthrough: https://github.com/ivankuznetsov/hive/blob/354ff1c3a6eb636aaa345a8347806b540f1f9983/docs/launch-paths.md
+      workflow: https://github.com/ivankuznetsov/hive/blob/main/docs/workflows.md
+      native_web: https://github.com/ivankuznetsov/hive/blob/main/wiki/commands/web.md
+      state_contract: https://github.com/ivankuznetsov/hive/blob/main/lib/hive/task_action.rb
+
+  content:
+    name: Content
+    eyebrow: Non-coding flagship
+    headline: Turn one sharp brief into reviewed copy
+    promise: Preserve research, outline, draft, critique, and final article as separate evidence, then stop before publication.
+    workflow: content
+    accent: blue
+    sample_title: The handoff that survived a laptop restart
+    sample_input: Write a concise article about a file-backed agent handoff surviving an interruption. Cite public Hive sources, include the provider-availability limitation, and stop at a reviewable article.
+    init_command: hive init . --workflow content
+    first_artifact: research.md
+    reviewed_outcome: A source-linked article after a separate critique pass, with no automatic publication.
+    journey:
+      launch:
+        detail: Submit the source-bounded article brief in the native composer or with hive new.
+        action: Keep private corpus material out of the sample.
+      queued:
+        detail: The daemon owns dispatch; wait for the authoritative task snapshot to change.
+        action: Open the task instead of creating a duplicate brief.
+      running:
+        detail: The current content stage writes its artifact while the task page exposes state and logs.
+        action: Look for research.md as the first inspectable artifact.
+      approval_waiting:
+        detail: Hive pauses for a question or approval between durable stage artifacts.
+        action: Check sources and privacy before approving the next stage.
+      provider_limit:
+        detail: A provider hold preserves the brief and completed files; it does not count as editorial progress.
+        action: Wait for provider recovery without rewriting the task as complete.
+      recoverable_failure:
+        detail: A bounded failure leaves the current draft and diagnostic available.
+        action: Inspect the cause, then use the guarded Retry stage control.
+      terminal_failure:
+        detail: An unrecovered Error stops the walkthrough and blocks any promotion.
+        action: Diagnose and repair the cause before another run.
+      success:
+        detail: Archived means article.md exists at the terminal workflow state; it still is not publication approval.
+        action: Review the article and its sources before selecting any public destination.
+      artifact_inspection:
+        detail: Expand research, outline, draft, critique, and article.md as separate artifacts.
+        action: Trace the final claims back to research and critique.
+      retry_resume:
+        detail: Retry stage resumes the same bounded stage without discarding earlier editorial files.
+        action: Confirm the new snapshot and inspect any changed artifact.
+      next_action:
+        detail: The current action label and Approve or Run stage control are the source of truth.
+        action: Finish a clean reviewed replay, measure it, then request explicit publication approval.
+    artifacts:
+      - label: Input
+        file: idea.md
+        description: The public, synthetic article brief.
+        url: https://github.com/ivankuznetsov/hive/blob/354ff1c3a6eb636aaa345a8347806b540f1f9983/docs/fixtures/launch-paths/content/idea.md
+      - label: First artifact
+        file: research.md
+        description: Public source notes plus the durability/availability boundary.
+        url: https://github.com/ivankuznetsov/hive/blob/354ff1c3a6eb636aaa345a8347806b540f1f9983/docs/fixtures/launch-paths/content/research.md
+      - label: Outline
+        file: outline.md
+        description: A five-part interruption-to-inspection narrative.
+        url: https://github.com/ivankuznetsov/hive/blob/354ff1c3a6eb636aaa345a8347806b540f1f9983/docs/fixtures/launch-paths/content/outline.md
+      - label: Draft
+        file: draft.md
+        description: The first complete article pass.
+        url: https://github.com/ivankuznetsov/hive/blob/354ff1c3a6eb636aaa345a8347806b540f1f9983/docs/fixtures/launch-paths/content/draft.md
+      - label: Critique
+        file: critique.md
+        description: A separate editorial verdict with one revision request.
+        url: https://github.com/ivankuznetsov/hive/blob/354ff1c3a6eb636aaa345a8347806b540f1f9983/docs/fixtures/launch-paths/content/critique.md
+      - label: Outcome
+        file: article.md
+        description: An intentionally public synthetic article, not live completion.
+        url: https://github.com/ivankuznetsov/hive/blob/354ff1c3a6eb636aaa345a8347806b540f1f9983/docs/fixtures/launch-paths/content/article.md
+    evidence:
+      sample_status: deterministic_fixture
+      live_full_replay_status: not_completed
+      observed_at: "2026-07-21T15:23:25Z"
+      live_first_artifact_time:
+      measured_full_completion_time:
+      blocker: 'Two private launch-validation tasks on installed Hive 0.6.4 initially failed before research with key not found: &quot;approve&quot;. Exact supported approvals recovered the tasks without rewriting task records. At the 2026-07-21T15:23:25Z observation, one research stage had stopped at its provider budget with its artifact preserved, while one outline stage was running after a single bounded retry. Private task identifiers, attempt identifiers, costs, and artifact sizes are intentionally omitted. Reviewed completion and measured times remain unavailable.'
+    sources:
+      walkthrough: https://github.com/ivankuznetsov/hive/blob/354ff1c3a6eb636aaa345a8347806b540f1f9983/docs/launch-paths.md
+      workflow: https://github.com/ivankuznetsov/hive/blob/main/lib/hive/workflows/content.rb
+      native_web: https://github.com/ivankuznetsov/hive/blob/main/wiki/commands/web.md
+      state_contract: https://github.com/ivankuznetsov/hive/blob/main/lib/hive/operational_status.rb
